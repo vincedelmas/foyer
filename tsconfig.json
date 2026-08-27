@@ -2,16 +2,17 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "eslint.config.js",
     "prettier.config.js",
-    "vite.config.ts"
+    "vite.config.ts",
+    "vitest.config.ts"
   ],
+  "exclude": ["apps/tv", ".output", "node_modules"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",
     "module": "ESNext",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["vite/client"],
+    "types": ["vite/client", "bun"],
     "paths": {
       "@/*": ["./src/*"]
     },
@@ -19,7 +20,7 @@
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
+    "verbatimModuleSyntax": false,
     "noEmit": true,
 
     /* Linting */

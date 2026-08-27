@@ -8,44 +8,351 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root"
-import { Route as IndexRouteImport } from "./routes/index"
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as MediaIdRouteImport } from './routes/media/$id'
+import { Route as ApiV1IndexRouteImport } from './routes/api/v1/index'
+import { Route as ApiV1LibraryRouteImport } from './routes/api/v1/library'
+import { Route as ApiV1ProgressRouteImport } from './routes/api/v1/progress'
+import { Route as WatchMediaIdPartIdRouteImport } from './routes/watch/$mediaId/$partId'
+import { Route as ApiV1AdminLibrariesRouteImport } from './routes/api/v1/admin/libraries'
+import { Route as ApiV1AdminScanRouteImport } from './routes/api/v1/admin/scan'
+import { Route as ApiV1AdminSettingsRouteImport } from './routes/api/v1/admin/settings'
+import { Route as ApiV1MediaIdRouteImport } from './routes/api/v1/media/$id'
+import { Route as ApiV1StreamIdRouteImport } from './routes/api/v1/stream/$id'
+import { Route as ApiV1SubtitlesIdRouteImport } from './routes/api/v1/subtitles/$id'
+import { Route as ApiV1AdminMetadataIdentifyRouteImport } from './routes/api/v1/admin/metadata/identify'
+import { Route as ApiV1AdminMetadataRefreshRouteImport } from './routes/api/v1/admin/metadata/refresh'
+import { Route as ApiV1AdminMetadataSearchRouteImport } from './routes/api/v1/admin/metadata/search'
 
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MediaIdRoute = MediaIdRouteImport.update({
+  id: '/media/$id',
+  path: '/media/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1IndexRoute = ApiV1IndexRouteImport.update({
+  id: '/api/v1/',
+  path: '/api/v1/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1LibraryRoute = ApiV1LibraryRouteImport.update({
+  id: '/api/v1/library',
+  path: '/api/v1/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ProgressRoute = ApiV1ProgressRouteImport.update({
+  id: '/api/v1/progress',
+  path: '/api/v1/progress',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WatchMediaIdPartIdRoute = WatchMediaIdPartIdRouteImport.update({
+  id: '/watch/$mediaId/$partId',
+  path: '/watch/$mediaId/$partId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdminLibrariesRoute = ApiV1AdminLibrariesRouteImport.update({
+  id: '/api/v1/admin/libraries',
+  path: '/api/v1/admin/libraries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdminScanRoute = ApiV1AdminScanRouteImport.update({
+  id: '/api/v1/admin/scan',
+  path: '/api/v1/admin/scan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdminSettingsRoute = ApiV1AdminSettingsRouteImport.update({
+  id: '/api/v1/admin/settings',
+  path: '/api/v1/admin/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1MediaIdRoute = ApiV1MediaIdRouteImport.update({
+  id: '/api/v1/media/$id',
+  path: '/api/v1/media/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1StreamIdRoute = ApiV1StreamIdRouteImport.update({
+  id: '/api/v1/stream/$id',
+  path: '/api/v1/stream/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1SubtitlesIdRoute = ApiV1SubtitlesIdRouteImport.update({
+  id: '/api/v1/subtitles/$id',
+  path: '/api/v1/subtitles/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdminMetadataIdentifyRoute =
+  ApiV1AdminMetadataIdentifyRouteImport.update({
+    id: '/api/v1/admin/metadata/identify',
+    path: '/api/v1/admin/metadata/identify',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AdminMetadataRefreshRoute =
+  ApiV1AdminMetadataRefreshRouteImport.update({
+    id: '/api/v1/admin/metadata/refresh',
+    path: '/api/v1/admin/metadata/refresh',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1AdminMetadataSearchRoute =
+  ApiV1AdminMetadataSearchRouteImport.update({
+    id: '/api/v1/admin/metadata/search',
+    path: '/api/v1/admin/metadata/search',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute
+  '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/media/$id': typeof MediaIdRoute
+  '/api/v1/library': typeof ApiV1LibraryRoute
+  '/api/v1/progress': typeof ApiV1ProgressRoute
+  '/watch/$mediaId/$partId': typeof WatchMediaIdPartIdRoute
+  '/api/v1/': typeof ApiV1IndexRoute
+  '/api/v1/admin/libraries': typeof ApiV1AdminLibrariesRoute
+  '/api/v1/admin/scan': typeof ApiV1AdminScanRoute
+  '/api/v1/admin/settings': typeof ApiV1AdminSettingsRoute
+  '/api/v1/media/$id': typeof ApiV1MediaIdRoute
+  '/api/v1/stream/$id': typeof ApiV1StreamIdRoute
+  '/api/v1/subtitles/$id': typeof ApiV1SubtitlesIdRoute
+  '/api/v1/admin/metadata/identify': typeof ApiV1AdminMetadataIdentifyRoute
+  '/api/v1/admin/metadata/refresh': typeof ApiV1AdminMetadataRefreshRoute
+  '/api/v1/admin/metadata/search': typeof ApiV1AdminMetadataSearchRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute
+  '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/media/$id': typeof MediaIdRoute
+  '/api/v1/library': typeof ApiV1LibraryRoute
+  '/api/v1/progress': typeof ApiV1ProgressRoute
+  '/watch/$mediaId/$partId': typeof WatchMediaIdPartIdRoute
+  '/api/v1': typeof ApiV1IndexRoute
+  '/api/v1/admin/libraries': typeof ApiV1AdminLibrariesRoute
+  '/api/v1/admin/scan': typeof ApiV1AdminScanRoute
+  '/api/v1/admin/settings': typeof ApiV1AdminSettingsRoute
+  '/api/v1/media/$id': typeof ApiV1MediaIdRoute
+  '/api/v1/stream/$id': typeof ApiV1StreamIdRoute
+  '/api/v1/subtitles/$id': typeof ApiV1SubtitlesIdRoute
+  '/api/v1/admin/metadata/identify': typeof ApiV1AdminMetadataIdentifyRoute
+  '/api/v1/admin/metadata/refresh': typeof ApiV1AdminMetadataRefreshRoute
+  '/api/v1/admin/metadata/search': typeof ApiV1AdminMetadataSearchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  "/": typeof IndexRoute
+  '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/media/$id': typeof MediaIdRoute
+  '/api/v1/library': typeof ApiV1LibraryRoute
+  '/api/v1/progress': typeof ApiV1ProgressRoute
+  '/watch/$mediaId/$partId': typeof WatchMediaIdPartIdRoute
+  '/api/v1/': typeof ApiV1IndexRoute
+  '/api/v1/admin/libraries': typeof ApiV1AdminLibrariesRoute
+  '/api/v1/admin/scan': typeof ApiV1AdminScanRoute
+  '/api/v1/admin/settings': typeof ApiV1AdminSettingsRoute
+  '/api/v1/media/$id': typeof ApiV1MediaIdRoute
+  '/api/v1/stream/$id': typeof ApiV1StreamIdRoute
+  '/api/v1/subtitles/$id': typeof ApiV1SubtitlesIdRoute
+  '/api/v1/admin/metadata/identify': typeof ApiV1AdminMetadataIdentifyRoute
+  '/api/v1/admin/metadata/refresh': typeof ApiV1AdminMetadataRefreshRoute
+  '/api/v1/admin/metadata/search': typeof ApiV1AdminMetadataSearchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/"
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/media/$id'
+    | '/api/v1/library'
+    | '/api/v1/progress'
+    | '/watch/$mediaId/$partId'
+    | '/api/v1/'
+    | '/api/v1/admin/libraries'
+    | '/api/v1/admin/scan'
+    | '/api/v1/admin/settings'
+    | '/api/v1/media/$id'
+    | '/api/v1/stream/$id'
+    | '/api/v1/subtitles/$id'
+    | '/api/v1/admin/metadata/identify'
+    | '/api/v1/admin/metadata/refresh'
+    | '/api/v1/admin/metadata/search'
   fileRoutesByTo: FileRoutesByTo
-  to: "/"
-  id: "__root__" | "/"
+  to:
+    | '/'
+    | '/admin'
+    | '/media/$id'
+    | '/api/v1/library'
+    | '/api/v1/progress'
+    | '/watch/$mediaId/$partId'
+    | '/api/v1'
+    | '/api/v1/admin/libraries'
+    | '/api/v1/admin/scan'
+    | '/api/v1/admin/settings'
+    | '/api/v1/media/$id'
+    | '/api/v1/stream/$id'
+    | '/api/v1/subtitles/$id'
+    | '/api/v1/admin/metadata/identify'
+    | '/api/v1/admin/metadata/refresh'
+    | '/api/v1/admin/metadata/search'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/media/$id'
+    | '/api/v1/library'
+    | '/api/v1/progress'
+    | '/watch/$mediaId/$partId'
+    | '/api/v1/'
+    | '/api/v1/admin/libraries'
+    | '/api/v1/admin/scan'
+    | '/api/v1/admin/settings'
+    | '/api/v1/media/$id'
+    | '/api/v1/stream/$id'
+    | '/api/v1/subtitles/$id'
+    | '/api/v1/admin/metadata/identify'
+    | '/api/v1/admin/metadata/refresh'
+    | '/api/v1/admin/metadata/search'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  MediaIdRoute: typeof MediaIdRoute
+  ApiV1LibraryRoute: typeof ApiV1LibraryRoute
+  ApiV1ProgressRoute: typeof ApiV1ProgressRoute
+  WatchMediaIdPartIdRoute: typeof WatchMediaIdPartIdRoute
+  ApiV1IndexRoute: typeof ApiV1IndexRoute
+  ApiV1AdminLibrariesRoute: typeof ApiV1AdminLibrariesRoute
+  ApiV1AdminScanRoute: typeof ApiV1AdminScanRoute
+  ApiV1AdminSettingsRoute: typeof ApiV1AdminSettingsRoute
+  ApiV1MediaIdRoute: typeof ApiV1MediaIdRoute
+  ApiV1StreamIdRoute: typeof ApiV1StreamIdRoute
+  ApiV1SubtitlesIdRoute: typeof ApiV1SubtitlesIdRoute
+  ApiV1AdminMetadataIdentifyRoute: typeof ApiV1AdminMetadataIdentifyRoute
+  ApiV1AdminMetadataRefreshRoute: typeof ApiV1AdminMetadataRefreshRoute
+  ApiV1AdminMetadataSearchRoute: typeof ApiV1AdminMetadataSearchRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/": {
-      id: "/"
-      path: "/"
-      fullPath: "/"
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/media/$id': {
+      id: '/media/$id'
+      path: '/media/$id'
+      fullPath: '/media/$id'
+      preLoaderRoute: typeof MediaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/': {
+      id: '/api/v1/'
+      path: '/api/v1'
+      fullPath: '/api/v1/'
+      preLoaderRoute: typeof ApiV1IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/library': {
+      id: '/api/v1/library'
+      path: '/api/v1/library'
+      fullPath: '/api/v1/library'
+      preLoaderRoute: typeof ApiV1LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/progress': {
+      id: '/api/v1/progress'
+      path: '/api/v1/progress'
+      fullPath: '/api/v1/progress'
+      preLoaderRoute: typeof ApiV1ProgressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/watch/$mediaId/$partId': {
+      id: '/watch/$mediaId/$partId'
+      path: '/watch/$mediaId/$partId'
+      fullPath: '/watch/$mediaId/$partId'
+      preLoaderRoute: typeof WatchMediaIdPartIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/libraries': {
+      id: '/api/v1/admin/libraries'
+      path: '/api/v1/admin/libraries'
+      fullPath: '/api/v1/admin/libraries'
+      preLoaderRoute: typeof ApiV1AdminLibrariesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/scan': {
+      id: '/api/v1/admin/scan'
+      path: '/api/v1/admin/scan'
+      fullPath: '/api/v1/admin/scan'
+      preLoaderRoute: typeof ApiV1AdminScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/settings': {
+      id: '/api/v1/admin/settings'
+      path: '/api/v1/admin/settings'
+      fullPath: '/api/v1/admin/settings'
+      preLoaderRoute: typeof ApiV1AdminSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/media/$id': {
+      id: '/api/v1/media/$id'
+      path: '/api/v1/media/$id'
+      fullPath: '/api/v1/media/$id'
+      preLoaderRoute: typeof ApiV1MediaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/stream/$id': {
+      id: '/api/v1/stream/$id'
+      path: '/api/v1/stream/$id'
+      fullPath: '/api/v1/stream/$id'
+      preLoaderRoute: typeof ApiV1StreamIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/subtitles/$id': {
+      id: '/api/v1/subtitles/$id'
+      path: '/api/v1/subtitles/$id'
+      fullPath: '/api/v1/subtitles/$id'
+      preLoaderRoute: typeof ApiV1SubtitlesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/metadata/identify': {
+      id: '/api/v1/admin/metadata/identify'
+      path: '/api/v1/admin/metadata/identify'
+      fullPath: '/api/v1/admin/metadata/identify'
+      preLoaderRoute: typeof ApiV1AdminMetadataIdentifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/metadata/refresh': {
+      id: '/api/v1/admin/metadata/refresh'
+      path: '/api/v1/admin/metadata/refresh'
+      fullPath: '/api/v1/admin/metadata/refresh'
+      preLoaderRoute: typeof ApiV1AdminMetadataRefreshRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/metadata/search': {
+      id: '/api/v1/admin/metadata/search'
+      path: '/api/v1/admin/metadata/search'
+      fullPath: '/api/v1/admin/metadata/search'
+      preLoaderRoute: typeof ApiV1AdminMetadataSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -53,16 +360,32 @@ declare module "@tanstack/react-router" {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  MediaIdRoute: MediaIdRoute,
+  ApiV1LibraryRoute: ApiV1LibraryRoute,
+  ApiV1ProgressRoute: ApiV1ProgressRoute,
+  WatchMediaIdPartIdRoute: WatchMediaIdPartIdRoute,
+  ApiV1IndexRoute: ApiV1IndexRoute,
+  ApiV1AdminLibrariesRoute: ApiV1AdminLibrariesRoute,
+  ApiV1AdminScanRoute: ApiV1AdminScanRoute,
+  ApiV1AdminSettingsRoute: ApiV1AdminSettingsRoute,
+  ApiV1MediaIdRoute: ApiV1MediaIdRoute,
+  ApiV1StreamIdRoute: ApiV1StreamIdRoute,
+  ApiV1SubtitlesIdRoute: ApiV1SubtitlesIdRoute,
+  ApiV1AdminMetadataIdentifyRoute: ApiV1AdminMetadataIdentifyRoute,
+  ApiV1AdminMetadataRefreshRoute: ApiV1AdminMetadataRefreshRoute,
+  ApiV1AdminMetadataSearchRoute: ApiV1AdminMetadataSearchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from "./router.tsx"
-import type { createStart } from "@tanstack/react-start"
-declare module "@tanstack/react-start" {
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

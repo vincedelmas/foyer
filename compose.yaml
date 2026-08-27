@@ -1,0 +1,13 @@
+services:
+  ploux:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      PLOUX_DATABASE_PATH: /app/data/ploux.sqlite
+      TMDB_READ_ACCESS_TOKEN: ${TMDB_READ_ACCESS_TOKEN:-}
+      PLOUX_CORS_ORIGIN: ${PLOUX_CORS_ORIGIN:-*}
+    volumes:
+      - ./data:/app/data
+      - ${MEDIA_PATH:-/media}:/media:ro
+    restart: unless-stopped

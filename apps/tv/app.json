@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Ploux TV",
+    "slug": "ploux-tv",
+    "version": "0.1.0",
+    "orientation": "landscape",
+    "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
+    "android": {
+      "package": "com.ploux.tv",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#12110f"
+      }
+    },
+    "plugins": [
+      [
+        "@react-native-tvos/config-tv",
+        {
+          "isTV": true,
+          "androidTVRequired": true,
+          "removeFlipperOnAndroid": true,
+          "androidTVBanner": "./assets/tv-banner.png",
+          "androidTVIcon": "./assets/icon.png"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true,
+            "minSdkVersion": 24
+          }
+        }
+      ]
+    ]
+  }
+}

@@ -1,0 +1,377 @@
+import type { LibraryKind, ScanRecord } from "@ploux/contracts"
+import { eq } from "drizzle-orm"
+import { readdir, stat } from "node:fs/promises"
+import { basename, dirname, extname, relative, resolve, sep } from "node:path"
+
+import { db, ensureDatabase } from "@/server/db/index.server"
+import {
+  libraries,
+  mediaItems,
+  mediaParts,
+  scans,
+  subtitleTracks,
+  type LibraryRow,
+} from "@/server/db/schema"
+import {
+  cleanMovieTitle,
+  extensionOf,
+  inferEpisode,
+  inferYear,
+  isSubtitle,
+  isVideo,
+  mimeTypeFor,
+  normalizeTitle,
+  stableId,
+  subtitleLanguage,
+} from "./file-utils.server"
+import { autoMatchMetadata, isTmdbConfigured } from "./tmdb.server"
+
+interface DiscoveredTitle {
+  sourceKey: string
+  kind: "movie" | "series" | "anime"
+  title: string
+  year: number | null
+  videos: DiscoveredVideo[]
+}
+
+interface DiscoveredVideo {
+  path: string
+  size: number
+  modifiedAt: number
+  seasonNumber: number | null
+  episodeNumber: number | null
+  title: string | null
+  subtitles: string[]
+}
+
+const walk = async (root: string) => {
+  const files: string[] = []
+  const visit = async (directory: string) => {
+    const entries = await readdir(directory, { withFileTypes: true })
+    for (const entry of entries) {
+      if (entry.name.startsWith(".")) continue
+      const absolute = resolve(directory, entry.name)
+      if (entry.isDirectory()) await visit(absolute)
+      else if (entry.isFile() && (isVideo(absolute) || isSubtitle(absolute)))
+        files.push(absolute)
+    }
+  }
+  await visit(root)
+  return files
+}
+
+const deriveSeriesTitle = (videoPath: string, libraryPath: string) => {
+  const relativePath = relative(libraryPath, videoPath)
+  const segments = relativePath.split(sep)
+  if (segments.length > 1) return normalizeTitle(segments[0] ?? "")
+
+  return normalizeTitle(
+    basename(videoPath, extname(videoPath))
+      .replace(/\bS\d{1,2}[ ._-]*E\d{1,3}.*$/i, "")
+      .replace(/\b\d{1,2}x\d{1,3}.*$/i, "")
+      .replace(/\s+-\s+\d{1,3}.*$/, "")
+  )
+}
+
+const subtitleCandidates = (videoPath: string, subtitles: string[]) => {
+  const videoStem = basename(videoPath, extname(videoPath)).toLocaleLowerCase()
+  return subtitles.filter((subtitle) => {
+    if (dirname(subtitle) !== dirname(videoPath)) return false
+    const subtitleStem = basename(
+      subtitle,
+      extname(subtitle)
+    ).toLocaleLowerCase()
+    return (
+      subtitleStem === videoStem ||
+      subtitleStem.startsWith(`${videoStem}.`) ||
+      subtitleStem.startsWith(`${videoStem} `) ||
+      subtitleStem.startsWith(`${videoStem}-`)
+    )
+  })
+}
+
+const discoverLibrary = async (library: LibraryRow) => {
+  const files = await walk(library.path)
+  const subtitleFiles = files.filter(isSubtitle)
+  const discovered = new Map<string, DiscoveredTitle>()
+
+  for (const videoPath of files.filter(isVideo)) {
+    const episode = inferEpisode(videoPath)
+    const isSeries =
+      library.kind !== "movies" &&
+      (library.kind !== "mixed" || Boolean(episode))
+    const kind = isSeries
+      ? library.kind === "anime"
+        ? "anime"
+        : "series"
+      : "movie"
+    const relativePath = relative(library.path, videoPath)
+    const movie = cleanMovieTitle(videoPath)
+    const title = isSeries
+      ? deriveSeriesTitle(videoPath, library.path)
+      : movie.title
+    const firstSegment = relativePath.split(sep)[0] ?? relativePath
+    const sourceKey = isSeries
+      ? `show:${normalizeTitle(firstSegment).toLocaleLowerCase() || title.toLocaleLowerCase()}`
+      : `movie:${relativePath.toLocaleLowerCase()}`
+    const fileStat = await stat(videoPath)
+
+    const entry = discovered.get(sourceKey) ?? {
+      sourceKey,
+      kind,
+      title,
+      year: inferYear(firstSegment) ?? movie.year,
+      videos: [],
+    }
+    entry.videos.push({
+      path: videoPath,
+      size: fileStat.size,
+      modifiedAt: Math.round(fileStat.mtimeMs),
+      seasonNumber: episode?.seasonNumber ?? null,
+      episodeNumber: episode?.episodeNumber ?? null,
+      title: episode?.title ?? null,
+      subtitles: subtitleCandidates(videoPath, subtitleFiles),
+    })
+    discovered.set(sourceKey, entry)
+  }
+
+  return {
+    titles: [...discovered.values()],
+    filesSeen: files.filter(isVideo).length,
+  }
+}
+
+const saveDiscovery = (
+  library: LibraryRow,
+  discovery: Awaited<ReturnType<typeof discoverLibrary>>
+) => {
+  const existingItems = db
+    .select()
+    .from(mediaItems)
+    .where(eq(mediaItems.libraryId, library.id))
+    .all()
+  const existingBySource = new Map(
+    existingItems.map((item) => [item.sourceKey, item])
+  )
+  const seenPartIds: string[] = []
+  const newMediaIds: string[] = []
+  let subtitlesFound = 0
+
+  db.transaction(() => {
+    for (const title of discovery.titles) {
+      const existing = existingBySource.get(title.sourceKey)
+      const mediaId =
+        existing?.id ?? stableId("media", library.id, title.sourceKey)
+      if (!existing) newMediaIds.push(mediaId)
+
+      db.insert(mediaItems)
+        .values({
+          id: mediaId,
+          libraryId: library.id,
+          kind: title.kind,
+          title: title.title,
+          sortTitle: normalizeTitle(title.title).toLocaleLowerCase(),
+          year: title.year,
+          sourceKey: title.sourceKey,
+        })
+        .onConflictDoUpdate({
+          target: [mediaItems.libraryId, mediaItems.sourceKey],
+          set: {
+            kind: title.kind,
+            ...(existing?.metadataStatus === "unmatched"
+              ? {
+                  title: title.title,
+                  sortTitle: normalizeTitle(title.title).toLocaleLowerCase(),
+                  year: title.year,
+                }
+              : {}),
+            updatedAt: Date.now(),
+          },
+        })
+        .run()
+
+      for (const video of title.videos) {
+        const partId = stableId("part", video.path)
+        seenPartIds.push(partId)
+        db.insert(mediaParts)
+          .values({
+            id: partId,
+            mediaItemId: mediaId,
+            filePath: video.path,
+            fileName: basename(video.path),
+            mimeType: mimeTypeFor(video.path),
+            container: extensionOf(video.path).slice(1),
+            size: video.size,
+            modifiedAt: video.modifiedAt,
+            seasonNumber: video.seasonNumber,
+            episodeNumber: video.episodeNumber,
+            title: video.title,
+          })
+          .onConflictDoUpdate({
+            target: mediaParts.filePath,
+            set: {
+              mediaItemId: mediaId,
+              size: video.size,
+              modifiedAt: video.modifiedAt,
+              seasonNumber: video.seasonNumber,
+              episodeNumber: video.episodeNumber,
+              title: video.title,
+              updatedAt: Date.now(),
+            },
+          })
+          .run()
+
+        for (const subtitlePath of video.subtitles) {
+          const language = subtitleLanguage(subtitlePath, video.path)
+          subtitlesFound += 1
+          db.insert(subtitleTracks)
+            .values({
+              id: stableId("subtitle", subtitlePath),
+              mediaPartId: partId,
+              filePath: subtitlePath,
+              language: language.language,
+              label: language.label,
+              format: extensionOf(subtitlePath).slice(1),
+              isDefault: language.isDefault,
+            })
+            .onConflictDoUpdate({
+              target: subtitleTracks.filePath,
+              set: {
+                mediaPartId: partId,
+                language: language.language,
+                label: language.label,
+                isDefault: language.isDefault,
+                updatedAt: Date.now(),
+              },
+            })
+            .run()
+        }
+      }
+    }
+
+    const libraryPartRows = db
+      .select({ id: mediaParts.id })
+      .from(mediaParts)
+      .innerJoin(mediaItems, eq(mediaParts.mediaItemId, mediaItems.id))
+      .where(eq(mediaItems.libraryId, library.id))
+      .all()
+    for (const row of libraryPartRows) {
+      if (!seenPartIds.includes(row.id)) {
+        db.delete(mediaParts).where(eq(mediaParts.id, row.id)).run()
+      }
+    }
+
+    for (const item of existingItems) {
+      const remaining = db
+        .select({ id: mediaParts.id })
+        .from(mediaParts)
+        .where(eq(mediaParts.mediaItemId, item.id))
+        .get()
+      if (!remaining)
+        db.delete(mediaItems).where(eq(mediaItems.id, item.id)).run()
+    }
+  })
+
+  return { newMediaIds, subtitlesFound }
+}
+
+const scanLibrary = async (libraryId: string): Promise<ScanRecord> => {
+  ensureDatabase()
+  const library = db
+    .select()
+    .from(libraries)
+    .where(eq(libraries.id, libraryId))
+    .get()
+  if (!library) throw new Error("Library not found")
+
+  const scanId = crypto.randomUUID()
+  db.insert(scans).values({ id: scanId, libraryId }).run()
+
+  try {
+    const discovery = await discoverLibrary(library)
+    const saved = saveDiscovery(library, discovery)
+
+    if (isTmdbConfigured()) {
+      for (const mediaId of saved.newMediaIds) {
+        try {
+          await autoMatchMetadata(mediaId)
+        } catch (error) {
+          console.warn(`TMDB auto-match failed for ${mediaId}`, error)
+        }
+      }
+    }
+
+    const completedAt = Date.now()
+    db.update(scans)
+      .set({
+        status: "completed",
+        filesSeen: discovery.filesSeen,
+        titlesAdded: saved.newMediaIds.length,
+        subtitlesFound: saved.subtitlesFound,
+        completedAt,
+      })
+      .where(eq(scans.id, scanId))
+      .run()
+    return db
+      .select()
+      .from(scans)
+      .where(eq(scans.id, scanId))
+      .get() as ScanRecord
+  } catch (error) {
+    db.update(scans)
+      .set({
+        status: "failed",
+        completedAt: Date.now(),
+        error: error instanceof Error ? error.message : "Unknown scan error",
+      })
+      .where(eq(scans.id, scanId))
+      .run()
+    throw error
+  }
+}
+
+export const scanLibraries = async (libraryId?: string) => {
+  ensureDatabase()
+  const rows = libraryId
+    ? db.select().from(libraries).where(eq(libraries.id, libraryId)).all()
+    : db.select().from(libraries).all()
+  const results: ScanRecord[] = []
+  for (const library of rows) results.push(await scanLibrary(library.id))
+  return results
+}
+
+export const createLibrary = (input: {
+  name: string
+  path: string
+  kind: LibraryKind
+}) => {
+  ensureDatabase()
+  const path = resolve(input.path)
+  const id = stableId("library", path)
+  db.insert(libraries)
+    .values({ id, name: input.name, path, kind: input.kind })
+    .onConflictDoUpdate({
+      target: libraries.path,
+      set: { name: input.name, kind: input.kind, updatedAt: Date.now() },
+    })
+    .run()
+  return db.select().from(libraries).where(eq(libraries.path, path)).get()
+}
+
+export const deleteLibrary = (libraryId: string) => {
+  ensureDatabase()
+  const exists = Boolean(
+    db
+      .select({ id: libraries.id })
+      .from(libraries)
+      .where(eq(libraries.id, libraryId))
+      .get()
+  )
+  db.delete(libraries).where(eq(libraries.id, libraryId)).run()
+  return exists
+}
+
+export const listLibraries = () => {
+  ensureDatabase()
+  return db.select().from(libraries).all()
+}
