@@ -1,97 +1,85 @@
-import { Link, useLocation } from "@tanstack/react-router"
-import { ClapperboardIcon, SearchIcon, Settings2Icon } from "lucide-react"
+import {Button} from "@/components/ui/button";
+import {Link, useLocation} from "@tanstack/react-router";
+import {ClapperboardIcon, SearchIcon, Settings2Icon} from "lucide-react";
+import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/input-group";
 
-import { Button } from "@/components/ui/button"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group"
+
 const navigation = [
-  { label: "Home", kind: undefined },
-  { label: "Movies", kind: "movie" as const },
-  { label: "Series", kind: "series" as const },
-  { label: "Anime", kind: "anime" as const },
-]
+    { label: "Home", kind: undefined },
+    { label: "Movies", kind: "movie" as const },
+    { label: "Series", kind: "series" as const },
+    { label: "Anime", kind: "anime" as const },
+];
 
-export function AppHeader({
-  search,
-  onSearchChange,
-}: {
-  search?: string
-  onSearchChange?: (value: string) => void
-}) {
-  const location = useLocation()
-  const currentKind = new URLSearchParams(location.searchStr).get("kind")
 
-  return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/78 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-[100rem] items-center gap-5 px-4 sm:px-6 lg:px-10">
-        <Link
-          to="/"
-          search={{ kind: undefined, search: undefined, sort: "recent" }}
-          className="group flex shrink-0 items-center gap-2.5"
-        >
-          <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground transition-transform group-hover:-rotate-6">
-            <ClapperboardIcon className="size-4" />
-          </span>
-          <span className="font-heading text-xl font-semibold tracking-tight">
-            Ploux
-          </span>
-        </Link>
+interface AppHeaderProps {
+    search?: string
+    onSearchChange?: (value: string) => void
+}
 
-        <nav className="hidden items-center gap-1 md:flex">
-          {navigation.map((item) => (
-            <Button
-              key={item.label}
-              variant={
-                currentKind === (item.kind ?? null) && location.pathname === "/"
-                  ? "secondary"
-                  : "ghost"
-              }
-              size="sm"
-              render={
+
+export function AppHeader({ search, onSearchChange }: AppHeaderProps) {
+    const location = useLocation();
+    const currentKind = new URLSearchParams(location.searchStr).get("kind");
+
+    return (
+        <header className="sticky top-0 z-40 border-b border-border/60 bg-background/78 backdrop-blur-xl">
+            <div className="mx-auto flex h-16 max-w-[100rem] items-center gap-5 px-4 sm:px-6 lg:px-10">
                 <Link
-                  to="/"
-                  search={{
-                    kind: item.kind,
-                    search: undefined,
-                    sort: "recent",
-                  }}
-                />
-              }
-              nativeButton={false}
-            >
-              {item.label}
-            </Button>
-          ))}
-        </nav>
+                    to="/"
+                    className="group flex shrink-0 items-center gap-2.5"
+                    search={{ kind: undefined, search: undefined, sort: "recent" }}
+                >
+                    <span className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground transition-transform
+                    group-hover:-rotate-6">
+                        <ClapperboardIcon className="size-4"/>
+                    </span>
+                    <span className="font-heading text-xl font-semibold tracking-tight">
+                        Ploux
+                    </span>
+                </Link>
 
-        <div className="ml-auto flex min-w-0 items-center gap-2">
-          {onSearchChange ? (
-            <InputGroup className="hidden w-[min(28vw,22rem)] sm:flex">
-              <InputGroupAddon>
-                <SearchIcon />
-              </InputGroupAddon>
-              <InputGroupInput
-                aria-label="Search your library"
-                placeholder="Search the archive…"
-                value={search ?? ""}
-                onChange={(event) => onSearchChange(event.target.value)}
-              />
-            </InputGroup>
-          ) : null}
-          <Button
-            variant={location.pathname === "/admin" ? "secondary" : "ghost"}
-            size="icon"
-            render={<Link to="/admin" />}
-            nativeButton={false}
-            aria-label="Open administration"
-          >
-            <Settings2Icon />
-          </Button>
-        </div>
-      </div>
-    </header>
-  )
+                <nav className="hidden items-center gap-1 md:flex">
+                    {navigation.map((item) =>
+                        <Button
+                            size="sm"
+                            key={item.label}
+                            nativeButton={false}
+                            render={<Link to="/" search={{ kind: item.kind, search: undefined, sort: "recent" }}/>}
+                            variant={currentKind === (item.kind ?? null) && location.pathname === "/" ? "secondary" : "ghost"}
+                        >
+                            {item.label}
+                        </Button>
+                    )}
+                </nav>
+
+                <div className="ml-auto flex min-w-0 items-center gap-2">
+                    {onSearchChange ?
+                        <InputGroup className="hidden w-[min(28vw,22rem)] sm:flex">
+                            <InputGroupAddon>
+                                <SearchIcon/>
+                            </InputGroupAddon>
+                            <InputGroupInput
+                                value={search ?? ""}
+                                aria-label="Search your library"
+                                placeholder="Search the archive…"
+                                onChange={(ev) => onSearchChange(ev.target.value)}
+                            />
+                        </InputGroup>
+                        :
+                        null
+                    }
+                    <Button
+                        size="icon"
+                        nativeButton={false}
+                        render={<Link to="/admin"/>}
+                        aria-label="Open administration"
+                        variant={location.pathname === "/admin" ? "secondary" : "ghost"}
+                    >
+                        <Settings2Icon/>
+                    </Button>
+                </div>
+            </div>
+        </header>
+    );
 }
