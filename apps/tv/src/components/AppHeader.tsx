@@ -1,0 +1,60 @@
+import { HomeIcon, SettingsIcon } from "lucide-react-native"
+import { Image, StyleSheet, Text, View } from "react-native"
+
+import { colors, spacing } from "../theme"
+import { FocusButton } from "./FocusButton"
+
+export function AppHeader({
+  active,
+  onHome,
+  onSettings,
+}: {
+  active: "home" | "settings" | "other"
+  onHome: () => void
+  onSettings: () => void
+}) {
+  return (
+    <View style={styles.header}>
+      <View style={styles.brand}>
+        <Image source={require("../../assets/icon.png")} style={styles.logo} />
+        <Text style={styles.brandText}>Ploux</Text>
+      </View>
+      <View style={styles.navigation}>
+        <FocusButton
+          label="Home"
+          icon={HomeIcon}
+          variant={active === "home" ? "secondary" : "ghost"}
+          size="small"
+          onPress={onHome}
+        />
+      </View>
+      <FocusButton
+        label="Settings"
+        icon={SettingsIcon}
+        variant={active === "settings" ? "secondary" : "ghost"}
+        size="small"
+        onPress={onSettings}
+      />
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  header: {
+    height: 90,
+    paddingHorizontal: spacing.page,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 32,
+    backgroundColor: colors.background,
+  },
+  brand: { flexDirection: "row", alignItems: "center", gap: 12 },
+  logo: { width: 42, height: 42, borderRadius: 10 },
+  brandText: {
+    color: colors.text,
+    fontSize: 27,
+    fontWeight: "800",
+    letterSpacing: -1,
+  },
+  navigation: { flex: 1, flexDirection: "row" },
+})

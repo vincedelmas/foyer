@@ -6,8 +6,11 @@ export const colors = {
   muted: "#a59d91",
   primary: "#e69a37",
   primaryText: "#21170d",
+  rating: "#f4a340",
+  success: "#78b878",
   border: "#3a342c",
   danger: "#d85e54",
+  scrim: "rgba(0,0,0,0.76)",
   black: "#000000",
   white: "#ffffff",
 } as const

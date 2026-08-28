@@ -95,6 +95,10 @@ removes source media and indexed external subtitle files.
 The TV project is in `apps/tv`. It is configured as an Android-TV-only, landscape Expo native project using `react-native-tvos`; it is not
 intended for a store.
 
+The TV client uses the same collection-first home, currently-watching data, server-side search, per-collection watch filters, sorting,
+pagination, watch controls, collection management, metadata actions, media information, and progress APIs as the web UI. Its layouts and
+dialogs are adapted for D-pad focus instead of pointer interaction.
+
 1. Install Android Studio/SDK and enable developer mode plus USB/network debugging on the TV.
 2. Connect the device with `adb connect TV_IP:5555` if using network ADB.
 3. Build and install:

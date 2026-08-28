@@ -1,12 +1,17 @@
-import type { MediaPart, MediaSummary } from "@ploux/contracts"
+import type {
+  MediaFolderSummary,
+  MediaPart,
+  MediaSummary,
+} from "@ploux/contracts"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
 import { ActivityIndicator, StyleSheet, View } from "react-native"
 
-import { LibraryScreen } from "./src/screens/LibraryScreen"
+import { CollectionScreen } from "./src/screens/CollectionScreen"
 import { DetailScreen } from "./src/screens/DetailScreen"
+import { HomeScreen } from "./src/screens/HomeScreen"
 import { PlayerScreen } from "./src/screens/PlayerScreen"
 import { SettingsScreen } from "./src/screens/SettingsScreen"
 import { colors } from "./src/theme"
@@ -18,15 +23,24 @@ const queryClient = new QueryClient({
   },
 })
 
+type ReturnScreen =
+  | { name: "home" }
+  | { name: "collection"; folder: MediaFolderSummary }
+
 type Screen =
-  | { name: "library" }
+  | ReturnScreen
   | { name: "settings" }
-  | { name: "detail"; media: MediaSummary }
-  | { name: "player"; media: MediaSummary; part: MediaPart }
+  | { name: "detail"; media: MediaSummary; returnTo: ReturnScreen }
+  | {
+      name: "player"
+      media: MediaSummary
+      part: MediaPart
+      returnTo: ReturnScreen
+    }
 
 export default function App() {
   const [server, setServer] = useState<string | null | undefined>(undefined)
-  const [screen, setScreen] = useState<Screen>({ name: "library" })
+  const [screen, setScreen] = useState<Screen>({ name: "home" })
 
   useEffect(() => {
     void AsyncStorage.getItem(SERVER_KEY).then((saved) => {
@@ -38,7 +52,7 @@ export default function App() {
     await AsyncStorage.setItem(SERVER_KEY, value)
     queryClient.clear()
     setServer(value)
-    setScreen({ name: "library" })
+    setScreen({ name: "home" })
   }
 
   if (server === undefined) {
@@ -59,25 +73,49 @@ export default function App() {
           onSave={saveServer}
           onBack={() => undefined}
         />
-      ) : screen.name === "library" ? (
-        <LibraryScreen
+      ) : screen.name === "home" ? (
+        <HomeScreen
           server={server}
-          onOpenMedia={(media) => setScreen({ name: "detail", media })}
+          onOpenCollection={(folder) =>
+            setScreen({ name: "collection", folder })
+          }
+          onOpenMedia={(media) =>
+            setScreen({ name: "detail", media, returnTo: { name: "home" } })
+          }
+          onOpenSettings={() => setScreen({ name: "settings" })}
+        />
+      ) : screen.name === "collection" ? (
+        <CollectionScreen
+          server={server}
+          initialFolder={screen.folder}
+          onHome={() => setScreen({ name: "home" })}
+          onOpenMedia={(media) =>
+            setScreen({
+              name: "detail",
+              media,
+              returnTo: { name: "collection", folder: screen.folder },
+            })
+          }
           onOpenSettings={() => setScreen({ name: "settings" })}
         />
       ) : screen.name === "settings" ? (
         <SettingsScreen
           initialServer={server}
           onSave={saveServer}
-          onBack={() => setScreen({ name: "library" })}
+          onBack={() => setScreen({ name: "home" })}
         />
       ) : screen.name === "detail" ? (
         <DetailScreen
           server={server}
           summary={screen.media}
-          onBack={() => setScreen({ name: "library" })}
-          onPlay={(part) =>
-            setScreen({ name: "player", media: screen.media, part })
+          onBack={() => setScreen(screen.returnTo)}
+          onPlay={(part, media) =>
+            setScreen({
+              name: "player",
+              media,
+              part,
+              returnTo: screen.returnTo,
+            })
           }
         />
       ) : (
@@ -86,7 +124,13 @@ export default function App() {
           mediaId={screen.media.id}
           mediaTitle={screen.media.title}
           part={screen.part}
-          onBack={() => setScreen({ name: "detail", media: screen.media })}
+          onBack={() =>
+            setScreen({
+              name: "detail",
+              media: screen.media,
+              returnTo: screen.returnTo,
+            })
+          }
         />
       )}
     </QueryClientProvider>

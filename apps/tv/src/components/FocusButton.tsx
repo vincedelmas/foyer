@@ -15,6 +15,7 @@ export function FocusButton({
   label,
   icon: Icon,
   variant = "primary",
+  size = "default",
   style,
   onFocus,
   onBlur,
@@ -22,7 +23,8 @@ export function FocusButton({
 }: PressableProps & {
   label: string
   icon?: LucideIcon
-  variant?: "primary" | "secondary" | "ghost"
+  variant?: "primary" | "secondary" | "ghost" | "danger"
+  size?: "small" | "default"
   style?: StyleProp<ViewStyle>
 }) {
   const [focused, setFocused] = useState(false)
@@ -42,6 +44,9 @@ export function FocusButton({
         variant === "primary" && styles.primary,
         variant === "secondary" && styles.secondary,
         variant === "ghost" && styles.ghost,
+        variant === "danger" && styles.danger,
+        size === "small" && styles.small,
+        props.disabled && styles.disabled,
         focused && styles.focused,
         pressed && styles.pressed,
         style,
@@ -54,7 +59,11 @@ export function FocusButton({
         />
       ) : null}
       <Text
-        style={[styles.label, variant === "primary" && styles.primaryLabel]}
+        style={[
+          styles.label,
+          size === "small" && styles.smallLabel,
+          variant === "primary" && styles.primaryLabel,
+        ]}
       >
         {label}
       </Text>
@@ -78,6 +87,8 @@ const styles = StyleSheet.create({
   primaryLabel: { color: colors.primaryText },
   secondary: { backgroundColor: colors.surfaceRaised },
   ghost: { backgroundColor: "transparent" },
+  danger: { backgroundColor: colors.danger },
+  small: { height: 42, paddingHorizontal: 16 },
   focused: {
     borderColor: colors.white,
     transform: [{ scale: 1.06 }],
@@ -88,5 +99,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   pressed: { opacity: 0.78 },
+  disabled: { opacity: 0.42 },
   label: { color: colors.text, fontSize: 16, fontWeight: "700" },
+  smallLabel: { fontSize: 14 },
 })

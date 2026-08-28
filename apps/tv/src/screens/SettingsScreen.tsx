@@ -1,11 +1,32 @@
-import { useMutation } from "@tanstack/react-query"
-import { ArrowLeftIcon, CheckCircleIcon, ServerIcon } from "lucide-react-native"
-import { useState } from "react"
-import { StyleSheet, Text, TextInput, View } from "react-native"
+import type { LibraryRecord, MediaFolderSummary } from "@ploux/contracts"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  DatabaseIcon,
+  FilmIcon,
+  FolderPlusIcon,
+  FolderSyncIcon,
+  PencilIcon,
+  ServerIcon,
+} from "lucide-react-native"
+import { useEffect, useState } from "react"
+import {
+  ActivityIndicator,
+  BackHandler,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native"
 
 import { tvApi } from "../api"
+import { AppHeader } from "../components/AppHeader"
+import { CollectionActionsDialog } from "../components/CollectionActionsDialog"
 import { FocusButton } from "../components/FocusButton"
-import { colors } from "../theme"
+import { FocusTextInput } from "../components/FocusTextInput"
+import { LibraryFormDialog } from "../components/LibraryFormDialog"
+import { colors, spacing } from "../theme"
 
 export function SettingsScreen({
   initialServer,
@@ -31,115 +52,359 @@ export function SettingsScreen({
     }
   }
 
+  if (firstRun) {
+    return (
+      <View style={styles.firstRunScreen}>
+        <View style={styles.connectionPanel}>
+          <ServerIcon color={colors.primary} size={42} />
+          <View style={styles.copy}>
+            <Text style={styles.eyebrow}>WELCOME TO PLOUX TV</Text>
+            <Text style={styles.connectionTitle}>Find your home server</Text>
+            <Text style={styles.description}>
+              Enter the LAN address of the computer running Ploux. A physical TV cannot use localhost.
+            </Text>
+          </View>
+          <ConnectionForm
+            server={server}
+            setServer={setServer}
+            test={test}
+            saving={saving}
+            save={save}
+            preferredFocus
+          />
+        </View>
+      </View>
+    )
+  }
+
+  return (
+    <SettingsDashboard
+      server={initialServer}
+      editedServer={server}
+      setEditedServer={setServer}
+      test={test}
+      saving={saving}
+      save={save}
+      onBack={onBack}
+    />
+  )
+}
+
+function SettingsDashboard({
+  server,
+  editedServer,
+  setEditedServer,
+  test,
+  saving,
+  save,
+  onBack,
+}: {
+  server: string
+  editedServer: string
+  setEditedServer: (value: string) => void
+  test: ReturnType<typeof useMutation<{ status: string }, Error, void>>
+  saving: boolean
+  save: () => Promise<void>
+  onBack: () => void
+}) {
+  const queryClient = useQueryClient()
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editLibrary, setEditLibrary] = useState<LibraryRecord | null>(null)
+  const [collectionActions, setCollectionActions] =
+    useState<MediaFolderSummary | null>(null)
+  const settings = useQuery({
+    queryKey: ["tv-settings", server],
+    queryFn: () => tvApi.settings(server),
+  })
+  const folders = useQuery({
+    queryKey: ["tv-folders", server],
+    queryFn: () => tvApi.mediaFolders(server),
+  })
+  const library = useQuery({
+    queryKey: ["tv-library", server, "settings-stats"],
+    queryFn: () => tvApi.library(server, { page: 1, pageSize: 1 }),
+  })
+  const scanAll = useMutation({
+    mutationFn: () => tvApi.scan(server),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["tv-settings", server] }),
+        queryClient.invalidateQueries({ queryKey: ["tv-library", server] }),
+        queryClient.invalidateQueries({ queryKey: ["tv-folders", server] }),
+      ])
+    },
+  })
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        onBack()
+        return true
+      }
+    )
+    return () => subscription.remove()
+  }, [onBack])
+
+  const openActions = (record: LibraryRecord) => {
+    const folder = folders.data?.find((item) => item.id === record.id)
+    setCollectionActions(
+      folder ?? {
+        id: record.id,
+        name: record.name,
+        path: record.path,
+        kind: record.kind,
+        titleCount: 0,
+        posterPaths: [],
+      }
+    )
+  }
+
   return (
     <View style={styles.screen}>
-      <View style={styles.panel}>
-        <ServerIcon color={colors.primary} size={42} />
-        <View style={styles.copy}>
-          <Text style={styles.eyebrow}>
-            {firstRun ? "WELCOME TO PLOUX TV" : "CONNECTION"}
-          </Text>
-          <Text style={styles.title}>
-            {firstRun ? "Find your home server" : "Server settings"}
-          </Text>
-          <Text style={styles.description}>
-            Enter the address of the computer running Ploux. Use its LAN IP—not
-            localhost—from a physical TV.
-          </Text>
-        </View>
-
-        <View style={styles.field}>
-          <Text style={styles.label}>Server URL</Text>
-          <TextInput
-            style={styles.input}
-            value={server}
-            onChangeText={setServer}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-            placeholder="http://192.168.1.10:3000"
-            placeholderTextColor={colors.muted}
-            hasTVPreferredFocus={firstRun}
-          />
-        </View>
-
-        {test.isSuccess ? (
-          <Text style={styles.success}>Connected to Ploux.</Text>
-        ) : null}
-        {test.isError ? (
-          <Text style={styles.error}>{test.error.message}</Text>
-        ) : null}
-
-        <View style={styles.actions}>
-          {!firstRun ? (
-            <FocusButton
-              label="Back"
-              icon={ArrowLeftIcon}
-              variant="ghost"
-              onPress={onBack}
-            />
-          ) : null}
+      <AppHeader active="settings" onHome={onBack} onSettings={() => undefined} />
+      <ScrollView contentContainerStyle={styles.content}>
+        <FocusButton
+          label="Home"
+          icon={ArrowLeftIcon}
+          variant="ghost"
+          size="small"
+          onPress={onBack}
+          style={styles.back}
+        />
+        <View style={styles.settingsTitleRow}>
+          <View style={styles.copy}>
+            <Text style={styles.eyebrow}>PLOUX SERVER</Text>
+            <Text style={styles.heading}>Settings</Text>
+            <Text style={styles.description}>
+              Manage the server connection, collections, scans, and recent activity.
+            </Text>
+          </View>
           <FocusButton
-            label={test.isPending ? "Testing…" : "Test connection"}
+            label={scanAll.isPending ? "Scanning…" : "Scan all collections"}
+            icon={FolderSyncIcon}
             variant="secondary"
-            onPress={() => test.mutate()}
-            disabled={!server || test.isPending}
-          />
-          <FocusButton
-            label={saving ? "Saving…" : "Save and continue"}
-            icon={CheckCircleIcon}
-            onPress={() => void save()}
-            disabled={!server || saving}
+            disabled={scanAll.isPending}
+            onPress={() => scanAll.mutate()}
           />
         </View>
+
+        <View style={styles.stats}>
+          <Stat icon={FilmIcon} label="Titles" value={library.data?.stats.titles} />
+          <Stat icon={DatabaseIcon} label="Collections" value={settings.data?.libraries.length} />
+          <Stat icon={DatabaseIcon} label="Unmatched" value={library.data?.stats.unmatched} />
+          <Stat icon={DatabaseIcon} label="In progress" value={library.data?.stats.inProgress} />
+        </View>
+        {scanAll.isError ? (
+          <Text style={styles.error}>{scanAll.error.message}</Text>
+        ) : null}
+
+        <View style={styles.settingsSection}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.copy}>
+              <Text style={styles.sectionTitle}>Collections</Text>
+              <Text style={styles.description}>
+                Removing a collection never deletes media files from the server.
+              </Text>
+            </View>
+            <FocusButton
+              label="Create a new collection"
+              icon={FolderPlusIcon}
+              onPress={() => setCreateOpen(true)}
+            />
+          </View>
+          {settings.isPending ? <ActivityIndicator color={colors.primary} size="large" /> : null}
+          {settings.isError ? <Text style={styles.error}>{settings.error.message}</Text> : null}
+          <View style={styles.libraryList}>
+            {settings.data?.libraries.map((record) => (
+              <View key={record.id} style={styles.libraryRow}>
+                <View style={styles.libraryCopy}>
+                  <Text style={styles.libraryName}>{record.name}</Text>
+                  <Text numberOfLines={1} style={styles.path}>{record.path}</Text>
+                </View>
+                <Text style={styles.kind}>{record.kind === "movies" ? "Movies" : "TV shows"}</Text>
+                <FocusButton
+                  label="Edit"
+                  icon={PencilIcon}
+                  variant="ghost"
+                  size="small"
+                  onPress={() => setEditLibrary(record)}
+                />
+                <FocusButton
+                  label="Manage"
+                  variant="secondary"
+                  size="small"
+                  onPress={() => openActions(record)}
+                />
+              </View>
+            ))}
+            {settings.data && !settings.data.libraries.length ? (
+              <Text style={styles.emptyText}>No collections have been added yet.</Text>
+            ) : null}
+          </View>
+        </View>
+
+        <View style={styles.settingsSection}>
+          <View style={styles.copy}>
+            <Text style={styles.sectionTitle}>Server connection</Text>
+            <Text style={styles.description}>
+              Change the Ploux server used by this TV.
+            </Text>
+          </View>
+          <View style={styles.connectionInline}>
+            <ConnectionForm
+              server={editedServer}
+              setServer={setEditedServer}
+              test={test}
+              saving={saving}
+              save={save}
+            />
+          </View>
+        </View>
+
+        <View style={styles.settingsSection}>
+          <View style={styles.copy}>
+            <Text style={styles.sectionTitle}>Recent scans</Text>
+            <Text style={styles.description}>The latest indexing jobs on this server.</Text>
+          </View>
+          <View style={styles.scanList}>
+            {settings.data?.scans.map((scan) => (
+              <View key={scan.id} style={styles.scanRow}>
+                <View style={styles.libraryCopy}>
+                  <Text style={styles.libraryName}>
+                    {scan.status === "completed"
+                      ? `${scan.filesSeen} files indexed`
+                      : scan.status === "running"
+                        ? "Scan in progress"
+                        : "Scan failed"}
+                  </Text>
+                  <Text style={styles.path}>
+                    {new Date(scan.startedAt).toLocaleString()} · {scan.titlesAdded} new titles · {scan.subtitlesFound} subtitles
+                  </Text>
+                </View>
+                <Text style={[styles.status, scan.status === "failed" && styles.statusFailed]}>{scan.status}</Text>
+              </View>
+            ))}
+            {settings.data && !settings.data.scans.length ? (
+              <Text style={styles.emptyText}>No scans have run yet.</Text>
+            ) : null}
+          </View>
+        </View>
+      </ScrollView>
+
+      <LibraryFormDialog server={server} visible={createOpen} onClose={() => setCreateOpen(false)} />
+      <LibraryFormDialog server={server} library={editLibrary} visible={editLibrary !== null} onClose={() => setEditLibrary(null)} />
+      <CollectionActionsDialog
+        server={server}
+        folder={collectionActions}
+        visible={collectionActions !== null}
+        onClose={() => setCollectionActions(null)}
+      />
+    </View>
+  )
+}
+
+function ConnectionForm({
+  server,
+  setServer,
+  test,
+  saving,
+  save,
+  preferredFocus = false,
+}: {
+  server: string
+  setServer: (value: string) => void
+  test: ReturnType<typeof useMutation<{ status: string }, Error, void>>
+  saving: boolean
+  save: () => Promise<void>
+  preferredFocus?: boolean
+}) {
+  return (
+    <View style={styles.connectionForm}>
+      <FocusTextInput
+        label="Server URL"
+        value={server}
+        onChangeText={setServer}
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType="url"
+        placeholder="http://192.168.1.10:3000"
+        hasTVPreferredFocus={preferredFocus}
+      />
+      {test.isSuccess ? <Text style={styles.success}>Connected to Ploux.</Text> : null}
+      {test.isError ? <Text style={styles.error}>{test.error.message}</Text> : null}
+      <View style={styles.actions}>
+        <FocusButton
+          label={test.isPending ? "Testing…" : "Test connection"}
+          variant="secondary"
+          onPress={() => test.mutate()}
+          disabled={!server || test.isPending}
+        />
+        <FocusButton
+          label={saving ? "Saving…" : "Save connection"}
+          icon={CheckCircleIcon}
+          onPress={() => void save()}
+          disabled={!server || saving}
+        />
       </View>
     </View>
   )
 }
 
+function Stat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof FilmIcon
+  label: string
+  value: number | undefined
+}) {
+  return (
+    <View style={styles.stat}>
+      <View style={styles.statHeader}>
+        <Text style={styles.statLabel}>{label}</Text>
+        <Icon color={colors.muted} size={18} />
+      </View>
+      <Text style={styles.statValue}>{value ?? "—"}</Text>
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  panel: {
-    width: 760,
-    padding: 54,
-    borderRadius: 22,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: 28,
-  },
-  copy: { gap: 9 },
-  eyebrow: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 2,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 40,
-    fontWeight: "800",
-    letterSpacing: -1,
-  },
-  description: { color: colors.muted, fontSize: 16, lineHeight: 25 },
-  field: { gap: 9 },
-  label: { color: colors.text, fontSize: 14, fontWeight: "700" },
-  input: {
-    height: 58,
-    paddingHorizontal: 18,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-    color: colors.text,
-    fontSize: 18,
-  },
-  success: { color: colors.primary, fontSize: 14, fontWeight: "700" },
-  error: { color: colors.danger, fontSize: 14 },
+  screen: { flex: 1, backgroundColor: colors.background },
+  firstRunScreen: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background },
+  content: { paddingHorizontal: spacing.page, paddingBottom: 90, gap: 44 },
+  back: { alignSelf: "flex-start", marginTop: 10 },
+  connectionPanel: { width: 760, padding: 54, borderRadius: 22, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 28 },
+  copy: { gap: 8 },
+  eyebrow: { color: colors.primary, fontSize: 12, fontWeight: "900", letterSpacing: 2 },
+  connectionTitle: { color: colors.text, fontSize: 40, fontWeight: "800", letterSpacing: -1 },
+  heading: { color: colors.text, fontSize: 58, lineHeight: 62, fontWeight: "800", letterSpacing: -1.5 },
+  description: { color: colors.muted, fontSize: 15, lineHeight: 23 },
+  settingsTitleRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 30 },
+  stats: { flexDirection: "row", gap: 16 },
+  stat: { flex: 1, minHeight: 130, padding: 21, borderRadius: 15, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, gap: 17 },
+  statHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  statLabel: { color: colors.muted, fontSize: 13 },
+  statValue: { color: colors.text, fontSize: 38, fontWeight: "800" },
+  settingsSection: { padding: 28, gap: 22, borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  sectionHeader: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 24 },
+  sectionTitle: { color: colors.text, fontSize: 31, fontWeight: "800" },
+  libraryList: { gap: 8 },
+  libraryRow: { minHeight: 76, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", gap: 14, borderRadius: 12, backgroundColor: colors.surfaceRaised },
+  libraryCopy: { flex: 1, gap: 5 },
+  libraryName: { color: colors.text, fontSize: 16, fontWeight: "800" },
+  path: { color: colors.muted, fontSize: 12 },
+  kind: { color: colors.text, fontSize: 12, fontWeight: "800", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 13, backgroundColor: colors.background },
+  connectionInline: { maxWidth: 850 },
+  connectionForm: { gap: 15 },
   actions: { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
+  success: { color: colors.success, fontSize: 13, fontWeight: "700" },
+  error: { color: colors.danger, fontSize: 13 },
+  scanList: { gap: 8 },
+  scanRow: { minHeight: 70, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", gap: 16, borderRadius: 12, backgroundColor: colors.surfaceRaised },
+  status: { color: colors.primary, fontSize: 11, fontWeight: "900", textTransform: "uppercase" },
+  statusFailed: { color: colors.danger },
+  emptyText: { color: colors.muted, textAlign: "center", paddingVertical: 30 },
 })

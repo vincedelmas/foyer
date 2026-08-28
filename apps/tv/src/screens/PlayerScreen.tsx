@@ -41,6 +41,7 @@ export function PlayerScreen({
         queryKey: ["tv-media", server, mediaId],
       })
       void queryClient.invalidateQueries({ queryKey: ["tv-library", server] })
+      void queryClient.invalidateQueries({ queryKey: ["tv-watching", server] })
     },
   })
 
