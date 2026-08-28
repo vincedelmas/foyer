@@ -25,7 +25,6 @@ jobs:
       PLOUX_TV_VERSION: ${{ inputs.version }}
       PLOUX_TV_VERSION_CODE: ${{ github.run_number }}
       EXPO_PUBLIC_PLOUX_TV_REPOSITORY: ${{ github.repository }}
-      PLOUX_TV_KEYSTORE_PATH: ${{ runner.temp }}/ploux-tv-release.p12
       PLOUX_TV_KEYSTORE_PASSWORD: ${{ secrets.PLOUX_TV_KEYSTORE_PASSWORD }}
       PLOUX_TV_KEY_ALIAS: ${{ secrets.PLOUX_TV_KEY_ALIAS }}
       PLOUX_TV_KEY_PASSWORD: ${{ secrets.PLOUX_TV_KEY_PASSWORD }}
@@ -53,6 +52,10 @@ jobs:
         env:
           PLOUX_TV_KEYSTORE_BASE64: ${{ secrets.PLOUX_TV_KEYSTORE_BASE64 }}
         run: |
+          PLOUX_TV_KEYSTORE_PATH="$RUNNER_TEMP/ploux-tv-release.p12"
+          export PLOUX_TV_KEYSTORE_PATH
+          echo "PLOUX_TV_KEYSTORE_PATH=$PLOUX_TV_KEYSTORE_PATH" >> "$GITHUB_ENV"
+
           if [[ ! "$PLOUX_TV_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
             echo "::error::Version must look like 0.2.0"
             exit 1
