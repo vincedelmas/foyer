@@ -46,7 +46,7 @@ function HomePage() {
                             render={<Link to="/settings"/>}
                         >
                             <FolderPlusIcon data-icon="inline-start"/>
-                            Add media folder
+                            Create a new collection
                         </Button>
                     </div>
 
@@ -91,7 +91,7 @@ function HomePage() {
                             <EmptyContent>
                                 <Button nativeButton={false} render={<Link to="/settings"/>}>
                                     <FolderPlusIcon data-icon="inline-start"/>
-                                    Add your first folder
+                                    Create your first collection
                                 </Button>
                             </EmptyContent>
                         </Empty>

@@ -1,21 +1,31 @@
-import type {CSSProperties, ReactNode} from "react";
+import type {CSSProperties} from "react";
 import {Link} from "@tanstack/react-router";
 import {Badge} from "@/components/ui/badge";
 import {FilmIcon, PlayIcon} from "lucide-react";
 import {Progress} from "@/components/ui/progress";
-import {MediaSummary, tmdbImage} from "@ploux/contracts";
+import {formatRuntime, MediaSummary, tmdbImage} from "@ploux/contracts";
+import {MediaActionsMenu} from "@/components/media-actions-menu";
+import {MediaWatchToggle} from "@/components/media-watch-toggle";
 
 
 export function MediaCard({
     item,
     index = 0,
-    actions,
 }: {
     item: MediaSummary
     index?: number
-    actions?: ReactNode
 }) {
     const poster = tmdbImage(item.posterPath, "w500");
+    const cardMetadata = [
+        item.year ?? "Unknown year",
+        ...(item.kind === "movie" && item.runtimeMinutes
+            ? [formatRuntime(item.runtimeMinutes)]
+            : []),
+        item.kind === "movie" ? "Movie" : "TV show",
+        ...(item.kind !== "movie"
+            ? [`${item.partCount} ${item.partCount === 1 ? "ep." : "eps."}`]
+            : []),
+    ]
 
     return (
         <article
@@ -31,7 +41,7 @@ export function MediaCard({
             >
                 <div
                     className="poster-shadow relative aspect-2/3 overflow-hidden rounded-xl bg-muted ring-1 ring-border transition duration-300
-                    group-hover/poster:-translate-y-1.5 group-hover/poster:ring-primary/60 group-focus-visible/poster:ring-2 group-focus-visible/poster:ring-ring">
+                    group-hover/poster:ring-primary/60 group-focus-visible/poster:ring-2 group-focus-visible/poster:ring-ring">
                     {poster ?
                         <img
                             alt=""
@@ -53,13 +63,13 @@ export function MediaCard({
                         <PlayIcon className="size-4 fill-current"/>
                     </span>
 
-                    {item.metadataStatus === "unmatched" &&
-                        <Badge variant="secondary" className="absolute top-3 left-3">
-                            Unmatched
-                        </Badge>
-                    }
+                    <div className="absolute top-12 left-3 flex flex-col items-start gap-1.5">
+                        {item.metadataStatus === "unmatched" ? (
+                            <Badge variant="secondary">Unmatched</Badge>
+                        ) : null}
+                    </div>
 
-                    {item.progress && item.progress.positionSeconds > 0 &&
+                    {item.progress && item.progress.positionSeconds > 0 && !item.progress.completed &&
                         <Progress
                             value={item.progress.percentage}
                             className="absolute right-2 bottom-2 left-2 h-1"
@@ -67,9 +77,12 @@ export function MediaCard({
                     }
                 </div>
             </Link>
-            {actions ? (
-                <div className="absolute top-2 right-2">{actions}</div>
-            ) : null}
+            <div className="absolute top-2 left-2">
+                <MediaWatchToggle item={item}/>
+            </div>
+            <div className="absolute top-2 right-2">
+                <MediaActionsMenu item={item}/>
+            </div>
             <div className="mt-3 min-w-0 px-0.5">
                 <Link to="/media/$id" params={{id: item.id}} className="outline-none">
                     <h3 className="truncate text-sm font-semibold tracking-tight">
@@ -77,8 +90,7 @@ export function MediaCard({
                     </h3>
                 </Link>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                    {item.year ?? "Unknown year"} ·{" "}
-                    {item.kind === "movie" ? "Movie" : "TV show"}
+                    {cardMetadata.join(" · ")}
                 </p>
             </div>
         </article>

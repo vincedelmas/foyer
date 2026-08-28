@@ -38,7 +38,7 @@ export const apiError = (error: unknown) => {
         ? 400
         : /not found/i.test(message)
             ? 404
-            : /not configured/i.test(message)
+            : /not configured|identify .* before/i.test(message)
                 ? 409
                 : 500;
 

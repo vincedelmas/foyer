@@ -1,11 +1,9 @@
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query"
 import {createFileRoute} from "@tanstack/react-router"
-import {DatabaseIcon, FilmIcon, FolderSyncIcon, LibraryIcon, ScanSearchIcon, SparklesIcon,} from "lucide-react"
+import {DatabaseIcon, FilmIcon, FolderSyncIcon, LibraryIcon, SparklesIcon,} from "lucide-react"
 import {AppHeader} from "@/components/app-header"
 import {LibrariesTable} from "@/components/settings/libraries-table"
 import {LibraryForm} from "@/components/settings/library-form"
-import {TmdbForm} from "@/components/settings/tmdb-form"
-import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert"
 import {Badge} from "@/components/ui/badge"
 import {Button} from "@/components/ui/button"
 import {Card, CardContent, CardDescription, CardHeader, CardTitle,} from "@/components/ui/card"
@@ -62,7 +60,8 @@ function SettingsPage() {
                         </h1>
                         <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
                             Create your media folders, point them at the server, and keep
-                            metadata tidy. Your files are always read-only.
+                            metadata tidy. Files are only removed after an explicit
+                            permanent-delete confirmation.
                         </p>
                     </div>
                     <Button
@@ -77,16 +76,6 @@ function SettingsPage() {
                         Scan all folders
                     </Button>
                 </div>
-
-                <Alert>
-                    <ScanSearchIcon/>
-                    <AlertTitle>Built for a trusted home network</AlertTitle>
-                    <AlertDescription>
-                        Ploux has no accounts or permission system. Do not expose it
-                        directly to the public internet without an authenticated reverse
-                        proxy.
-                    </AlertDescription>
-                </Alert>
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <StatCard
@@ -114,7 +103,6 @@ function SettingsPage() {
                 <Tabs defaultValue="libraries" className="gap-6">
                     <TabsList variant="line">
                         <TabsTrigger value="libraries">Media folders</TabsTrigger>
-                        <TabsTrigger value="metadata">Metadata</TabsTrigger>
                         <TabsTrigger value="activity">Activity</TabsTrigger>
                     </TabsList>
 
@@ -154,30 +142,6 @@ function SettingsPage() {
                                 </CardContent>
                             </Card>
                         </div>
-                    </TabsContent>
-
-                    <TabsContent value="metadata">
-                        <Card className="max-w-2xl">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    TMDB connection{" "}
-                                    {settings.data?.tmdbConfigured ? (
-                                        <Badge>Connected</Badge>
-                                    ) : (
-                                        <Badge variant="secondary">Not configured</Badge>
-                                    )}
-                                </CardTitle>
-                                <CardDescription>
-                                    Used for posters, synopses, cast, seasons, ratings, and
-                                    runtime. Artwork is loaded from TMDB&apos;s image CDN.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <TmdbForm
-                                    environmentManaged={settings.data?.tmdbSource === "environment"}
-                                />
-                            </CardContent>
-                        </Card>
                     </TabsContent>
 
                     <TabsContent value="activity">

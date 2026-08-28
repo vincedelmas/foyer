@@ -84,6 +84,7 @@ function DirectPlayer({
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: ["media", mediaId] })
             void queryClient.invalidateQueries({ queryKey: ["library"] })
+            void queryClient.invalidateQueries({ queryKey: ["currently-watching"] })
         },
     })
 

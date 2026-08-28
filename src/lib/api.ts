@@ -1,4 +1,4 @@
-import type {LibraryKind, LibraryRecord, LibraryResponse, MediaDetail, MediaFolderSummary, MediaKind, MediaSort, MediaSummary, MetadataRefreshSummary, ScanRecord, TmdbCandidate} from "@ploux/contracts";
+import type {LibraryKind, LibraryRecord, LibraryResponse, MediaDeleteResult, MediaDetail, MediaFolderSummary, MediaInfo, MediaKind, MediaSort, MediaSummary, MediaWatchFilter, MetadataRefreshSummary, ScanRecord, TmdbCandidate} from "@ploux/contracts";
 
 
 class ApiError extends Error {
@@ -38,6 +38,7 @@ export const api = {
         libraryId?: string
         kind?: MediaKind
         search?: string
+        watch?: MediaWatchFilter
         sort?: MediaSort
         page?: number
         pageSize?: number
@@ -46,6 +47,7 @@ export const api = {
         if (input.libraryId) query.set("libraryId", input.libraryId)
         if (input.kind) query.set("kind", input.kind)
         if (input.search) query.set("search", input.search)
+        if (input.watch && input.watch !== "all") query.set("watch", input.watch)
         if (input.sort) query.set("sort", input.sort)
         if (input.page) query.set("page", String(input.page))
         if (input.pageSize) query.set("pageSize", String(input.pageSize))
@@ -54,6 +56,22 @@ export const api = {
     mediaFolders: () => request<MediaFolderSummary[]>("/api/v1/libraries"),
     currentlyWatching: () => request<MediaSummary[]>("/api/v1/progress"),
     media: (id: string) => request<MediaDetail>(`/api/v1/media/${id}`),
+    mediaInfo: (id: string) => request<MediaInfo>(`/api/v1/media/${id}?view=info`),
+    setMediaWatched: (id: string, watched: boolean) =>
+        request<{watched: boolean; updatedParts: number}>(`/api/v1/media/${id}`, {
+            method: "PUT",
+            body: JSON.stringify({watched}),
+        }),
+    setMediaPartWatched: (partId: string, watched: boolean) =>
+        request<{partId: string; watched: boolean}>("/api/v1/progress", {
+            method: "PUT",
+            body: JSON.stringify({partId, watched}),
+        }),
+    deleteMedia: (id: string) =>
+        request<MediaDeleteResult>(`/api/v1/media/${id}`, {
+            method: "DELETE",
+            body: JSON.stringify({deleteFiles: true}),
+        }),
     progress: (input: {
         partId: string
         positionSeconds: number
@@ -72,9 +90,6 @@ export const api = {
         request<{
             libraries: LibraryRecord[]
             scans: ScanRecord[]
-            tmdbConfigured: boolean
-            tmdbSource: "environment" | "database"
-            databasePath: string
         }>("/api/v1/settings/overview"),
     createLibrary: (input: { name: string; path: string; kind: LibraryKind }) =>
         request<LibraryRecord>("/api/v1/settings/libraries", {
@@ -95,11 +110,6 @@ export const api = {
         request<{ scans: ScanRecord[] }>("/api/v1/settings/scan", {
             method: "POST",
             body: JSON.stringify({ libraryId }),
-        }),
-    saveTmdbToken: (tmdbToken: string) =>
-        request<{ configured: boolean }>("/api/v1/settings/overview", {
-            method: "PUT",
-            body: JSON.stringify({ tmdbToken }),
         }),
     searchMetadata: (input: { mediaId: string; query: string; year?: number }) =>
         request<{ candidates: TmdbCandidate[] }>("/api/v1/settings/metadata/search", {

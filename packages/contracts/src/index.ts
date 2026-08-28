@@ -7,8 +7,20 @@ export type MediaKind = z.infer<typeof mediaKindSchema>
 export const libraryKindSchema = z.enum(["movies", "series"])
 export type LibraryKind = z.infer<typeof libraryKindSchema>
 
-export const mediaSortSchema = z.enum(["recent", "title", "year", "unwatched"])
+export const mediaSortSchema = z.enum([
+    "recent",
+    "title",
+    "release-desc",
+    "release-asc",
+    "runtime-desc",
+    "runtime-asc",
+    "rating-desc",
+    "rating-asc",
+])
 export type MediaSort = z.infer<typeof mediaSortSchema>
+
+export const mediaWatchFilterSchema = z.enum(["all", "watched", "unwatched"])
+export type MediaWatchFilter = z.infer<typeof mediaWatchFilterSchema>
 
 export const libraryInputSchema = z.object({
     name: z.string().trim().min(1).max(80),
@@ -38,6 +50,12 @@ export const identifyInputSchema = z.object({
 })
 
 export const mediaIdInputSchema = z.object({ mediaId: z.string().min(1) })
+export const mediaWatchStateInputSchema = z.object({watched: z.boolean()})
+export const mediaPartWatchStateInputSchema = z.object({
+    partId: z.string().min(1),
+    watched: z.boolean(),
+})
+export const mediaDeleteInputSchema = z.object({deleteFiles: z.literal(true)})
 export const libraryIdInputSchema = z.object({ libraryId: z.string().min(1) })
 export const metadataRefreshInputSchema = z.union([
     mediaIdInputSchema,
@@ -98,15 +116,20 @@ export interface MediaSummary {
     kind: MediaKind
     title: string
     year: number | null
+    releaseDate: string | null
     overview: string | null
     posterPath: string | null
     backdropPath: string | null
     runtimeMinutes: number | null
+    tmdbVoteAverage: number | null
+    tmdbVoteCount: number | null
     metadataStatus: "matched" | "unmatched" | "manual"
     addedAt: number
     partCount: number
     nextPartId: string | null
     progress: MediaProgress | null
+    watched: boolean
+    hasProgress: boolean
 }
 
 export interface MediaDetail extends MediaSummary {
@@ -145,6 +168,63 @@ export interface MetadataRefreshSummary {
     matched: number
     skipped: number
     failed: number
+}
+
+export type MediaStreamType = "video" | "audio" | "subtitle" | "other"
+
+export interface MediaStreamInfo {
+    index: number
+    type: MediaStreamType
+    codec: string | null
+    codecDescription: string | null
+    profile: string | null
+    language: string | null
+    title: string | null
+    width: number | null
+    height: number | null
+    frameRate: number | null
+    channels: number | null
+    channelLayout: string | null
+    sampleRate: number | null
+}
+
+export interface MediaExternalSubtitleInfo {
+    id: string
+    path: string
+    format: string
+    language: string
+    label: string
+    isDefault: boolean
+}
+
+export interface MediaFileInfo {
+    id: string
+    fileName: string
+    path: string
+    container: string
+    mimeType: string
+    size: number
+    modifiedAt: number
+    formatName: string | null
+    durationSeconds: number | null
+    bitRate: number | null
+    streams: MediaStreamInfo[]
+    externalSubtitles: MediaExternalSubtitleInfo[]
+    probeError: string | null
+}
+
+export interface MediaInfo {
+    id: string
+    title: string
+    totalSize: number
+    probeAvailable: boolean
+    files: MediaFileInfo[]
+}
+
+export interface MediaDeleteResult {
+    mediaId: string
+    filesDeleted: number
+    filesAlreadyMissing: number
 }
 
 export interface LibraryStats {

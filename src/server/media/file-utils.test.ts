@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   cleanMovieTitle,
   inferEpisode,
+  isPathInsideRoot,
   mimeTypeFor,
   subtitleLanguage,
 } from "./file-utils.server"
@@ -28,6 +29,14 @@ describe("media filename inference", () => {
       episodeNumber: 11,
       title: "Finale",
     })
+    expect(inferEpisode("Show.S01.E05.mkv")).toMatchObject({
+      seasonNumber: 1,
+      episodeNumber: 5,
+    })
+    expect(inferEpisode("Show.s01e06.mkv")).toMatchObject({
+      seasonNumber: 1,
+      episodeNumber: 6,
+    })
   })
 
   it("recognizes anime episode numbers and subtitle languages", () => {
@@ -43,5 +52,12 @@ describe("media filename inference", () => {
   it("uses direct-play MIME types without changing the file", () => {
     expect(mimeTypeFor("movie.mp4")).toBe("video/mp4")
     expect(mimeTypeFor("movie.mkv")).toBe("video/x-matroska")
+  })
+
+  it("only accepts deletion targets strictly inside a collection root", () => {
+    expect(isPathInsideRoot("/media/movies", "/media/movies/Dune/movie.mkv")).toBe(true)
+    expect(isPathInsideRoot("/media/movies", "/media/movies-archive/movie.mkv")).toBe(false)
+    expect(isPathInsideRoot("/media/movies", "/media/movies/../private/movie.mkv")).toBe(false)
+    expect(isPathInsideRoot("/media/movies", "/media/movies")).toBe(false)
   })
 })

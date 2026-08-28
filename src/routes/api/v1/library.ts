@@ -1,7 +1,7 @@
 import {createFileRoute} from "@tanstack/react-router";
 import {listMedia} from "@/server/media/repository.server";
 import {apiError, emptyCors, json} from "@/server/http.server";
-import {mediaKindSchema, mediaSortSchema} from "@ploux/contracts";
+import {mediaKindSchema, mediaSortSchema, mediaWatchFilterSchema} from "@ploux/contracts";
 import {z} from "zod";
 
 
@@ -15,6 +15,7 @@ export const Route = createFileRoute("/api/v1/library")({
                     const kind = url.searchParams.get("kind")
                     const sort = url.searchParams.get("sort")
                     const libraryId = url.searchParams.get("libraryId")
+                    const watch = url.searchParams.get("watch")
                     const page = url.searchParams.get("page")
                     const pageSize = url.searchParams.get("pageSize")
                     return json(
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/api/v1/library")({
                             kind: kind ? mediaKindSchema.parse(kind) : undefined,
                             sort: sort ? mediaSortSchema.parse(sort) : "recent",
                             search: url.searchParams.get("search") ?? undefined,
+                            watch: watch ? mediaWatchFilterSchema.parse(watch) : "all",
                             page: page ? z.coerce.number().int().min(1).parse(page) : undefined,
                             pageSize: pageSize
                                 ? z.coerce.number().int().min(1).max(100).parse(pageSize)

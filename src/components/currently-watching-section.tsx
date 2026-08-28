@@ -1,15 +1,6 @@
-import type {MediaSummary} from "@ploux/contracts"
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query"
-import {CircleXIcon, ClapperboardIcon, EllipsisVerticalIcon} from "lucide-react"
+import {useQuery} from "@tanstack/react-query"
+import {ClapperboardIcon} from "lucide-react"
 import {MediaGrid} from "@/components/media-grid"
-import {Button} from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
     Empty,
     EmptyDescription,
@@ -18,36 +9,13 @@ import {
     EmptyTitle,
 } from "@/components/ui/empty"
 import {Skeleton} from "@/components/ui/skeleton"
-import {Spinner} from "@/components/ui/spinner"
-import {toast} from "@/components/ui/toast"
 import {api} from "@/lib/api"
 
 
 export function CurrentlyWatchingSection() {
-    const queryClient = useQueryClient()
     const watching = useQuery({
         queryKey: ["currently-watching"],
         queryFn: api.currentlyWatching,
-    })
-    const clearProgress = useMutation({
-        mutationFn: api.deleteProgress,
-        onSuccess: async (_, mediaId) => {
-            await Promise.all([
-                queryClient.invalidateQueries({queryKey: ["currently-watching"]}),
-                queryClient.invalidateQueries({queryKey: ["library"]}),
-                queryClient.invalidateQueries({queryKey: ["media", mediaId]}),
-            ])
-            toast.add({
-                type: "success",
-                title: "Watch progress removed",
-            })
-        },
-        onError: (error) =>
-            toast.add({
-                type: "error",
-                title: "Could not remove watch progress",
-                description: error.message,
-            }),
     })
 
     return (
@@ -82,19 +50,7 @@ export function CurrentlyWatchingSection() {
             ) : null}
 
             {watching.data?.length ? (
-                <MediaGrid
-                    items={watching.data}
-                    renderActions={(item) => (
-                        <ProgressMenu
-                            item={item}
-                            isPending={
-                                clearProgress.isPending &&
-                                clearProgress.variables === item.id
-                            }
-                            onClear={() => clearProgress.mutate(item.id)}
-                        />
-                    )}
-                />
+                <MediaGrid items={watching.data}/>
             ) : null}
 
             {watching.data && !watching.data.length ? (
@@ -111,45 +67,6 @@ export function CurrentlyWatchingSection() {
                 </Empty>
             ) : null}
         </section>
-    )
-}
-
-
-function ProgressMenu({
-    item,
-    isPending,
-    onClear,
-}: {
-    item: MediaSummary
-    isPending: boolean
-    onClear: () => void
-}) {
-    return (
-        <DropdownMenu>
-            <DropdownMenuTrigger
-                render={
-                    <Button
-                        variant="secondary"
-                        size="icon-sm"
-                        aria-label={`More options for ${item.title}`}
-                    />
-                }
-            >
-                {isPending ? <Spinner/> : <EllipsisVerticalIcon/>}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuGroup>
-                    <DropdownMenuItem
-                        variant="destructive"
-                        disabled={isPending}
-                        onClick={onClear}
-                    >
-                        <CircleXIcon/>
-                        Remove watch progress
-                    </DropdownMenuItem>
-                </DropdownMenuGroup>
-            </DropdownMenuContent>
-        </DropdownMenu>
     )
 }
 

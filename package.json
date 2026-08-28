@@ -52,6 +52,7 @@
         "zod": "^4.4.3"
     },
     "devDependencies": {
+        "@libsql/client": "^0.17.4",
         "@types/bun": "^1.4.0",
         "@types/node": "^22",
         "@types/react": "^19",

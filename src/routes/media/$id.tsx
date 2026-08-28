@@ -2,18 +2,21 @@ import type {MediaPart} from "@ploux/contracts"
 import {formatRuntime, tmdbImage} from "@ploux/contracts"
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query"
 import {createFileRoute, Link} from "@tanstack/react-router"
-import {CalendarIcon, CheckCircle2Icon, Clock3Icon, PlayIcon, RefreshCwIcon,} from "lucide-react"
+import {CalendarIcon, CheckIcon, Clock3Icon, PlayIcon, RefreshCwIcon, StarIcon,} from "lucide-react"
 import {AppHeader} from "@/components/app-header"
 import {IdentifyDialog} from "@/components/identify-dialog"
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar"
 import {Badge} from "@/components/ui/badge"
 import {Button} from "@/components/ui/button"
+import {ScrollArea} from "@/components/ui/scroll-area"
 import {Separator} from "@/components/ui/separator"
 import {Skeleton} from "@/components/ui/skeleton"
 import {Spinner} from "@/components/ui/spinner"
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip"
 import {toast} from "@/components/ui/toast"
 import {api} from "@/lib/api"
+import {cn} from "@/lib/utils"
 
 
 export const Route = createFileRoute("/media/$id")({
@@ -59,6 +62,8 @@ function MediaDetailsPage() {
     const item = media.data
     const backdrop = tmdbImage(item.backdropPath, "original")
     const poster = tmdbImage(item.posterPath, "w500")
+    const showPartList = item.kind !== "movie" || item.parts.length > 1
+    const tmdbRating = formatTmdbRating(item.tmdbVoteAverage, item.tmdbVoteCount)
     const seasons = item.parts.reduce((grouped, part) => {
         const season = part.seasonNumber ?? 1
         const bucket = grouped.get(season) ?? []
@@ -101,13 +106,15 @@ function MediaDetailsPage() {
                                     {item.kind === "movie" ? "Movie" : "TV show"}
                                 </Badge>
                                 {item.contentRating ? (
-                                    <Badge variant="outline">{item.contentRating}</Badge>
+                                    <Badge variant="outline">
+                                        PEGI {item.contentRating}
+                                    </Badge>
                                 ) : null}
                                 {item.metadataStatus === "unmatched" ? (
                                     <Badge variant="secondary">Needs identification</Badge>
                                 ) : null}
                             </div>
-                            <div className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-5">
                                 <h1 className="font-heading text-5xl leading-[0.95] font-medium tracking-tight text-balance sm:text-7xl xl:text-8xl">
                                     {item.title}
                                 </h1>
@@ -124,9 +131,17 @@ function MediaDetailsPage() {
                                             {formatRuntime(item.runtimeMinutes)}
                     </span>
                                     ) : null}
+                                    {tmdbRating ? (
+                                        <span className="flex items-center gap-1.5">
+                                            <StarIcon className="size-4 fill-current text-rating"/>
+                                            {tmdbRating}
+                                        </span>
+                                    ) : null}
                                     <span>
-                    {item.parts.length}{" "}
-                                        {item.parts.length === 1 ? "file" : "episodes"}
+                                        {item.parts.length}{" "}
+                                        {item.kind === "movie"
+                                            ? item.parts.length === 1 ? "file" : "files"
+                                            : item.parts.length === 1 ? "episode" : "episodes"}
                   </span>
                                 </div>
                             </div>
@@ -151,9 +166,11 @@ function MediaDetailsPage() {
                                             data-icon="inline-start"
                                             className="fill-current"
                                         />
-                                        {item.progress?.positionSeconds
+                                        {item.progress?.positionSeconds &&
+                                        !item.progress.completed &&
+                                        !item.watched
                                             ? `Resume · ${item.progress.percentage}%`
-                                            : "Play now"}
+                                            : "Play"}
                                     </Button>
                                 ) : null}
                                 <IdentifyDialog media={item}/>
@@ -175,37 +192,53 @@ function MediaDetailsPage() {
                 </section>
 
                 <div className="mx-auto flex max-w-[100rem] flex-col gap-14 px-4 pb-20 sm:px-6 lg:px-10">
-                    <section className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(15rem,1fr)]">
-                        <div className="flex flex-col gap-5">
-                            <h2 className="font-heading text-3xl font-medium">
-                                {item.kind === "movie" ? "Playback" : "Episodes"}
-                            </h2>
-                            {item.kind === "movie" ? (
-                                <EpisodeList mediaId={item.id} parts={item.parts}/>
-                            ) : (
-                                <Tabs defaultValue={String([...seasons.keys()][0] ?? 1)}>
-                                    <TabsList
-                                        variant="line"
-                                        className="max-w-full overflow-x-auto"
-                                    >
-                                        {[...seasons.keys()].map((season) => (
-                                            <TabsTrigger key={season} value={String(season)}>
-                                                Season {season}
-                                            </TabsTrigger>
+                    <section
+                        className={cn(
+                            "grid gap-8",
+                            showPartList
+                                ? "lg:grid-cols-[minmax(0,2fr)_minmax(15rem,1fr)]"
+                                : "max-w-2xl"
+                        )}
+                    >
+                        {showPartList ? (
+                            <div className="flex flex-col gap-5">
+                                <h2 className="font-heading text-3xl font-medium">
+                                    {item.kind === "movie" ? "Files" : "Episodes"}
+                                </h2>
+                                {item.kind === "movie" ? (
+                                    <EpisodeList
+                                        mediaId={item.id}
+                                        parts={item.parts}
+                                        fallbackLabel="Part"
+                                    />
+                                ) : (
+                                    <Tabs defaultValue={String([...seasons.keys()][0] ?? 1)}>
+                                        <div className="max-w-full overflow-x-auto overflow-y-hidden pb-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                            <TabsList variant="line">
+                                                {[...seasons.keys()].map((season) => (
+                                                    <TabsTrigger key={season} value={String(season)}>
+                                                        Season {season}
+                                                    </TabsTrigger>
+                                                ))}
+                                            </TabsList>
+                                        </div>
+                                        {[...seasons.entries()].map(([season, parts]) => (
+                                            <TabsContent
+                                                key={season}
+                                                value={String(season)}
+                                                className="pt-3"
+                                            >
+                                                <EpisodeList
+                                                    mediaId={item.id}
+                                                    parts={parts}
+                                                    fallbackLabel="Episode"
+                                                />
+                                            </TabsContent>
                                         ))}
-                                    </TabsList>
-                                    {[...seasons.entries()].map(([season, parts]) => (
-                                        <TabsContent
-                                            key={season}
-                                            value={String(season)}
-                                            className="pt-3"
-                                        >
-                                            <EpisodeList mediaId={item.id} parts={parts}/>
-                                        </TabsContent>
-                                    ))}
-                                </Tabs>
-                            )}
-                        </div>
+                                    </Tabs>
+                                )}
+                            </div>
+                        ) : null}
                         <aside className="flex flex-col gap-5">
                             <h2 className="font-heading text-3xl font-medium">Details</h2>
                             <dl className="flex flex-col gap-3 text-sm">
@@ -267,12 +300,14 @@ function MediaDetailsPage() {
 function EpisodeList({
                          mediaId,
                          parts,
+                         fallbackLabel,
                      }: {
     mediaId: string
     parts: MediaPart[]
+    fallbackLabel: "Episode" | "Part"
 }) {
-    return (
-        <div className="overflow-hidden rounded-xl border bg-card/50">
+    const rows = (
+        <>
             {parts.map((part, index) => (
                 <div key={part.id}>
                     {index ? <Separator/> : null}
@@ -285,18 +320,13 @@ function EpisodeList({
                                 {part.title ||
                                     (part.episodeNumber
                                         ? `Episode ${part.episodeNumber}`
-                                        : "Feature")}
+                                        : `${fallbackLabel} ${index + 1}`)}
                             </p>
                             <p className="mt-1 truncate text-xs text-muted-foreground">
                                 {part.fileName} · {formatBytes(part.size)}
                             </p>
                         </div>
-                        {part.progress?.completed ? (
-                            <CheckCircle2Icon
-                                className="size-5 shrink-0 text-primary"
-                                aria-label="Watched"
-                            />
-                        ) : null}
+                        <EpisodeWatchToggle mediaId={mediaId} part={part}/>
                         <Button
                             variant="outline"
                             size="sm"
@@ -316,9 +346,77 @@ function EpisodeList({
                     </div>
                 </div>
             ))}
+        </>
+    )
+
+    return parts.length > 8 ? (
+        <ScrollArea className="h-[min(42rem,70svh)] rounded-xl border bg-card/50">
+            {rows}
+        </ScrollArea>
+    ) : (
+        <div className="overflow-hidden rounded-xl border bg-card/50">
+            {rows}
         </div>
     )
 }
+
+
+function EpisodeWatchToggle({
+                                mediaId,
+                                part,
+                            }: {
+    mediaId: string
+    part: MediaPart
+}) {
+    const queryClient = useQueryClient()
+    const watched = part.progress?.completed === true
+    const label = watched ? "Mark episode as unwatched" : "Mark episode as watched"
+    const watchState = useMutation({
+        mutationFn: () => api.setMediaPartWatched(part.id, !watched),
+        onSuccess: async (result) => {
+            await Promise.all([
+                queryClient.invalidateQueries({queryKey: ["media", mediaId]}),
+                queryClient.invalidateQueries({queryKey: ["library"]}),
+                queryClient.invalidateQueries({queryKey: ["currently-watching"]}),
+            ])
+            toast.add({
+                type: "success",
+                title: result.watched
+                    ? "Episode marked as watched"
+                    : "Episode marked as unwatched",
+            })
+        },
+        onError: (error) =>
+            toast.add({
+                type: "error",
+                title: "Could not change episode watch status",
+                description: error.message,
+            }),
+    })
+
+    return (
+        <Tooltip>
+            <TooltipTrigger
+                render={
+                    <Button
+                        variant={watched ? "default" : "outline"}
+                        size="icon-sm"
+                        aria-label={label}
+                        aria-pressed={watched}
+                        disabled={watchState.isPending}
+                        onClick={() => watchState.mutate()}
+                    />
+                }
+            >
+                {watchState.isPending ? <Spinner/> : <CheckIcon/>}
+            </TooltipTrigger>
+            <TooltipContent>
+                <p>{label}</p>
+            </TooltipContent>
+        </Tooltip>
+    )
+}
+
 
 function DetailRow({
                        term,
@@ -345,6 +443,16 @@ function formatBytes(bytes: number) {
         unit += 1
     }
     return `${value.toFixed(unit > 1 ? 1 : 0)} ${units[unit]}`
+}
+
+function formatTmdbRating(
+    voteAverage: number | null,
+    voteCount: number | null
+) {
+    if (voteAverage === null) return null
+    const rating = `${voteAverage.toFixed(1)}/10`
+    if (voteCount === null) return rating
+    return `${rating} · ${new Intl.NumberFormat("en-US").format(voteCount)} votes`
 }
 
 function DetailsSkeleton() {

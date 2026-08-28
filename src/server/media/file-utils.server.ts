@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto"
-import { extname, parse } from "node:path"
+import { extname, isAbsolute, parse, relative, resolve, sep } from "node:path"
 
 const videoExtensions = new Set([
   ".mp4",
@@ -34,6 +34,16 @@ export const isSubtitle = (filePath: string) =>
   subtitleExtensions.has(extensionOf(filePath))
 export const mimeTypeFor = (filePath: string) =>
   mimeTypes[extensionOf(filePath)] ?? "application/octet-stream"
+
+export const isPathInsideRoot = (rootPath: string, targetPath: string) => {
+  const relativePath = relative(resolve(rootPath), resolve(targetPath))
+  return (
+    Boolean(relativePath) &&
+    relativePath !== ".." &&
+    !relativePath.startsWith(`..${sep}`) &&
+    !isAbsolute(relativePath)
+  )
+}
 
 export const stableId = (...parts: string[]) =>
   createHash("sha1").update(parts.join("\u0000")).digest("hex").slice(0, 24)

@@ -9,5 +9,5 @@ services:
       PLOUX_CORS_ORIGIN: ${PLOUX_CORS_ORIGIN:-*}
     volumes:
       - ./data:/app/data
-      - ${MEDIA_PATH:-/media}:/media:ro
+      - ${MEDIA_PATH:-/media}:/media:rw
     restart: unless-stopped

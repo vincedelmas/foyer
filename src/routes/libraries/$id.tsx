@@ -1,4 +1,4 @@
-import {mediaSortSchema} from "@ploux/contracts"
+import {mediaSortSchema, mediaWatchFilterSchema, type MediaWatchFilter} from "@ploux/contracts"
 import {useQuery} from "@tanstack/react-query"
 import {createFileRoute, Link} from "@tanstack/react-router"
 import {ArrowLeftIcon, FilmIcon, FolderSearchIcon, SearchIcon, TvIcon} from "lucide-react"
@@ -20,16 +20,47 @@ import {api} from "@/lib/api"
 const searchSchema = z.object({
     search: z.string().optional().catch(undefined),
     sort: mediaSortSchema.optional().catch("recent"),
+    watch: mediaWatchFilterSchema.optional().catch("all"),
     page: z.coerce.number().int().min(1).optional().catch(1),
 })
 
 const PAGE_SIZE = 28
+const watchFilterStorageKey = (libraryId: string) =>
+    `ploux.media.watch-filter.${libraryId}`
+
+const readStoredWatchFilter = (libraryId: string) => {
+    try {
+        return window.localStorage.getItem(watchFilterStorageKey(libraryId))
+    }
+    catch {
+        return null
+    }
+}
+
+const storeWatchFilter = (libraryId: string, watch: MediaWatchFilter) => {
+    try {
+        window.localStorage.setItem(watchFilterStorageKey(libraryId), watch)
+    }
+    catch {
+        return
+    }
+}
 
 const sortItems = [
     { label: "Recently added", value: "recent" },
     { label: "Title A–Z", value: "title" },
-    { label: "Newest year", value: "year" },
-    { label: "Unwatched first", value: "unwatched" },
+    {label: "Release date · newest", value: "release-desc"},
+    {label: "Release date · oldest", value: "release-asc"},
+    {label: "Length · longest", value: "runtime-desc"},
+    {label: "Length · shortest", value: "runtime-asc"},
+    {label: "TMDB score · highest", value: "rating-desc"},
+    {label: "TMDB score · lowest", value: "rating-asc"},
+] as const
+
+const watchItems = [
+    {label: "All titles", value: "all"},
+    {label: "Watched", value: "watched"},
+    {label: "Unwatched", value: "unwatched"},
 ] as const
 
 export const Route = createFileRoute("/libraries/$id")({
@@ -59,6 +90,36 @@ function MediaFolderPage() {
     }, [search.search])
 
     useEffect(() => {
+        if (search.watch) {
+            storeWatchFilter(id, search.watch)
+            return
+        }
+
+        const storedFilter = readStoredWatchFilter(id)
+        if (!storedFilter) return
+        const parsedFilter = mediaWatchFilterSchema.safeParse(storedFilter)
+        if (!parsedFilter.success) {
+            try {
+                window.localStorage.removeItem(watchFilterStorageKey(id))
+            }
+            catch {
+                return
+            }
+            return
+        }
+        if (parsedFilter.data === "all") return
+
+        void navigate({
+            search: (previous) => ({
+                ...previous,
+                watch: parsedFilter.data,
+                page: 1,
+            }),
+            replace: true,
+        })
+    }, [id, navigate, search.watch])
+
+    useEffect(() => {
         const normalizedSearch = searchInput.trim()
         if (normalizedSearch === (search.search ?? "")) return
 
@@ -82,10 +143,18 @@ function MediaFolderPage() {
         })
     }
 
+    const changeWatchFilter = (watch: MediaWatchFilter) => {
+        storeWatchFilter(id, watch)
+        void navigate({
+            search: (previous) => ({...previous, watch, page: 1}),
+        })
+    }
+
     const pageHref = (page: number) => {
         const query = new URLSearchParams()
         if (search.search) query.set("search", search.search)
         if (search.sort && search.sort !== "recent") query.set("sort", search.sort)
+        if (search.watch && search.watch !== "all") query.set("watch", search.watch)
         if (page > 1) query.set("page", String(page))
         const queryString = query.toString()
         return `/libraries/${encodeURIComponent(id)}${queryString ? `?${queryString}` : ""}`
@@ -179,30 +248,52 @@ function MediaFolderPage() {
                                         onChange={(event) => setSearchInput(event.target.value)}
                                     />
                                 </InputGroup>
-                                <Select
-                                    items={sortItems}
-                                    value={search.sort ?? "recent"}
-                                    onValueChange={(value) => {
-                                        if (value) {
-                                            void navigate({
-                                                search: (previous) => ({...previous, sort: value, page: 1}),
-                                            })
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger className="w-full sm:w-44" aria-label="Sort titles">
-                                        <SelectValue/>
-                                    </SelectTrigger>
-                                    <SelectContent align="end" alignItemWithTrigger={false}>
-                                        <SelectGroup>
-                                            {sortItems.map((item) => (
-                                                <SelectItem key={item.value} value={item.value}>
-                                                    {item.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectGroup>
-                                    </SelectContent>
-                                </Select>
+                                <div className="flex w-full gap-2 sm:w-auto">
+                                    <Select
+                                        items={watchItems}
+                                        value={search.watch ?? "all"}
+                                        onValueChange={(value) => {
+                                            if (value) changeWatchFilter(value)
+                                        }}
+                                    >
+                                        <SelectTrigger className="flex-1 sm:w-36" aria-label="Filter by watch status">
+                                            <SelectValue/>
+                                        </SelectTrigger>
+                                        <SelectContent align="end" alignItemWithTrigger={false}>
+                                            <SelectGroup>
+                                                {watchItems.map((item) => (
+                                                    <SelectItem key={item.value} value={item.value}>
+                                                        {item.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectGroup>
+                                        </SelectContent>
+                                    </Select>
+                                    <Select
+                                        items={sortItems}
+                                        value={search.sort ?? "recent"}
+                                        onValueChange={(value) => {
+                                            if (value) {
+                                                void navigate({
+                                                    search: (previous) => ({...previous, sort: value, page: 1}),
+                                                })
+                                            }
+                                        }}
+                                    >
+                                        <SelectTrigger className="flex-1 sm:w-56" aria-label="Sort titles">
+                                            <SelectValue/>
+                                        </SelectTrigger>
+                                        <SelectContent align="end" alignItemWithTrigger={false}>
+                                            <SelectGroup>
+                                                {sortItems.map((item) => (
+                                                    <SelectItem key={item.value} value={item.value}>
+                                                        {item.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectGroup>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
 
                             {library.isPending ? <MediaGridSkeleton/> : null}

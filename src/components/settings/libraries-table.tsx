@@ -2,7 +2,7 @@ import type {LibraryKind, LibraryRecord} from "@ploux/contracts"
 import {useForm} from "@tanstack/react-form"
 import {useMutation, useQueryClient} from "@tanstack/react-query"
 import {createColumnHelper, tableFeatures, useTable} from "@tanstack/react-table"
-import {FilmIcon, FolderSyncIcon, PencilIcon, Trash2Icon, TvIcon} from "lucide-react"
+import {FolderSyncIcon, PencilIcon, Trash2Icon} from "lucide-react"
 import {useState} from "react"
 import {api} from "@/lib/api"
 import {Badge} from "@/components/ui/badge"
@@ -12,17 +12,12 @@ import {Field, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field"
 import {Input} from "@/components/ui/input"
 import {Spinner} from "@/components/ui/spinner"
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table"
-import {ToggleGroup, ToggleGroupItem} from "@/components/ui/toggle-group"
 import {toast} from "@/components/ui/toast"
+import {MediaTypeToggle} from "@/components/settings/media-type-toggle"
 
 
 const features = tableFeatures({})
 const columnHelper = createColumnHelper<typeof features, LibraryRecord>()
-const kindItems = [
-    {label: "Movies", value: "movies", icon: FilmIcon},
-    {label: "TV shows", value: "series", icon: TvIcon},
-] as const
-
 const libraryKindLabel = (kind: LibraryKind) =>
     kind === "movies" ? "Movies" : "TV shows"
 
@@ -246,29 +241,10 @@ function EditLibraryDialog({library}: {library: LibraryRecord}) {
                             {(field) => (
                                 <Field>
                                     <FieldLabel>Media type</FieldLabel>
-                                    <ToggleGroup
-                                        variant="outline"
-                                        className="w-full"
-                                        value={[field.state.value]}
-                                        onValueChange={(value) => {
-                                            if (value[0]) field.handleChange(value[0] as LibraryKind)
-                                        }}
-                                    >
-                                        {kindItems.map((item) => {
-                                            const Icon = item.icon
-                                            return (
-                                                <ToggleGroupItem
-                                                    key={item.value}
-                                                    value={item.value}
-                                                    className="flex-1"
-                                                    aria-label={item.label}
-                                                >
-                                                    <Icon/>
-                                                    {item.label}
-                                                </ToggleGroupItem>
-                                            )
-                                        })}
-                                    </ToggleGroup>
+                                    <MediaTypeToggle
+                                        value={field.state.value}
+                                        onValueChange={field.handleChange}
+                                    />
                                 </Field>
                             )}
                         </form.Field>

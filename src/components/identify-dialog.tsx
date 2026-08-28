@@ -6,22 +6,43 @@ import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
 import {SearchIcon, SparklesIcon} from "lucide-react";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {MediaDetail, TmdbCandidate, tmdbImage} from "@ploux/contracts";
+import type {MediaSummary, TmdbCandidate} from "@ploux/contracts";
+import {tmdbImage} from "@ploux/contracts";
 import {Field, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/input-group";
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";
 
 
-export function IdentifyDialog({ media }: { media: MediaDetail }) {
+export function IdentifyDialog({
+    media,
+    open: controlledOpen,
+    onOpenChange,
+    showTrigger = true,
+}: {
+    media: Pick<MediaSummary, "id" | "title" | "year">
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
+    showTrigger?: boolean
+}) {
     const queryClient = useQueryClient();
-    const [open, setOpen] = useState(false);
+    const [internalOpen, setInternalOpen] = useState(false);
     const [candidates, setCandidates] = useState<TmdbCandidate[]>([]);
+    const open = controlledOpen ?? internalOpen
+    const setOpen = (nextOpen: boolean) => {
+        if (controlledOpen === undefined) setInternalOpen(nextOpen)
+        onOpenChange?.(nextOpen)
+        if (!nextOpen) setCandidates([])
+    }
 
     const identify = useMutation({
         mutationFn: (tmdbId: number) => api.identify(media.id, tmdbId),
         onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ["media", media.id] })
-            await queryClient.invalidateQueries({ queryKey: ["library"] })
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["media", media.id] }),
+                queryClient.invalidateQueries({ queryKey: ["library"] }),
+                queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
+                queryClient.invalidateQueries({ queryKey: ["currently-watching"] }),
+            ])
             toast.add({
                 title: "Identity updated",
                 description: "TMDB metadata has been replaced.",
@@ -50,10 +71,12 @@ export function IdentifyDialog({ media }: { media: MediaDetail }) {
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={<Button variant="secondary"/>}>
-                <SearchIcon data-icon="inline-start"/>
-                Identify
-            </DialogTrigger>
+            {showTrigger ? (
+                <DialogTrigger render={<Button variant="secondary"/>}>
+                    <SearchIcon data-icon="inline-start"/>
+                    Identify
+                </DialogTrigger>
+            ) : null}
             <DialogContent className="max-h-[88svh] overflow-y-auto sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>Identify “{media.title}”</DialogTitle>

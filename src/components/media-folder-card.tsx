@@ -7,6 +7,7 @@ import {
     EllipsisVerticalIcon,
     FilmIcon,
     FolderInputIcon,
+    FolderSyncIcon,
     PencilIcon,
     RefreshCwIcon,
     Trash2Icon,
@@ -82,7 +83,7 @@ export function MediaFolderCard({
             >
                 <Card
                     data-archive-item
-                    className="relative aspect-[16/10] gap-0 py-0 transition duration-300 group-hover:-translate-y-1 group-hover:ring-primary/50 group-focus-within:ring-2 group-focus-within:ring-ring"
+                    className="relative aspect-[16/10] gap-0 py-0 transition duration-300 group-hover:ring-primary/50 group-focus-within:ring-2 group-focus-within:ring-ring"
                     style={{"--archive-index": index} as CSSProperties}
                 >
                     <CardContent className="absolute inset-0 grid grid-cols-[1.35fr_1fr_1fr] grid-rows-2 gap-px bg-border px-0">
@@ -204,6 +205,30 @@ function CollectionActions({folder}: {folder: MediaFolderSummary}) {
                 description: error.message,
             }),
     })
+    const scan = useMutation({
+        mutationFn: () => api.scan(folder.id),
+        onSuccess: async (result) => {
+            await Promise.all([
+                invalidateCollectionQueries(),
+                queryClient.invalidateQueries({queryKey: ["currently-watching"]}),
+                queryClient.invalidateQueries({queryKey: ["media"]}),
+            ])
+            const summary = result.scans[0]
+            toast.add({
+                type: "success",
+                title: `${folder.name} rescanned`,
+                description: summary
+                    ? `${summary.filesSeen} files · ${summary.titlesAdded} new titles · ${summary.subtitlesFound} subtitles`
+                    : undefined,
+            })
+        },
+        onError: (error) =>
+            toast.add({
+                type: "error",
+                title: "Media folder scan failed",
+                description: error.message,
+            }),
+    })
     const remove = useMutation({
         mutationFn: () => api.deleteLibrary(folder.id),
         onSuccess: async () => {
@@ -236,6 +261,7 @@ function CollectionActions({folder}: {folder: MediaFolderSummary}) {
         if (!value) return
         await update.mutateAsync({mode: editMode, value})
     }
+    const isCollectionWorkPending = scan.isPending || refresh.isPending
 
     return (
         <>
@@ -247,10 +273,11 @@ function CollectionActions({folder}: {folder: MediaFolderSummary}) {
                                 variant="secondary"
                                 size="icon"
                                 aria-label={`More options for ${folder.name}`}
+                                disabled={isCollectionWorkPending}
                             />
                         }
                     >
-                        {refresh.isPending ? <Spinner/> : <EllipsisVerticalIcon/>}
+                        {isCollectionWorkPending ? <Spinner/> : <EllipsisVerticalIcon/>}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-60">
                         <DropdownMenuGroup>
@@ -266,7 +293,14 @@ function CollectionActions({folder}: {folder: MediaFolderSummary}) {
                         <DropdownMenuSeparator/>
                         <DropdownMenuGroup>
                             <DropdownMenuItem
-                                disabled={refresh.isPending}
+                                disabled={isCollectionWorkPending}
+                                onClick={() => scan.mutate()}
+                            >
+                                <FolderSyncIcon/>
+                                Rescan media folder
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                disabled={isCollectionWorkPending}
                                 onClick={() => refresh.mutate()}
                             >
                                 <RefreshCwIcon/>
@@ -328,7 +362,7 @@ function CollectionActions({folder}: {folder: MediaFolderSummary}) {
                                 />
                                 {editMode === "path" ? (
                                     <FieldDescription>
-                                        Use an absolute path. Your files remain read-only.
+                                        Use an absolute path. Changing it does not modify files.
                                     </FieldDescription>
                                 ) : null}
                             </Field>

@@ -1,6 +1,6 @@
-import {mediaIdInputSchema, progressInputSchema} from "@ploux/contracts";
+import {mediaIdInputSchema, mediaPartWatchStateInputSchema, progressInputSchema} from "@ploux/contracts";
 import {createFileRoute} from "@tanstack/react-router";
-import {deleteMediaProgress, listCurrentlyWatching, saveProgress} from "@/server/media/repository.server";
+import {deleteMediaProgress, listCurrentlyWatching, saveProgress, setMediaPartWatched} from "@/server/media/repository.server";
 import {apiError, emptyCors, json, parseBody} from "@/server/http.server";
 
 
@@ -22,6 +22,18 @@ export const Route = createFileRoute("/api/v1/progress")({
                 }
                 catch (error) {
                     return apiError(error);
+                }
+            },
+            PUT: async ({request}) => {
+                try {
+                    const {partId, watched} = await parseBody(
+                        request,
+                        mediaPartWatchStateInputSchema
+                    )
+                    return json(setMediaPartWatched(partId, watched))
+                }
+                catch (error) {
+                    return apiError(error)
                 }
             },
             DELETE: async ({ request }) => {

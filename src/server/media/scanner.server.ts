@@ -24,7 +24,11 @@ import {
   stableId,
   subtitleLanguage,
 } from "./file-utils.server"
-import { autoMatchMetadata, isTmdbConfigured } from "./tmdb.server"
+import {
+  autoMatchMetadata,
+  isTmdbConfigured,
+  refreshTmdbEpisodeTitles,
+} from "./tmdb.server"
 
 interface DiscoveredTitle {
   sourceKey: string
@@ -147,8 +151,21 @@ const saveDiscovery = (
   const existingBySource = new Map(
     existingItems.map((item) => [item.sourceKey, item])
   )
+  const existingParts = db
+    .select({
+      id: mediaParts.id,
+      seasonNumber: mediaParts.seasonNumber,
+      episodeNumber: mediaParts.episodeNumber,
+      title: mediaParts.title,
+    })
+    .from(mediaParts)
+    .innerJoin(mediaItems, eq(mediaParts.mediaItemId, mediaItems.id))
+    .where(eq(mediaItems.libraryId, library.id))
+    .all()
+  const existingPartById = new Map(existingParts.map((part) => [part.id, part]))
   const seenPartIds: string[] = []
   const newMediaIds: string[] = []
+  const episodeSeasonsToRefresh = new Map<string, Set<number>>()
   let subtitlesFound = 0
 
   db.transaction(() => {
@@ -186,6 +203,23 @@ const saveDiscovery = (
 
       for (const video of title.videos) {
         const partId = stableId("part", video.path)
+        const existingPart = existingPartById.get(partId)
+        const episodeIdentityChanged =
+          existingPart &&
+          (existingPart.seasonNumber !== video.seasonNumber ||
+            existingPart.episodeNumber !== video.episodeNumber)
+        const episodeTitleMissing = Boolean(
+          existing?.tmdbId && existingPart && !existingPart.title?.trim()
+        )
+        if (
+          video.seasonNumber !== null &&
+          video.episodeNumber !== null &&
+          (!existingPart || episodeIdentityChanged || episodeTitleMissing)
+        ) {
+          const seasons = episodeSeasonsToRefresh.get(mediaId) ?? new Set()
+          seasons.add(video.seasonNumber)
+          episodeSeasonsToRefresh.set(mediaId, seasons)
+        }
         seenPartIds.push(partId)
         db.insert(mediaParts)
           .values({
@@ -209,7 +243,9 @@ const saveDiscovery = (
               modifiedAt: video.modifiedAt,
               seasonNumber: video.seasonNumber,
               episodeNumber: video.episodeNumber,
-              title: video.title,
+              ...(existing?.metadataStatus === "unmatched"
+                ? { title: video.title }
+                : {}),
               updatedAt: Date.now(),
             },
           })
@@ -266,7 +302,7 @@ const saveDiscovery = (
     }
   })
 
-  return { newMediaIds, subtitlesFound }
+  return { newMediaIds, episodeSeasonsToRefresh, subtitlesFound }
 }
 
 const scanLibrary = async (libraryId: string): Promise<ScanRecord> => {
@@ -291,6 +327,15 @@ const scanLibrary = async (libraryId: string): Promise<ScanRecord> => {
           await autoMatchMetadata(mediaId)
         } catch (error) {
           console.warn(`TMDB auto-match failed for ${mediaId}`, error)
+        }
+      }
+      const newMediaIdSet = new Set(saved.newMediaIds)
+      for (const [mediaId, seasons] of saved.episodeSeasonsToRefresh) {
+        if (newMediaIdSet.has(mediaId)) continue
+        try {
+          await refreshTmdbEpisodeTitles(mediaId, [...seasons])
+        } catch (error) {
+          console.warn(`TMDB episode refresh failed for ${mediaId}`, error)
         }
       }
     }

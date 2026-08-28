@@ -1,4 +1,4 @@
-import {index, integer, sqliteTable, text, uniqueIndex} from "drizzle-orm/sqlite-core";
+import {index, integer, real, sqliteTable, text, uniqueIndex} from "drizzle-orm/sqlite-core";
 
 
 const timestamps = {
@@ -26,6 +26,7 @@ export const mediaItems = sqliteTable("media_items", {
     sortTitle: text("sort_title").notNull(),
     originalTitle: text("original_title"),
     year: integer("year"),
+    releaseDate: text("release_date"),
     overview: text("overview"),
     metadataStatus: text("metadata_status", {
         enum: ["matched", "unmatched", "manual"],
@@ -35,6 +36,8 @@ export const mediaItems = sqliteTable("media_items", {
     backdropPath: text("backdrop_path"),
     runtimeMinutes: integer("runtime_minutes"),
     contentRating: text("content_rating"),
+    tmdbVoteAverage: real("tmdb_vote_average"),
+    tmdbVoteCount: integer("tmdb_vote_count"),
     genresJson: text("genres_json").notNull().default("[]"),
     castJson: text("cast_json").notNull().default("[]"),
     seasonsJson: text("seasons_json").notNull().default("[]"),

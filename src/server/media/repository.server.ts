@@ -1,8 +1,9 @@
 import {and, eq, like, or} from "drizzle-orm";
 import {db, ensureDatabase} from "@/server/db/index.server"
 import {libraries, MediaItemRow, mediaItems, MediaPartRow, mediaParts, playbackProgress, ProgressRow, SubtitleRow, subtitleTracks} from "@/server/db/schema"
-import {LibraryStats, MediaFolderSummary, MediaKind, MediaPart, MediaProgress, MediaSort, MediaSummary, PersonCredit, SeasonMetadata, SubtitleTrack} from "@ploux/contracts";
-import {selectCurrentlyWatching} from "@/server/media/progress-utils"
+import {LibraryStats, MediaFolderSummary, MediaKind, MediaPart, MediaProgress, MediaSort, MediaSummary, MediaWatchFilter, PersonCredit, SeasonMetadata, SubtitleTrack} from "@ploux/contracts";
+import {filterByWatchStatus, selectCurrentlyWatching} from "@/server/media/progress-utils"
+import {sortMedia} from "@/server/media/media-sort"
 
 
 const parseJson = <T>(value: string, fallback: T): T => {
@@ -17,7 +18,9 @@ const parseJson = <T>(value: string, fallback: T): T => {
 
 const asProgress = (row: ProgressRow | undefined): MediaProgress | null => {
     if (!row) return null
-    const percentage = row.durationSeconds
+    const percentage = row.completed
+        ? 100
+        : row.durationSeconds
         ? Math.min(
             100,
             Math.round((row.positionSeconds / row.durationSeconds) * 100)
@@ -55,11 +58,16 @@ const selectNextPart = (parts: MediaPartRow[], progressByPart: Map<string, Progr
 
 const asSummary = (item: MediaItemRow, parts: MediaPartRow[], progressByPart: Map<string, ProgressRow>) => {
     const nextPart = selectNextPart(parts, progressByPart);
+    const partProgress = parts.flatMap((part) => {
+        const progress = progressByPart.get(part.id)
+        return progress ? [progress] : []
+    })
 
     return {
         id: item.id,
         kind: item.kind,
         year: item.year,
+        releaseDate: item.releaseDate,
         title: item.title,
         addedAt: item.addedAt,
         partCount: parts.length,
@@ -68,8 +76,14 @@ const asSummary = (item: MediaItemRow, parts: MediaPartRow[], progressByPart: Ma
         backdropPath: item.backdropPath,
         nextPartId: nextPart?.id ?? null,
         runtimeMinutes: item.runtimeMinutes,
+        tmdbVoteAverage: item.tmdbVoteAverage,
+        tmdbVoteCount: item.tmdbVoteCount,
         metadataStatus: item.metadataStatus,
         progress: nextPart ? asProgress(progressByPart.get(nextPart.id)) : null,
+        watched:
+            parts.length > 0 &&
+            parts.every((part) => progressByPart.get(part.id)?.completed === true),
+        hasProgress: partProgress.length > 0,
     };
 };
 
@@ -113,37 +127,20 @@ const hydrateSummaries = (items: MediaItemRow[]) => {
 }
 
 
-const applySort = (items: MediaSummary[], sort: MediaSort) => {
-    return items.sort((left, right) => {
-        if (sort === "title") {
-            return left.title.localeCompare(right.title);
-        }
-
-        if (sort === "year") {
-            return ((right.year ?? 0) - (left.year ?? 0) || left.title.localeCompare(right.title));
-        }
-
-        if (sort === "unwatched") {
-            return (Number(left.progress?.completed ?? false) - Number(right.progress?.completed ?? false));
-        }
-
-        return right.addedAt - left.addedAt;
-    })
-}
-
-
 export const listMedia = (input: {
     libraryId?: string
     kind?: MediaKind
     search?: string
+    watch?: MediaWatchFilter
     sort?: MediaSort
     page?: number
     pageSize?: number
 }) => {
     ensureDatabase();
     const all = hydrateSummaries(loadMediaRows(undefined, undefined, input.libraryId));
-    const filtered = hydrateSummaries(loadMediaRows(input.kind, input.search?.trim() || undefined, input.libraryId));
-    const sorted = applySort(filtered, input.sort ?? "recent")
+    const searched = hydrateSummaries(loadMediaRows(input.kind, input.search?.trim() || undefined, input.libraryId));
+    const filtered = filterByWatchStatus(searched, input.watch ?? "all")
+    const sorted = sortMedia(filtered, input.sort ?? "recent")
     const totalItems = sorted.length
     const pageSize = input.pageSize ?? Math.max(totalItems, 1)
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
@@ -238,6 +235,116 @@ export const deleteMediaProgress = (mediaId: string) => {
     })
 
     return deleted
+}
+
+
+export const setMediaWatched = (mediaId: string, watched: boolean) => {
+    ensureDatabase()
+
+    const item = db
+        .select({id: mediaItems.id})
+        .from(mediaItems)
+        .where(eq(mediaItems.id, mediaId))
+        .get()
+
+    if (!item) throw new Error("Media item not found")
+
+    const parts = db
+        .select({id: mediaParts.id})
+        .from(mediaParts)
+        .where(eq(mediaParts.mediaItemId, mediaId))
+        .all()
+
+    if (!parts.length) throw new Error("Media item has no files")
+
+    if (!watched) {
+        return {
+            watched,
+            updatedParts: deleteMediaProgress(mediaId),
+        }
+    }
+
+    const now = Date.now()
+    db.transaction(() => {
+        for (const part of parts) {
+            const existing = db
+                .select()
+                .from(playbackProgress)
+                .where(eq(playbackProgress.mediaPartId, part.id))
+                .get()
+            const durationSeconds = Math.max(existing?.durationSeconds ?? 0, 1)
+
+            db.insert(playbackProgress)
+                .values({
+                    mediaPartId: part.id,
+                    positionSeconds: durationSeconds,
+                    durationSeconds,
+                    completed: true,
+                    updatedAt: now,
+                })
+                .onConflictDoUpdate({
+                    target: playbackProgress.mediaPartId,
+                    set: {
+                        positionSeconds: durationSeconds,
+                        durationSeconds,
+                        completed: true,
+                        updatedAt: now,
+                    },
+                })
+                .run()
+        }
+    })
+
+    return {watched, updatedParts: parts.length}
+}
+
+
+export const setMediaPartWatched = (partId: string, watched: boolean) => {
+    ensureDatabase()
+
+    const part = db
+        .select({id: mediaParts.id})
+        .from(mediaParts)
+        .where(eq(mediaParts.id, partId))
+        .get()
+
+    if (!part) throw new Error("Media part not found")
+
+    if (!watched) {
+        db.delete(playbackProgress)
+            .where(eq(playbackProgress.mediaPartId, partId))
+            .run()
+        return {partId, watched}
+    }
+
+    const existing = db
+        .select()
+        .from(playbackProgress)
+        .where(eq(playbackProgress.mediaPartId, partId))
+        .get()
+    const durationSeconds = Math.max(existing?.durationSeconds ?? 0, 1)
+    const updatedAt = Date.now()
+
+    db.insert(playbackProgress)
+        .values({
+            mediaPartId: partId,
+            positionSeconds: durationSeconds,
+            durationSeconds,
+            completed: true,
+            updatedAt,
+        })
+        .onConflictDoUpdate({
+            target: playbackProgress.mediaPartId,
+            set: {
+                positionSeconds: durationSeconds,
+                durationSeconds,
+                completed: true,
+                updatedAt,
+            },
+        })
+        .run()
+
+    return {partId, watched}
 }
 
 

@@ -1,10 +1,6 @@
-import {z} from "zod";
 import {createFileRoute} from "@tanstack/react-router";
-import {apiError, emptyCors, json, parseBody} from "@/server/http.server";
-import {getSettingsOverview, saveTmdbToken} from "@/server/media/settings.server";
-
-
-const settingsSchema = z.object({ tmdbToken: z.string().max(2000) });
+import {emptyCors, json} from "@/server/http.server";
+import {getSettingsOverview} from "@/server/media/settings.server";
 
 
 export const Route = createFileRoute("/api/v1/settings/overview")({
@@ -12,15 +8,6 @@ export const Route = createFileRoute("/api/v1/settings/overview")({
         handlers: {
             OPTIONS: emptyCors,
             GET: () => json(getSettingsOverview()),
-            PUT: async ({ request }) => {
-                try {
-                    const input = await parseBody(request, settingsSchema);
-                    return json(saveTmdbToken(input.tmdbToken));
-                }
-                catch (error) {
-                    return apiError(error);
-                }
-            },
         },
     },
 })

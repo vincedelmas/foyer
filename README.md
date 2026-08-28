@@ -1,7 +1,8 @@
 # Ploux
 
 Ploux is a small, direct-play home media server. It scans folders, enriches titles with TMDB, streams the original file with HTTP byte
-ranges, remembers playback position, serves external subtitles, and exposes the same API to its web and Android TV clients.
+ranges, remembers playback position, serves external subtitles, can permanently delete explicitly confirmed media, and exposes the same
+API to its web and Android TV clients.
 
 It deliberately has no transcoder, accounts, sharing, plugins, live TV, or cloud features.
 
@@ -18,7 +19,8 @@ It deliberately has no transcoder, accounts, sharing, plugins, live TV, or cloud
 
 ## Quick start
 
-Requirements: Bun 1.4+, and optionally a [TMDB v4 read access token](https://www.themoviedb.org/settings/api).
+Requirements: Bun 1.4+, optionally FFmpeg/ffprobe for detailed stream information, and optionally a
+[TMDB v4 read access token](https://www.themoviedb.org/settings/api).
 
 ```bash
 cp .env.example .env
@@ -43,7 +45,8 @@ Or with Docker:
 MEDIA_PATH=/path/to/your/media docker compose up --build
 ```
 
-The compose setup mounts `MEDIA_PATH` read-only at `/media`; use paths below `/media` when adding libraries through the dashboard.
+The compose setup mounts `MEDIA_PATH` read/write at `/media` so explicitly confirmed permanent deletion works. Use paths below `/media`
+when adding libraries through the dashboard. The Docker image includes ffprobe for detailed media information.
 
 ## Folder and filename conventions
 
@@ -77,8 +80,9 @@ tracks embedded in a container.
 
 ## Direct-play limits
 
-Ploux never modifies media. It serves `Range` requests from the original file, which makes seeking efficient but means the playback device
-must support the container and every codec inside it.
+Ploux never transcodes or rewrites media. It serves `Range` requests from the original file, which makes seeking efficient but means the
+playback device must support the container and every codec inside it. The explicit permanent-delete action is the sole operation that
+removes source media and indexed external subtitle files.
 
 - Browsers are usually safest with MP4 containing H.264/H.265 where supported and AAC audio, or WebM.
 - MKV support varies substantially in browsers.
@@ -121,14 +125,14 @@ The TV client consumes the versioned HTTP API under `/api/v1`:
 | Method            | Endpoint                          | Purpose                                        |
 |-------------------|-----------------------------------|------------------------------------------------|
 | `GET`             | `/api/v1/`                        | Health and capabilities                        |
-| `GET`             | `/api/v1/library`                 | Search, filter, and sort media                 |
-| `GET`             | `/api/v1/media/:id`               | Metadata, files, episodes, subtitles, progress |
+| `GET`             | `/api/v1/library`                 | Search, watch-status filter, and sort media    |
+| `GET/PUT/DELETE`  | `/api/v1/media/:id`               | Details/info, watch state, permanent deletion  |
 | `GET/HEAD`        | `/api/v1/stream/:partId`          | Original file with byte-range support          |
 | `GET`             | `/api/v1/subtitles/:id`           | WebVTT subtitle response                       |
-| `POST`            | `/api/v1/progress`                | Save resume position                           |
+| `GET/POST/DELETE` | `/api/v1/progress`                | List, save, or clear resume progress           |
 | `GET/POST/PUT/DELETE` | `/api/v1/settings/libraries`         | Manage indexed folders                         |
 | `POST`                | `/api/v1/settings/scan`              | Walk one or all libraries                      |
-| `GET/PUT`              | `/api/v1/settings/overview`          | Read settings and update TMDB credentials      |
+| `GET`                  | `/api/v1/settings/overview`          | Read settings overview                         |
 | `POST`                | `/api/v1/settings/metadata/search`   | Search TMDB candidates                         |
 | `POST`                | `/api/v1/settings/metadata/identify` | Apply a manual TMDB match                      |
 | `POST`                | `/api/v1/settings/metadata/refresh`  | Refresh the current match                      |
@@ -149,5 +153,4 @@ bun run verify        # web + TV types, Oxlint, Knip, tests, production build
 Ploux assumes a trusted home network and has no authentication. Do not publish port 3000 directly to the internet. Put it behind an
 authenticated reverse proxy or VPN if remote access is required.
 
-TMDB credentials can be supplied through `TMDB_READ_ACCESS_TOKEN` (preferred) or saved locally from Settings. This product uses the
-TMDB API but is not endorsed or certified by TMDB.
+TMDB credentials are supplied through `TMDB_READ_ACCESS_TOKEN`. This product uses the TMDB API but is not endorsed or certified by TMDB.

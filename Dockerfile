@@ -10,6 +10,9 @@ RUN bun run build
 FROM oven/bun:1.4.0-slim
 WORKDIR /app
 ENV NODE_ENV=production
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/.output ./.output
 COPY --from=build /app/drizzle ./drizzle
 COPY --from=build /app/package.json ./package.json
