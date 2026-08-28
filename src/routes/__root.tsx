@@ -1,8 +1,6 @@
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query"
 import {ReactQueryDevtools} from "@tanstack/react-query-devtools"
 import {createRootRoute, HeadContent, Link, Scripts,} from "@tanstack/react-router"
-import {TanStackRouterDevtoolsPanel} from "@tanstack/react-router-devtools"
-import {TanStackDevtools} from "@tanstack/react-devtools"
 import {useState} from "react"
 import {Button} from "@/components/ui/button"
 import {Toaster} from "@/components/ui/toast"
@@ -68,17 +66,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 <ReactQueryDevtools buttonPosition="bottom-left"/>
             ) : null}
         </QueryClientProvider>
-        {import.meta.env.DEV ? (
-            <TanStackDevtools
-                config={{ position: "bottom-right" }}
-                plugins={[
-                    {
-                        name: "TanStack Router",
-                        render: <TanStackRouterDevtoolsPanel/>,
-                    },
-                ]}
-            />
-        ) : null}
         <Scripts/>
         </body>
         </html>

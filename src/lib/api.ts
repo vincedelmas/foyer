@@ -1,4 +1,4 @@
-import type {LibraryKind, LibraryRecord, LibraryResponse, MediaDetail, MediaFolderSummary, MediaKind, MediaSort, ScanRecord, TmdbCandidate} from "@ploux/contracts";
+import type {LibraryKind, LibraryRecord, LibraryResponse, MediaDetail, MediaFolderSummary, MediaKind, MediaSort, MediaSummary, MetadataRefreshSummary, ScanRecord, TmdbCandidate} from "@ploux/contracts";
 
 
 class ApiError extends Error {
@@ -52,6 +52,7 @@ export const api = {
         return request<LibraryResponse>(`/api/v1/library?${query}`)
     },
     mediaFolders: () => request<MediaFolderSummary[]>("/api/v1/libraries"),
+    currentlyWatching: () => request<MediaSummary[]>("/api/v1/progress"),
     media: (id: string) => request<MediaDetail>(`/api/v1/media/${id}`),
     progress: (input: {
         partId: string
@@ -61,6 +62,11 @@ export const api = {
         request("/api/v1/progress", {
             method: "POST",
             body: JSON.stringify(input),
+        }),
+    deleteProgress: (mediaId: string) =>
+        request<{deleted: number}>("/api/v1/progress", {
+            method: "DELETE",
+            body: JSON.stringify({mediaId}),
         }),
     settings: () =>
         request<{
@@ -109,5 +115,10 @@ export const api = {
         request<MediaDetail>("/api/v1/settings/metadata/refresh", {
             method: "POST",
             body: JSON.stringify({ mediaId }),
+        }),
+    refreshLibraryMetadata: (libraryId: string) =>
+        request<MetadataRefreshSummary>("/api/v1/settings/metadata/refresh", {
+            method: "POST",
+            body: JSON.stringify({libraryId}),
         }),
 }

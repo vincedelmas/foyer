@@ -2,6 +2,7 @@ import {and, eq, like, or} from "drizzle-orm";
 import {db, ensureDatabase} from "@/server/db/index.server"
 import {libraries, MediaItemRow, mediaItems, MediaPartRow, mediaParts, playbackProgress, ProgressRow, SubtitleRow, subtitleTracks} from "@/server/db/schema"
 import {LibraryStats, MediaFolderSummary, MediaKind, MediaPart, MediaProgress, MediaSort, MediaSummary, PersonCredit, SeasonMetadata, SubtitleTrack} from "@ploux/contracts";
+import {selectCurrentlyWatching} from "@/server/media/progress-utils"
 
 
 const parseJson = <T>(value: string, fallback: T): T => {
@@ -184,6 +185,7 @@ export const listMediaFolders = (): MediaFolderSummary[] => {
         return {
             id: folder.id,
             name: folder.name,
+            path: folder.path,
             kind: folder.kind,
             titleCount: folderItems.length,
             posterPaths: folderItems
@@ -191,6 +193,51 @@ export const listMediaFolders = (): MediaFolderSummary[] => {
                 .slice(0, 5),
         }
     })
+}
+
+
+export const listCurrentlyWatching = (): MediaSummary[] => {
+    ensureDatabase()
+
+    return selectCurrentlyWatching(hydrateSummaries(loadMediaRows()))
+}
+
+
+export const deleteMediaProgress = (mediaId: string) => {
+    ensureDatabase()
+
+    const item = db
+        .select({id: mediaItems.id})
+        .from(mediaItems)
+        .where(eq(mediaItems.id, mediaId))
+        .get()
+
+    if (!item) throw new Error("Media item not found")
+
+    const parts = db
+        .select({id: mediaParts.id})
+        .from(mediaParts)
+        .where(eq(mediaParts.mediaItemId, mediaId))
+        .all()
+
+    let deleted = 0
+    db.transaction(() => {
+        for (const part of parts) {
+            const progress = db
+                .select({id: playbackProgress.mediaPartId})
+                .from(playbackProgress)
+                .where(eq(playbackProgress.mediaPartId, part.id))
+                .get()
+
+            if (!progress) continue
+            db.delete(playbackProgress)
+                .where(eq(playbackProgress.mediaPartId, part.id))
+                .run()
+            deleted += 1
+        }
+    })
+
+    return deleted
 }
 
 

@@ -38,6 +38,11 @@ export const identifyInputSchema = z.object({
 })
 
 export const mediaIdInputSchema = z.object({ mediaId: z.string().min(1) })
+export const libraryIdInputSchema = z.object({ libraryId: z.string().min(1) })
+export const metadataRefreshInputSchema = z.union([
+    mediaIdInputSchema,
+    libraryIdInputSchema,
+])
 export const scanInputSchema = z.object({
     libraryId: z.string().min(1).optional(),
 })
@@ -128,9 +133,18 @@ export interface LibraryRecord {
 export interface MediaFolderSummary {
     id: string
     name: string
+    path: string
     kind: LibraryKind
     titleCount: number
     posterPaths: string[]
+}
+
+export interface MetadataRefreshSummary {
+    total: number
+    refreshed: number
+    matched: number
+    skipped: number
+    failed: number
 }
 
 export interface LibraryStats {

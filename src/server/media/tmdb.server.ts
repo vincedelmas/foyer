@@ -1,8 +1,8 @@
 import {eq} from "drizzle-orm";
 import {normalizeTitle} from "./file-utils.server";
-import {mediaItems, settings} from "@/server/db/schema";
+import {libraries, mediaItems, settings} from "@/server/db/schema";
 import {db, ensureDatabase} from "@/server/db/index.server";
-import {MediaKind, PersonCredit, SeasonMetadata, TmdbCandidate} from "@ploux/contracts";
+import {MediaKind, MetadataRefreshSummary, PersonCredit, SeasonMetadata, TmdbCandidate} from "@ploux/contracts";
 
 
 const API_URL = "https://api.themoviedb.org/3";
@@ -283,4 +283,55 @@ export const refreshTmdbMetadata = async (mediaId: string) => {
         item.tmdbId,
         item.metadataStatus === "manual" ? "manual" : "matched"
     )
+}
+
+
+export const refreshLibraryMetadata = async (
+    libraryId: string
+): Promise<MetadataRefreshSummary> => {
+    ensureDatabase()
+
+    const library = db
+        .select({id: libraries.id})
+        .from(libraries)
+        .where(eq(libraries.id, libraryId))
+        .get()
+
+    if (!library) throw new Error("Media folder not found")
+
+    const items = db
+        .select()
+        .from(mediaItems)
+        .where(eq(mediaItems.libraryId, libraryId))
+        .all()
+    const summary: MetadataRefreshSummary = {
+        total: items.length,
+        refreshed: 0,
+        matched: 0,
+        skipped: 0,
+        failed: 0,
+    }
+
+    if (!items.length) return summary
+    if (!isTmdbConfigured()) throw new TmdbNotConfiguredError()
+
+    for (const item of items) {
+        try {
+            if (item.tmdbId) {
+                await refreshTmdbMetadata(item.id)
+                summary.refreshed += 1
+                continue
+            }
+
+            const match = await autoMatchMetadata(item.id)
+            if (match) summary.matched += 1
+            else summary.skipped += 1
+        }
+        catch (error) {
+            summary.failed += 1
+            console.warn(`TMDB metadata refresh failed for ${item.id}`, error)
+        }
+    }
+
+    return summary
 }

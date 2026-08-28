@@ -1,4 +1,5 @@
 import {MediaSummary} from "@ploux/contracts";
+import type {ReactNode} from "react";
 import {FolderSearchIcon} from "lucide-react";
 import {MediaCard} from "@/components/media-card";
 import {Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle,} from "@/components/ui/empty";
@@ -8,10 +9,12 @@ export function MediaGrid({
     items,
     emptyTitle = "No titles found",
     emptyDescription = "Add a media folder in settings, scan it, or loosen this search.",
+    renderActions,
 }: {
     items: MediaSummary[]
     emptyTitle?: string
     emptyDescription?: string
+    renderActions?: (item: MediaSummary) => ReactNode
 }) {
     if (!items.length) {
         return (
@@ -34,6 +37,7 @@ export function MediaGrid({
                     item={item}
                     key={item.id}
                     index={index}
+                    actions={renderActions?.(item)}
                 />
             )}
         </div>
