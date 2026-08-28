@@ -1,8 +1,9 @@
 # Android TV releases and in-app updates
 
 Ploux TV updates are normal Android APK updates published as public GitHub Releases. The app checks the repo once a day, offers a manual
-check under **Settings → App updates**, downloads the APK, verifies its size and SHA-256 digest, and opens Android's installer. Android
-still shows its own installation confirmation.
+check under **Settings → App updates**, downloads the APK, verifies its size and SHA-256 digest, and opens Android's installer. SHA-256 is
+calculated by streaming the file through native code, so verification does not load the whole APK into memory. Android still shows its own
+installation confirmation.
 
 ## One-time signing setup
 
@@ -93,3 +94,15 @@ runnable as a recovery mechanism, but its version/tag must already exist as a Re
 3. For future versions, choose **Install update** inside the Ploux TV app. The first time, the TV may ask you to allow Ploux TV to install
    unknown apps. Grant that per-app permission, return to Ploux, and retry. All later APKs signed with the same key install over the current
    app while preserving its local settings.
+
+### Upgrading from 0.2.0 or 0.2.1
+
+The updater shipped before `0.2.2` tries to hold the entire APK in memory while verifying it and can run out of memory on Android TV. Install
+`0.2.2` once through Downloader using the canonical release URL:
+
+```text
+https://github.com/vincedelmas/ploux/releases/download/v0.2.2/ploux-tv.apk
+```
+
+That installation updates the existing signed app and preserves its settings. In-app updates from `0.2.2` onward use native streaming
+SHA-256 verification.

@@ -1,8 +1,8 @@
 import * as Application from "expo-application"
-import * as Crypto from "expo-crypto"
 import { File, Paths } from "expo-file-system"
 import { getContentUriAsync } from "expo-file-system/legacy"
 import * as IntentLauncher from "expo-intent-launcher"
+import ReactNativeBlobUtil from "react-native-blob-util"
 
 const repository =
   process.env.EXPO_PUBLIC_PLOUX_TV_REPOSITORY ?? "vincedelmas/ploux"
@@ -166,12 +166,6 @@ export async function findLatestTvUpdate(): Promise<TvUpdate | null> {
   return manifest.versionCode > currentTvVersionCode ? manifest : null
 }
 
-function hex(buffer: ArrayBuffer) {
-  return Array.from(new Uint8Array(buffer), (byte) =>
-    byte.toString(16).padStart(2, "0")
-  ).join("")
-}
-
 export async function downloadTvUpdate(
   update: TvUpdate,
   onProgress: (progress: number) => void,
@@ -194,11 +188,7 @@ export async function downloadTvUpdate(
   }
 
   onVerifying()
-  let bytes = await downloaded.bytes()
-  const digest = hex(
-    await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, bytes)
-  )
-  bytes = new Uint8Array(0)
+  const digest = await ReactNativeBlobUtil.fs.hash(downloaded.uri, "sha256")
 
   if (digest.toLowerCase() !== update.sha256.toLowerCase()) {
     downloaded.delete()

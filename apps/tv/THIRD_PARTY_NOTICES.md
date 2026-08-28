@@ -1,6 +1,15 @@
 # Android TV third-party notices
 
-Ploux TV embeds the following playback components in its APK:
+Ploux TV embeds the following native components in its APK:
+
+## react-native-blob-util
+
+- Version: 0.24.10
+- Project: https://github.com/RonRadtke/react-native-blob-util
+- License: MIT
+- License text: https://github.com/RonRadtke/react-native-blob-util/blob/v0.24.10/LICENSE
+
+Ploux uses its native file hashing API to verify large update APKs without loading them into the JavaScript or Java heap.
 
 ## @lunarr/vlc-player
 
