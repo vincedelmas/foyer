@@ -5,7 +5,6 @@
   "include-v-in-tag": true,
   "draft": true,
   "force-tag-creation": true,
-  "last-release-sha": "6295da2a16497eefb5a71de2740353cd49630bdb",
   "changelog-sections": [
     { "type": "feat", "section": "Features", "hidden": false },
     { "type": "fix", "section": "Bug Fixes", "hidden": false },
