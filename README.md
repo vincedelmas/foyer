@@ -19,7 +19,7 @@ It deliberately has no transcoder, accounts, sharing, plugins, live TV, or cloud
 
 ## Quick start
 
-Requirements: Bun 1.4+, optionally FFmpeg/ffprobe for detailed stream information and Android TV AVI compatibility, and optionally a
+Requirements: Bun 1.4+, optionally FFmpeg/ffprobe for detailed stream information and cached stream-copy remuxing, and optionally a
 [TMDB v4 read access token](https://www.themoviedb.org/settings/api).
 
 ```bash
@@ -80,15 +80,15 @@ tracks embedded in a container.
 
 ## Direct-play limits
 
-Ploux never transcodes video or audio. It serves `Range` requests from the original file, which makes seeking efficient. For Android TV,
-AVI files are remuxed on demand into a cached Matroska container so Media3 can expose embedded audio tracks such as AC-3; the encoded
-video and audio streams are copied unchanged. The playback device must still support every codec inside the resulting container. The
-explicit permanent-delete action is the sole operation that
+Ploux never transcodes video or audio. It serves `Range` requests from the original file, which makes seeking efficient. The Android TV
+client plays that original stream with embedded LibVLC: it prefers the Shield's hardware decoder and can fall back to local software
+decoding for an unsupported codec. No converted media stream is created or sent by the server. The explicit permanent-delete action is
+the sole operation that
 removes source media and indexed external subtitle files.
 
 - Browsers are usually safest with MP4 containing H.264/H.265 where supported and AAC audio, or WebM.
 - MKV support varies substantially in browsers.
-- The Android TV app uses the platform player through `react-native-video`/ExoPlayer and usually supports more containers and codecs.
+- The Android TV app uses embedded LibVLC and supports substantially more containers, audio codecs, and subtitle formats than browsers.
 - A file can be indexed even when the current client cannot decode it. The web player shows a direct-play warning for containers with weak
   browser support.
 
@@ -96,6 +96,9 @@ removes source media and indexed external subtitle files.
 
 The TV project is in `apps/tv`. It is configured as an Android-TV-only, landscape Expo native project using `react-native-tvos`; it is not
 intended for a store.
+
+Its player uses `@lunarr/vlc-player` and LibVLC. Distribution notices for those native playback dependencies are in
+[`apps/tv/THIRD_PARTY_NOTICES.md`](apps/tv/THIRD_PARTY_NOTICES.md).
 
 The TV client uses the same collection-first home, currently-watching data, server-side search, per-collection watch filters, sorting,
 pagination, watch controls, collection management, metadata actions, media information, and progress APIs as the web UI. Its layouts and
