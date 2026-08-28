@@ -1,0 +1,53 @@
+name: Build Android TV APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-tv-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build standalone APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate Android project
+        run: bun --cwd apps/tv run prebuild
+
+      - name: Build standalone release APK
+        working-directory: apps/tv/android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Give the APK a stable name
+        run: cp apps/tv/android/app/build/outputs/apk/release/app-release.apk ploux-tv.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ploux-tv-apk
+          path: ploux-tv.apk
+          if-no-files-found: error
+          retention-days: 30

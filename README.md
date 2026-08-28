@@ -122,6 +122,14 @@ adb install -r app/build/outputs/apk/release/app-release.apk
 
 For a long-lived personal install, configure a private release signing key in the generated Android project before building the release APK.
 
+### Build an APK without an Android toolchain
+
+The `Build Android TV APK` GitHub Actions workflow builds a standalone sideloadable APK entirely on GitHub's runner. Open the repository's
+Actions tab, select the workflow, choose **Run workflow**, and download the `ploux-tv-apk` artifact when it finishes. Extract
+`ploux-tv.apk` from the downloaded ZIP, then transfer it to the TV with a USB drive or a file-transfer app and install it after allowing that
+app to install unknown applications. This personal build uses the generated debug signing key and is intended for direct sideloading, not
+store distribution.
+
 ## API
 
 The TV client consumes the versioned HTTP API under `/api/v1`:
