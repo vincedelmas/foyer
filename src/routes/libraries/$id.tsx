@@ -2,6 +2,7 @@ import {mediaSortSchema} from "@ploux/contracts"
 import {useQuery} from "@tanstack/react-query"
 import {createFileRoute, Link} from "@tanstack/react-router"
 import {ArrowLeftIcon, FilmIcon, FolderSearchIcon, SearchIcon, TvIcon} from "lucide-react"
+import {type MouseEvent, useEffect, useState} from "react"
 import {z} from "zod"
 import {AppHeader} from "@/components/app-header"
 import {MediaGrid} from "@/components/media-grid"
@@ -9,7 +10,9 @@ import {Badge} from "@/components/ui/badge"
 import {Button} from "@/components/ui/button"
 import {Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle} from "@/components/ui/empty"
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/input-group"
+import {Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious} from "@/components/ui/pagination"
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
+import {Separator} from "@/components/ui/separator"
 import {Skeleton} from "@/components/ui/skeleton"
 import {api} from "@/lib/api"
 
@@ -17,7 +20,10 @@ import {api} from "@/lib/api"
 const searchSchema = z.object({
     search: z.string().optional().catch(undefined),
     sort: mediaSortSchema.optional().catch("recent"),
+    page: z.coerce.number().int().min(1).optional().catch(1),
 })
+
+const PAGE_SIZE = 28
 
 const sortItems = [
     { label: "Recently added", value: "recent" },
@@ -36,22 +42,53 @@ function MediaFolderPage() {
     const {id} = Route.useParams()
     const search = Route.useSearch()
     const navigate = Route.useNavigate()
+    const [searchInput, setSearchInput] = useState(search.search ?? "")
     const folders = useQuery({
         queryKey: ["media-folders"],
         queryFn: api.mediaFolders,
     })
     const library = useQuery({
         queryKey: ["library", id, search],
-        queryFn: () => api.library({libraryId: id, ...search}),
+        queryFn: () => api.library({libraryId: id, ...search, pageSize: PAGE_SIZE}),
     })
     const folder = folders.data?.find((candidate) => candidate.id === id)
     const TypeIcon = folder?.kind === "series" ? TvIcon : FilmIcon
 
-    const updateSearch = (value: string) => {
+    useEffect(() => {
+        setSearchInput(search.search ?? "")
+    }, [search.search])
+
+    useEffect(() => {
+        const normalizedSearch = searchInput.trim()
+        if (normalizedSearch === (search.search ?? "")) return
+
+        const timeout = window.setTimeout(() => {
+            void navigate({
+                search: (previous) => ({
+                    ...previous,
+                    search: normalizedSearch || undefined,
+                    page: 1,
+                }),
+                replace: true,
+            })
+        }, 350)
+
+        return () => window.clearTimeout(timeout)
+    }, [navigate, search.search, searchInput])
+
+    const changePage = (page: number) => {
         void navigate({
-            search: (previous) => ({...previous, search: value || undefined}),
-            replace: true,
+            search: (previous) => ({...previous, page}),
         })
+    }
+
+    const pageHref = (page: number) => {
+        const query = new URLSearchParams()
+        if (search.search) query.set("search", search.search)
+        if (search.sort && search.sort !== "recent") query.set("sort", search.sort)
+        if (page > 1) query.set("page", String(page))
+        const queryString = query.toString()
+        return `/libraries/${encodeURIComponent(id)}${queryString ? `?${queryString}` : ""}`
     }
 
     return (
@@ -138,8 +175,8 @@ function MediaFolderPage() {
                                     <InputGroupInput
                                         aria-label={`Search ${folder.name}`}
                                         placeholder={`Search ${folder.name}…`}
-                                        value={search.search ?? ""}
-                                        onChange={(event) => updateSearch(event.target.value)}
+                                        value={searchInput}
+                                        onChange={(event) => setSearchInput(event.target.value)}
                                     />
                                 </InputGroup>
                                 <Select
@@ -148,7 +185,7 @@ function MediaFolderPage() {
                                     onValueChange={(value) => {
                                         if (value) {
                                             void navigate({
-                                                search: (previous) => ({...previous, sort: value}),
+                                                search: (previous) => ({...previous, sort: value, page: 1}),
                                             })
                                         }
                                     }}
@@ -181,20 +218,119 @@ function MediaFolderPage() {
                                 </Empty>
                             ) : null}
                             {library.data ? (
-                                <MediaGrid
-                                    items={library.data.items}
-                                    emptyTitle={search.search ? "No matching titles" : "This folder is empty"}
-                                    emptyDescription={
-                                        search.search
-                                            ? `Nothing in ${folder.name} matches “${search.search}”.`
-                                            : "Scan this folder from settings to index its media."
-                                    }
-                                />
+                                <>
+                                    <MediaGrid
+                                        items={library.data.items}
+                                        emptyTitle={search.search ? "No matching titles" : "This folder is empty"}
+                                        emptyDescription={
+                                            search.search
+                                                ? `Nothing in ${folder.name} matches “${search.search}”.`
+                                                : "Scan this folder from settings to index its media."
+                                        }
+                                    />
+                                    {library.data.pagination.totalItems ? (
+                                        <MediaPagination
+                                            pagination={library.data.pagination}
+                                            hrefForPage={pageHref}
+                                            onPageChange={changePage}
+                                        />
+                                    ) : null}
+                                </>
                             ) : null}
                         </section>
                     </>
                 ) : null}
             </main>
+        </div>
+    )
+}
+
+
+function MediaPagination({
+    pagination,
+    hrefForPage,
+    onPageChange,
+}: {
+    pagination: {
+        page: number
+        pageSize: number
+        totalItems: number
+        totalPages: number
+    }
+    hrefForPage: (page: number) => string
+    onPageChange: (page: number) => void
+}) {
+    const {page, pageSize, totalItems, totalPages} = pagination
+    const firstItem = (page - 1) * pageSize + 1
+    const lastItem = Math.min(page * pageSize, totalItems)
+    const pageNumbers = [...new Set([1, page - 1, page, page + 1, totalPages])]
+        .filter((pageNumber) => pageNumber >= 1 && pageNumber <= totalPages)
+        .sort((left, right) => left - right)
+
+    const handlePageClick = (targetPage: number) =>
+        (event: MouseEvent<HTMLAnchorElement>) => {
+            if (
+                event.button !== 0 ||
+                event.metaKey ||
+                event.ctrlKey ||
+                event.shiftKey ||
+                event.altKey
+            ) return
+
+            event.preventDefault()
+            onPageChange(targetPage)
+        }
+
+    return (
+        <div className="flex flex-col gap-6">
+            <Separator/>
+            <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+                <p className="text-xs text-muted-foreground">
+                    Showing {firstItem}–{lastItem} of {totalItems} titles
+                </p>
+                {totalPages > 1 ? (
+                    <Pagination className="mx-0 w-auto">
+                        <PaginationContent>
+                            {page > 1 ? (
+                                <PaginationItem>
+                                    <PaginationPrevious
+                                        href={hrefForPage(page - 1)}
+                                        onClick={handlePageClick(page - 1)}
+                                    />
+                                </PaginationItem>
+                            ) : null}
+                            {pageNumbers.flatMap((pageNumber, index) => {
+                                const previousPage = pageNumbers[index - 1]
+                                const hasGap = previousPage !== undefined && pageNumber - previousPage > 1
+                                return [
+                                    hasGap ? (
+                                        <PaginationItem key={`ellipsis-${pageNumber}`}>
+                                            <PaginationEllipsis/>
+                                        </PaginationItem>
+                                    ) : null,
+                                    <PaginationItem key={pageNumber}>
+                                        <PaginationLink
+                                            href={hrefForPage(pageNumber)}
+                                            isActive={pageNumber === page}
+                                            onClick={handlePageClick(pageNumber)}
+                                        >
+                                            {pageNumber}
+                                        </PaginationLink>
+                                    </PaginationItem>,
+                                ]
+                            })}
+                            {page < totalPages ? (
+                                <PaginationItem>
+                                    <PaginationNext
+                                        href={hrefForPage(page + 1)}
+                                        onClick={handlePageClick(page + 1)}
+                                    />
+                                </PaginationItem>
+                            ) : null}
+                        </PaginationContent>
+                    </Pagination>
+                ) : null}
+            </div>
         </div>
     )
 }

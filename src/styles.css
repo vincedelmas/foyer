@@ -2,12 +2,11 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/manrope";
-@import "@fontsource-variable/newsreader";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: 'Newsreader Variable', serif;
+    --font-heading: 'Manrope Variable', sans-serif;
     --font-sans: 'Manrope Variable', sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);

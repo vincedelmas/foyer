@@ -20,7 +20,7 @@ export function TmdbForm({ environmentManaged }: TmdbFormProps) {
     const save = useMutation({
         mutationFn: api.saveTmdbToken,
         onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ["admin"] });
+            await queryClient.invalidateQueries({ queryKey: ["settings"] });
             toast.add({ title: "TMDB token saved", type: "success" });
         },
         onError: (error) =>

@@ -8,7 +8,7 @@ import {createLibrary, deleteLibrary, listLibraries, updateLibrary} from "@/serv
 const deleteSchema = z.object({ id: z.string().min(1) });
 
 
-export const Route = createFileRoute("/api/v1/admin/libraries")({
+export const Route = createFileRoute("/api/v1/settings/libraries")({
     server: {
         handlers: {
             OPTIONS: emptyCors,

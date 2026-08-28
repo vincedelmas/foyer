@@ -145,6 +145,12 @@ export interface LibraryStats {
 export interface LibraryResponse {
     items: MediaSummary[]
     stats: LibraryStats
+    pagination: {
+        page: number
+        pageSize: number
+        totalItems: number
+        totalPages: number
+    }
 }
 
 export interface TmdbCandidate {

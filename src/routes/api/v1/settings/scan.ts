@@ -4,7 +4,7 @@ import {scanLibraries} from "@/server/media/scanner.server";
 import {apiError, emptyCors, json, parseBody} from "@/server/http.server";
 
 
-export const Route = createFileRoute("/api/v1/admin/scan")({
+export const Route = createFileRoute("/api/v1/settings/scan")({
     server: {
         handlers: {
             OPTIONS: emptyCors,

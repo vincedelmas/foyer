@@ -5,7 +5,7 @@ import {getMediaDetail} from "@/server/media/repository.server";
 import {apiError, emptyCors, json, parseBody} from "@/server/http.server";
 
 
-export const Route = createFileRoute("/api/v1/admin/metadata/search")({
+export const Route = createFileRoute("/api/v1/settings/metadata/search")({
     server: {
         handlers: {
             OPTIONS: emptyCors,

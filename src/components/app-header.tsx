@@ -1,6 +1,6 @@
 import {Button} from "@/components/ui/button";
 import {Link, useLocation} from "@tanstack/react-router";
-import {ClapperboardIcon, Settings2Icon} from "lucide-react";
+import {ClapperboardIcon} from "lucide-react";
 
 
 export function AppHeader() {
@@ -35,14 +35,12 @@ export function AppHeader() {
 
                 <div className="ml-auto">
                     <Button
-                        size="icon"
+                        size="sm"
                         nativeButton={false}
-                        render={<Link to="/admin"/>}
-                        aria-label="Open settings"
-                        title="Settings"
-                        variant={location.pathname === "/admin" ? "secondary" : "ghost"}
+                        render={<Link to="/settings"/>}
+                        variant={location.pathname === "/settings" ? "secondary" : "ghost"}
                     >
-                        <Settings2Icon/>
+                        Settings
                     </Button>
                 </div>
             </div>

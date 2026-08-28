@@ -57,7 +57,7 @@ const LibraryActions = ({library}: LibraryActionsProps) => {
             const summary = result.scans[0]
 
             await Promise.all([
-                queryClient.invalidateQueries({queryKey: ["admin"]}),
+                queryClient.invalidateQueries({queryKey: ["settings"]}),
                 queryClient.invalidateQueries({queryKey: ["library"]}),
                 queryClient.invalidateQueries({queryKey: ["media-folders"]}),
             ])
@@ -82,7 +82,7 @@ const LibraryActions = ({library}: LibraryActionsProps) => {
         mutationFn: () => api.deleteLibrary(library.id),
         onSuccess: async () => {
             await Promise.all([
-                queryClient.invalidateQueries({queryKey: ["admin"]}),
+                queryClient.invalidateQueries({queryKey: ["settings"]}),
                 queryClient.invalidateQueries({queryKey: ["library"]}),
                 queryClient.invalidateQueries({queryKey: ["media-folders"]}),
             ])
@@ -137,7 +137,7 @@ function EditLibraryDialog({library}: {library: LibraryRecord}) {
         mutationFn: api.updateLibrary,
         onSuccess: async () => {
             await Promise.all([
-                queryClient.invalidateQueries({queryKey: ["admin"]}),
+                queryClient.invalidateQueries({queryKey: ["settings"]}),
                 queryClient.invalidateQueries({queryKey: ["library"]}),
                 queryClient.invalidateQueries({queryKey: ["media-folders"]}),
             ])

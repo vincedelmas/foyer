@@ -46,7 +46,7 @@ function HomePage() {
                         <Button
                             variant="outline"
                             nativeButton={false}
-                            render={<Link to="/admin"/>}
+                            render={<Link to="/settings"/>}
                         >
                             <FolderPlusIcon data-icon="inline-start"/>
                             Add media folder
@@ -92,7 +92,7 @@ function HomePage() {
                                 </EmptyDescription>
                             </EmptyHeader>
                             <EmptyContent>
-                                <Button nativeButton={false} render={<Link to="/admin"/>}>
+                                <Button nativeButton={false} render={<Link to="/settings"/>}>
                                     <FolderPlusIcon data-icon="inline-start"/>
                                     Add your first folder
                                 </Button>

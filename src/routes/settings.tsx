@@ -2,9 +2,9 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query"
 import {createFileRoute} from "@tanstack/react-router"
 import {DatabaseIcon, FilmIcon, FolderSyncIcon, LibraryIcon, ScanSearchIcon, SparklesIcon,} from "lucide-react"
 import {AppHeader} from "@/components/app-header"
-import {LibrariesTable} from "@/components/admin/libraries-table"
-import {LibraryForm} from "@/components/admin/library-form"
-import {TmdbForm} from "@/components/admin/tmdb-form"
+import {LibrariesTable} from "@/components/settings/libraries-table"
+import {LibraryForm} from "@/components/settings/library-form"
+import {TmdbForm} from "@/components/settings/tmdb-form"
 import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert"
 import {Badge} from "@/components/ui/badge"
 import {Button} from "@/components/ui/button"
@@ -16,21 +16,21 @@ import {toast} from "@/components/ui/toast"
 import {api} from "@/lib/api"
 
 
-export const Route = createFileRoute("/admin")({ component: AdminPage })
+export const Route = createFileRoute("/settings")({ component: SettingsPage })
 
 
-function AdminPage() {
+function SettingsPage() {
     const queryClient = useQueryClient()
-    const admin = useQuery({ queryKey: ["admin"], queryFn: api.admin })
+    const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings })
     const library = useQuery({
-        queryKey: ["library", "admin-stats"],
+        queryKey: ["library", "settings-stats"],
         queryFn: () => api.library({}),
     })
     const scanAll = useMutation({
         mutationFn: () => api.scan(),
         onSuccess: async (result) => {
             await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["admin"] }),
+                queryClient.invalidateQueries({ queryKey: ["settings"] }),
                 queryClient.invalidateQueries({ queryKey: ["library"] }),
                 queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
             ])
@@ -67,7 +67,7 @@ function AdminPage() {
                     </div>
                     <Button
                         onClick={() => scanAll.mutate()}
-                        disabled={scanAll.isPending || !admin.data?.libraries.length}
+                        disabled={scanAll.isPending || !settings.data?.libraries.length}
                     >
                         {scanAll.isPending ? (
                             <Spinner data-icon="inline-start"/>
@@ -97,7 +97,7 @@ function AdminPage() {
                     <StatCard
                         icon={LibraryIcon}
                         title="Media folders"
-                        value={admin.data?.libraries.length}
+                        value={settings.data?.libraries.length}
                     />
                     <StatCard
                         icon={SparklesIcon}
@@ -141,11 +141,11 @@ function AdminPage() {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    {admin.isPending ? (
+                                    {settings.isPending ? (
                                         <Skeleton className="h-40 w-full"/>
                                     ) : null}
-                                    {admin.data?.libraries.length ? (
-                                        <LibrariesTable libraries={admin.data.libraries}/>
+                                    {settings.data?.libraries.length ? (
+                                        <LibrariesTable libraries={settings.data.libraries}/>
                                     ) : (
                                         <p className="py-12 text-center text-sm text-muted-foreground">
                                             No media folders have been added yet.
@@ -161,7 +161,7 @@ function AdminPage() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     TMDB connection{" "}
-                                    {admin.data?.tmdbConfigured ? (
+                                    {settings.data?.tmdbConfigured ? (
                                         <Badge>Connected</Badge>
                                     ) : (
                                         <Badge variant="secondary">Not configured</Badge>
@@ -174,7 +174,7 @@ function AdminPage() {
                             </CardHeader>
                             <CardContent>
                                 <TmdbForm
-                                    environmentManaged={admin.data?.tmdbSource === "environment"}
+                                    environmentManaged={settings.data?.tmdbSource === "environment"}
                                 />
                             </CardContent>
                         </Card>
@@ -190,7 +190,7 @@ function AdminPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="flex flex-col gap-3">
-                                    {admin.data?.scans.map((scan) => (
+                                    {settings.data?.scans.map((scan) => (
                                         <div
                                             key={scan.id}
                                             className="grid gap-2 rounded-xl border p-4 sm:grid-cols-[1fr_auto] sm:items-center"
@@ -222,7 +222,7 @@ function AdminPage() {
                                             </Badge>
                                         </div>
                                     ))}
-                                    {!admin.data?.scans.length ? (
+                                    {!settings.data?.scans.length ? (
                                         <p className="py-12 text-center text-sm text-muted-foreground">
                                             No scans have run yet.
                                         </p>

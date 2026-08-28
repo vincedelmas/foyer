@@ -5,7 +5,7 @@ import {scans, settings} from "@/server/db/schema";
 import {db, ensureDatabase} from "@/server/db/index.server";
 
 
-export const getAdminOverview = () => {
+export const getSettingsOverview = () => {
     ensureDatabase();
 
     return {
@@ -52,4 +52,3 @@ export const saveTmdbToken = (token: string) => {
 
     return { configured: true };
 };
-

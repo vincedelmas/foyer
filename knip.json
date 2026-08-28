@@ -39,7 +39,6 @@
     ],
     "ignoreDependencies": [
         "@fontsource-variable/manrope",
-        "@fontsource-variable/newsreader",
         "@tanstack/router-plugin",
         "shadcn",
         "tailwindcss",

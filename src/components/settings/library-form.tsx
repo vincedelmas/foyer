@@ -24,7 +24,7 @@ export function LibraryForm() {
         mutationFn: api.createLibrary,
         onSuccess: async () => {
             await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["admin"] }),
+                queryClient.invalidateQueries({ queryKey: ["settings"] }),
                 queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
             ]);
             toast.add({

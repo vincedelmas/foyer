@@ -34,12 +34,21 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
 
 
 export const api = {
-    library: (input: { libraryId?: string; kind?: MediaKind; search?: string; sort?: MediaSort }) => {
+    library: (input: {
+        libraryId?: string
+        kind?: MediaKind
+        search?: string
+        sort?: MediaSort
+        page?: number
+        pageSize?: number
+    }) => {
         const query = new URLSearchParams()
         if (input.libraryId) query.set("libraryId", input.libraryId)
         if (input.kind) query.set("kind", input.kind)
         if (input.search) query.set("search", input.search)
         if (input.sort) query.set("sort", input.sort)
+        if (input.page) query.set("page", String(input.page))
+        if (input.pageSize) query.set("pageSize", String(input.pageSize))
         return request<LibraryResponse>(`/api/v1/library?${query}`)
     },
     mediaFolders: () => request<MediaFolderSummary[]>("/api/v1/libraries"),
@@ -53,51 +62,51 @@ export const api = {
             method: "POST",
             body: JSON.stringify(input),
         }),
-    admin: () =>
+    settings: () =>
         request<{
             libraries: LibraryRecord[]
             scans: ScanRecord[]
             tmdbConfigured: boolean
             tmdbSource: "environment" | "database"
             databasePath: string
-        }>("/api/v1/admin/settings"),
+        }>("/api/v1/settings/overview"),
     createLibrary: (input: { name: string; path: string; kind: LibraryKind }) =>
-        request<LibraryRecord>("/api/v1/admin/libraries", {
+        request<LibraryRecord>("/api/v1/settings/libraries", {
             method: "POST",
             body: JSON.stringify(input),
         }),
     updateLibrary: (input: { id: string; name: string; path: string; kind: LibraryKind }) =>
-        request<LibraryRecord>("/api/v1/admin/libraries", {
+        request<LibraryRecord>("/api/v1/settings/libraries", {
             method: "PUT",
             body: JSON.stringify(input),
         }),
     deleteLibrary: (id: string) =>
-        request<{ deleted: boolean }>("/api/v1/admin/libraries", {
+        request<{ deleted: boolean }>("/api/v1/settings/libraries", {
             method: "DELETE",
             body: JSON.stringify({ id }),
         }),
     scan: (libraryId?: string) =>
-        request<{ scans: ScanRecord[] }>("/api/v1/admin/scan", {
+        request<{ scans: ScanRecord[] }>("/api/v1/settings/scan", {
             method: "POST",
             body: JSON.stringify({ libraryId }),
         }),
     saveTmdbToken: (tmdbToken: string) =>
-        request<{ configured: boolean }>("/api/v1/admin/settings", {
+        request<{ configured: boolean }>("/api/v1/settings/overview", {
             method: "PUT",
             body: JSON.stringify({ tmdbToken }),
         }),
     searchMetadata: (input: { mediaId: string; query: string; year?: number }) =>
-        request<{ candidates: TmdbCandidate[] }>("/api/v1/admin/metadata/search", {
+        request<{ candidates: TmdbCandidate[] }>("/api/v1/settings/metadata/search", {
             method: "POST",
             body: JSON.stringify(input),
         }),
     identify: (mediaId: string, tmdbId: number) =>
-        request<MediaDetail>("/api/v1/admin/metadata/identify", {
+        request<MediaDetail>("/api/v1/settings/metadata/identify", {
             method: "POST",
             body: JSON.stringify({ mediaId, tmdbId }),
         }),
     refreshMetadata: (mediaId: string) =>
-        request<MediaDetail>("/api/v1/admin/metadata/refresh", {
+        request<MediaDetail>("/api/v1/settings/metadata/refresh", {
             method: "POST",
             body: JSON.stringify({ mediaId }),
         }),

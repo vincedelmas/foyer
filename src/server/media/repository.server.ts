@@ -131,10 +131,23 @@ const applySort = (items: MediaSummary[], sort: MediaSort) => {
 }
 
 
-export const listMedia = (input: { libraryId?: string, kind?: MediaKind, search?: string, sort?: MediaSort }) => {
+export const listMedia = (input: {
+    libraryId?: string
+    kind?: MediaKind
+    search?: string
+    sort?: MediaSort
+    page?: number
+    pageSize?: number
+}) => {
     ensureDatabase();
     const all = hydrateSummaries(loadMediaRows(undefined, undefined, input.libraryId));
     const filtered = hydrateSummaries(loadMediaRows(input.kind, input.search?.trim() || undefined, input.libraryId));
+    const sorted = applySort(filtered, input.sort ?? "recent")
+    const totalItems = sorted.length
+    const pageSize = input.pageSize ?? Math.max(totalItems, 1)
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
+    const page = Math.min(input.page ?? 1, totalPages)
+    const start = (page - 1) * pageSize
 
     const stats: LibraryStats = {
         titles: all.length,
@@ -147,7 +160,13 @@ export const listMedia = (input: { libraryId?: string, kind?: MediaKind, search?
 
     return {
         stats,
-        items: applySort(filtered, input.sort ?? "recent"),
+        items: sorted.slice(start, start + pageSize),
+        pagination: {
+            page,
+            pageSize,
+            totalItems,
+            totalPages,
+        },
     };
 };
 

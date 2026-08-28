@@ -27,7 +27,7 @@ bun run db:migrate
 bun run dev
 ```
 
-Open `http://localhost:3000/admin`, add an absolute server-side folder, and click **Scan**. The database is also migrated automatically on
+Open `http://localhost:3000/settings`, add an absolute server-side folder, and click **Scan**. The database is also migrated automatically on
 first access; the explicit command makes setup failures easier to see.
 
 For production:
@@ -126,11 +126,12 @@ The TV client consumes the versioned HTTP API under `/api/v1`:
 | `GET/HEAD`        | `/api/v1/stream/:partId`          | Original file with byte-range support          |
 | `GET`             | `/api/v1/subtitles/:id`           | WebVTT subtitle response                       |
 | `POST`            | `/api/v1/progress`                | Save resume position                           |
-| `GET/POST/DELETE` | `/api/v1/admin/libraries`         | Manage indexed folders                         |
-| `POST`            | `/api/v1/admin/scan`              | Walk one or all libraries                      |
-| `POST`            | `/api/v1/admin/metadata/search`   | Search TMDB candidates                         |
-| `POST`            | `/api/v1/admin/metadata/identify` | Apply a manual TMDB match                      |
-| `POST`            | `/api/v1/admin/metadata/refresh`  | Refresh the current match                      |
+| `GET/POST/PUT/DELETE` | `/api/v1/settings/libraries`         | Manage indexed folders                         |
+| `POST`                | `/api/v1/settings/scan`              | Walk one or all libraries                      |
+| `GET/PUT`              | `/api/v1/settings/overview`          | Read settings and update TMDB credentials      |
+| `POST`                | `/api/v1/settings/metadata/search`   | Search TMDB candidates                         |
+| `POST`                | `/api/v1/settings/metadata/identify` | Apply a manual TMDB match                      |
+| `POST`                | `/api/v1/settings/metadata/refresh`  | Refresh the current match                      |
 
 Shared input validation and response types live in `packages/contracts`.
 
@@ -148,5 +149,5 @@ bun run verify        # web + TV types, Oxlint, Knip, tests, production build
 Ploux assumes a trusted home network and has no authentication. Do not publish port 3000 directly to the internet. Put it behind an
 authenticated reverse proxy or VPN if remote access is required.
 
-TMDB credentials can be supplied through `TMDB_READ_ACCESS_TOKEN` (preferred) or saved locally from Administration. This product uses the
+TMDB credentials can be supplied through `TMDB_READ_ACCESS_TOKEN` (preferred) or saved locally from Settings. This product uses the
 TMDB API but is not endorsed or certified by TMDB.
