@@ -43,7 +43,7 @@ export function FocusIconButton({
       ]}
     >
       <Icon
-        size={21}
+        size={18}
         strokeWidth={active ? 3 : 2.3}
         color={active ? colors.primaryText : colors.text}
       />
@@ -53,9 +53,9 @@ export function FocusIconButton({
 
 const styles = StyleSheet.create({
   button: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   danger: { backgroundColor: colors.danger, borderColor: colors.danger },
   focused: {
     borderColor: colors.white,
-    transform: [{ scale: 1.12 }],
+    transform: [{ scale: 1.08 }],
     elevation: 12,
   },
   pressed: { opacity: 0.75 },

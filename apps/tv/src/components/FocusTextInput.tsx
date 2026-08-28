@@ -40,18 +40,18 @@ export function FocusTextInput({
 }
 
 const styles = StyleSheet.create({
-  field: { gap: 8 },
-  label: { color: colors.text, fontSize: 14, fontWeight: "700" },
+  field: { gap: 5 },
+  label: { color: colors.text, fontSize: 11, fontWeight: "700" },
   input: {
-    height: 56,
-    paddingHorizontal: 17,
-    borderRadius: 10,
+    height: 44,
+    paddingHorizontal: 13,
+    borderRadius: 8,
     borderWidth: 2,
     borderColor: colors.border,
     backgroundColor: colors.background,
     color: colors.text,
-    fontSize: 17,
+    fontSize: 14,
   },
   inputFocused: { borderColor: colors.white },
-  hint: { color: colors.muted, fontSize: 12, lineHeight: 17 },
+  hint: { color: colors.muted, fontSize: 10, lineHeight: 14 },
 })

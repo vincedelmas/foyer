@@ -54,7 +54,7 @@ export function FocusButton({
     >
       {Icon ? (
         <Icon
-          size={22}
+          size={size === "small" ? 17 : 19}
           color={variant === "primary" ? colors.primaryText : colors.text}
         />
       ) : null}
@@ -73,13 +73,13 @@ export function FocusButton({
 
 const styles = StyleSheet.create({
   base: {
-    height: 50,
-    paddingHorizontal: 22,
-    borderRadius: 10,
+    height: 42,
+    paddingHorizontal: 17,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    gap: 10,
+    gap: 8,
     borderWidth: 2,
     borderColor: "transparent",
   },
@@ -88,10 +88,10 @@ const styles = StyleSheet.create({
   secondary: { backgroundColor: colors.surfaceRaised },
   ghost: { backgroundColor: "transparent" },
   danger: { backgroundColor: colors.danger },
-  small: { height: 42, paddingHorizontal: 16 },
+  small: { height: 34, paddingHorizontal: 12 },
   focused: {
     borderColor: colors.white,
-    transform: [{ scale: 1.06 }],
+    transform: [{ scale: 1.045 }],
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
@@ -100,6 +100,6 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.78 },
   disabled: { opacity: 0.42 },
-  label: { color: colors.text, fontSize: 16, fontWeight: "700" },
-  smallLabel: { fontSize: 14 },
+  label: { color: colors.text, fontSize: 14, fontWeight: "700" },
+  smallLabel: { fontSize: 12 },
 })

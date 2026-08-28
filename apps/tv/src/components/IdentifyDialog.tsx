@@ -73,7 +73,7 @@ export function IdentifyDialog({
           : "Search TMDB and choose the correct match. Your files are never changed."
       }
       onClose={onClose}
-      width={1040}
+      width={840}
       scroll
     >
       <View style={styles.searchRow}>
@@ -152,36 +152,36 @@ export function IdentifyDialog({
 }
 
 const styles = StyleSheet.create({
-  searchRow: { flexDirection: "row", alignItems: "flex-end", gap: 14 },
-  titleInput: { width: 480 },
-  yearInput: { width: 140 },
+  searchRow: { flexDirection: "row", alignItems: "flex-end", gap: 10 },
+  titleInput: { width: 370 },
+  yearInput: { width: 110 },
   searchButton: { marginBottom: 1 },
-  results: { marginTop: 26, flexDirection: "row", flexWrap: "wrap", gap: 14 },
+  results: { marginTop: 18, flexDirection: "row", flexWrap: "wrap", gap: 10 },
   candidate: {
-    width: 472,
-    minHeight: 180,
-    padding: 12,
-    borderRadius: 14,
+    width: 387,
+    minHeight: 142,
+    padding: 9,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: colors.border,
     backgroundColor: colors.surfaceRaised,
     flexDirection: "row",
-    gap: 14,
+    gap: 10,
   },
   candidateFocused: { borderColor: colors.white },
   pressed: { opacity: 0.75 },
   poster: {
-    width: 100,
-    height: 150,
-    borderRadius: 9,
+    width: 78,
+    height: 117,
+    borderRadius: 7,
     overflow: "hidden",
     backgroundColor: colors.background,
   },
   image: { width: "100%", height: "100%" },
-  candidateCopy: { flex: 1, gap: 6 },
-  candidateTitle: { color: colors.text, fontSize: 18, fontWeight: "800" },
-  candidateMeta: { color: colors.muted, fontSize: 12 },
-  overview: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  candidateCopy: { flex: 1, gap: 4 },
+  candidateTitle: { color: colors.text, fontSize: 14, fontWeight: "800" },
+  candidateMeta: { color: colors.muted, fontSize: 9 },
+  overview: { color: colors.muted, fontSize: 10, lineHeight: 14 },
   choose: { marginTop: "auto", flexDirection: "row", alignItems: "center", gap: 7 },
   chooseText: { color: colors.primary, fontSize: 12, fontWeight: "800" },
   empty: { width: "100%", paddingVertical: 44, color: colors.muted, textAlign: "center" },

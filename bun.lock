@@ -58,6 +58,7 @@
         "@tanstack/react-query": "^5.102.8",
         "expo": "^57.0.17",
         "expo-build-properties": "~57.0.15",
+        "expo-navigation-bar": "~57.0.2",
         "expo-status-bar": "^57.0.0",
         "expo-system-ui": "~57.0.3",
         "lucide-react-native": "^1.34.0",
@@ -1127,6 +1128,8 @@
     "expo-modules-core": ["expo-modules-core@57.0.14", "", { "dependencies": { "@expo/expo-modules-macros-plugin": "0.6.1", "expo-modules-jsi": "~57.0.6", "invariant": "^2.2.4" }, "peerDependencies": { "react": "*", "react-native": "*", "react-native-worklets": "^0.7.4 || ^0.8.0 || ^0.9.0 || ^0.10.0" }, "optionalPeers": ["react-native-worklets"] }, "sha512-Cg3aQnVsQhZcMOF/RFgPGzMuhIak5W9eR9ecwmFSeQ813r4/49ut6RMA6PqUuUKuPCUIRqnBAHfSyTm1W9nfzg=="],
 
     "expo-modules-jsi": ["expo-modules-jsi@57.0.6", "", { "peerDependencies": { "react-native": "*" } }, "sha512-WK0xFEe0FdZTCLCdfXK+HVNYfAmEbA6goecRxqjr0gh3XYRKAr9tikxqcM0ItLQoEPKntscPZhWcPLGvr97Tfw=="],
+
+    "expo-navigation-bar": ["expo-navigation-bar@57.0.2", "", { "dependencies": { "debug": "^4.3.2" }, "peerDependencies": { "expo": "*", "react": "*", "react-native": "*" } }, "sha512-Ufe49dsTZjarA7gMMwwwnNJWpXo+oTyl5Ud0g3lsGVrj2HXjyw9cb9098N8+CoWpjfIa5PghuRYYXrcCrGQIHg=="],
 
     "expo-server": ["expo-server@57.0.3", "", {}, "sha512-aK+LdKzauHSGmsOStZtyxdzv0zWssCkxTw3m4QuOhfDSJsZaMRTd9O41d8ixU/QfELTbaJ0oRNcF7JFV/7O9YQ=="],
 

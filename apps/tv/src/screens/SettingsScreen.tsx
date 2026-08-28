@@ -5,7 +5,6 @@ import {
   CheckCircleIcon,
   DatabaseIcon,
   FilmIcon,
-  FolderPlusIcon,
   FolderSyncIcon,
   PencilIcon,
   ServerIcon,
@@ -108,7 +107,6 @@ function SettingsDashboard({
   onBack: () => void
 }) {
   const queryClient = useQueryClient()
-  const [createOpen, setCreateOpen] = useState(false)
   const [editLibrary, setEditLibrary] = useState<LibraryRecord | null>(null)
   const [collectionActions, setCollectionActions] =
     useState<MediaFolderSummary | null>(null)
@@ -200,18 +198,11 @@ function SettingsDashboard({
         ) : null}
 
         <View style={styles.settingsSection}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.copy}>
-              <Text style={styles.sectionTitle}>Collections</Text>
-              <Text style={styles.description}>
-                Removing a collection never deletes media files from the server.
-              </Text>
-            </View>
-            <FocusButton
-              label="Create a new collection"
-              icon={FolderPlusIcon}
-              onPress={() => setCreateOpen(true)}
-            />
+          <View style={styles.copy}>
+            <Text style={styles.sectionTitle}>Collections</Text>
+            <Text style={styles.description}>
+              Create new collections from the web app. Removing one here never deletes its media files.
+            </Text>
           </View>
           {settings.isPending ? <ActivityIndicator color={colors.primary} size="large" /> : null}
           {settings.isError ? <Text style={styles.error}>{settings.error.message}</Text> : null}
@@ -292,7 +283,6 @@ function SettingsDashboard({
         </View>
       </ScrollView>
 
-      <LibraryFormDialog server={server} visible={createOpen} onClose={() => setCreateOpen(false)} />
       <LibraryFormDialog server={server} library={editLibrary} visible={editLibrary !== null} onClose={() => setEditLibrary(null)} />
       <CollectionActionsDialog
         server={server}
@@ -374,37 +364,36 @@ function Stat({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   firstRunScreen: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background },
-  content: { paddingHorizontal: spacing.page, paddingBottom: 90, gap: 44 },
-  back: { alignSelf: "flex-start", marginTop: 10 },
-  connectionPanel: { width: 760, padding: 54, borderRadius: 22, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 28 },
-  copy: { gap: 8 },
-  eyebrow: { color: colors.primary, fontSize: 12, fontWeight: "900", letterSpacing: 2 },
-  connectionTitle: { color: colors.text, fontSize: 40, fontWeight: "800", letterSpacing: -1 },
-  heading: { color: colors.text, fontSize: 58, lineHeight: 62, fontWeight: "800", letterSpacing: -1.5 },
-  description: { color: colors.muted, fontSize: 15, lineHeight: 23 },
-  settingsTitleRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 30 },
-  stats: { flexDirection: "row", gap: 16 },
-  stat: { flex: 1, minHeight: 130, padding: 21, borderRadius: 15, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, gap: 17 },
+  content: { paddingHorizontal: spacing.page, paddingBottom: 56, gap: 28 },
+  back: { alignSelf: "flex-start", marginTop: 6 },
+  connectionPanel: { width: 620, padding: 32, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 18 },
+  copy: { gap: 5 },
+  eyebrow: { color: colors.primary, fontSize: 9, fontWeight: "900", letterSpacing: 1.6 },
+  connectionTitle: { color: colors.text, fontSize: 29, fontWeight: "800", letterSpacing: -0.5 },
+  heading: { color: colors.text, fontSize: 34, lineHeight: 38, fontWeight: "800", letterSpacing: -0.8 },
+  description: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  settingsTitleRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 20 },
+  stats: { flexDirection: "row", gap: 10 },
+  stat: { flex: 1, minHeight: 88, padding: 14, borderRadius: 11, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, gap: 10 },
   statHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  statLabel: { color: colors.muted, fontSize: 13 },
-  statValue: { color: colors.text, fontSize: 38, fontWeight: "800" },
-  settingsSection: { padding: 28, gap: 22, borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
-  sectionHeader: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 24 },
-  sectionTitle: { color: colors.text, fontSize: 31, fontWeight: "800" },
-  libraryList: { gap: 8 },
-  libraryRow: { minHeight: 76, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", gap: 14, borderRadius: 12, backgroundColor: colors.surfaceRaised },
-  libraryCopy: { flex: 1, gap: 5 },
-  libraryName: { color: colors.text, fontSize: 16, fontWeight: "800" },
-  path: { color: colors.muted, fontSize: 12 },
-  kind: { color: colors.text, fontSize: 12, fontWeight: "800", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 13, backgroundColor: colors.background },
+  statLabel: { color: colors.muted, fontSize: 10 },
+  statValue: { color: colors.text, fontSize: 26, fontWeight: "800" },
+  settingsSection: { padding: 18, gap: 15, borderRadius: 13, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  sectionTitle: { color: colors.text, fontSize: 22, fontWeight: "800" },
+  libraryList: { gap: 6 },
+  libraryRow: { minHeight: 58, paddingHorizontal: 13, flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 9, backgroundColor: colors.surfaceRaised },
+  libraryCopy: { flex: 1, gap: 3 },
+  libraryName: { color: colors.text, fontSize: 13, fontWeight: "800" },
+  path: { color: colors.muted, fontSize: 9 },
+  kind: { color: colors.text, fontSize: 9, fontWeight: "800", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: colors.background },
   connectionInline: { maxWidth: 850 },
-  connectionForm: { gap: 15 },
-  actions: { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
-  success: { color: colors.success, fontSize: 13, fontWeight: "700" },
-  error: { color: colors.danger, fontSize: 13 },
-  scanList: { gap: 8 },
-  scanRow: { minHeight: 70, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", gap: 16, borderRadius: 12, backgroundColor: colors.surfaceRaised },
-  status: { color: colors.primary, fontSize: 11, fontWeight: "900", textTransform: "uppercase" },
+  connectionForm: { gap: 10 },
+  actions: { flexDirection: "row", justifyContent: "flex-end", gap: 9 },
+  success: { color: colors.success, fontSize: 11, fontWeight: "700" },
+  error: { color: colors.danger, fontSize: 11 },
+  scanList: { gap: 6 },
+  scanRow: { minHeight: 54, paddingHorizontal: 13, flexDirection: "row", alignItems: "center", gap: 11, borderRadius: 9, backgroundColor: colors.surfaceRaised },
+  status: { color: colors.primary, fontSize: 9, fontWeight: "900", textTransform: "uppercase" },
   statusFailed: { color: colors.danger },
   emptyText: { color: colors.muted, textAlign: "center", paddingVertical: 30 },
 })

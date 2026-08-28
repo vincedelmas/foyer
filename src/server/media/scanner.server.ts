@@ -29,6 +29,7 @@ import {
   isTmdbConfigured,
   refreshTmdbEpisodeTitles,
 } from "./tmdb.server"
+import { removeTvCompatibilityCache } from "./tv-cache.server"
 
 interface DiscoveredTitle {
   sourceKey: string
@@ -157,6 +158,8 @@ const saveDiscovery = (
       seasonNumber: mediaParts.seasonNumber,
       episodeNumber: mediaParts.episodeNumber,
       title: mediaParts.title,
+      size: mediaParts.size,
+      modifiedAt: mediaParts.modifiedAt,
     })
     .from(mediaParts)
     .innerJoin(mediaItems, eq(mediaParts.mediaItemId, mediaItems.id))
@@ -166,6 +169,7 @@ const saveDiscovery = (
   const seenPartIds: string[] = []
   const newMediaIds: string[] = []
   const episodeSeasonsToRefresh = new Map<string, Set<number>>()
+  const cachePartIdsToRemove = new Set<string>()
   let subtitlesFound = 0
 
   db.transaction(() => {
@@ -204,6 +208,13 @@ const saveDiscovery = (
       for (const video of title.videos) {
         const partId = stableId("part", video.path)
         const existingPart = existingPartById.get(partId)
+        if (
+          existingPart &&
+          (existingPart.size !== video.size ||
+            existingPart.modifiedAt !== video.modifiedAt)
+        ) {
+          cachePartIdsToRemove.add(partId)
+        }
         const episodeIdentityChanged =
           existingPart &&
           (existingPart.seasonNumber !== video.seasonNumber ||
@@ -287,6 +298,7 @@ const saveDiscovery = (
       .all()
     for (const row of libraryPartRows) {
       if (!seenPartIds.includes(row.id)) {
+        cachePartIdsToRemove.add(row.id)
         db.delete(mediaParts).where(eq(mediaParts.id, row.id)).run()
       }
     }
@@ -302,7 +314,12 @@ const saveDiscovery = (
     }
   })
 
-  return { newMediaIds, episodeSeasonsToRefresh, subtitlesFound }
+  return {
+    newMediaIds,
+    episodeSeasonsToRefresh,
+    subtitlesFound,
+    cachePartIdsToRemove,
+  }
 }
 
 const scanLibrary = async (libraryId: string): Promise<ScanRecord> => {
@@ -320,6 +337,7 @@ const scanLibrary = async (libraryId: string): Promise<ScanRecord> => {
   try {
     const discovery = await discoverLibrary(library)
     const saved = saveDiscovery(library, discovery)
+    await removeTvCompatibilityCache(saved.cachePartIdsToRemove)
 
     if (isTmdbConfigured()) {
       for (const mediaId of saved.newMediaIds) {
@@ -424,7 +442,7 @@ export const updateLibrary = (input: {
   return db.select().from(libraries).where(eq(libraries.id, input.id)).get()
 }
 
-export const deleteLibrary = (libraryId: string) => {
+export const deleteLibrary = async (libraryId: string) => {
   ensureDatabase()
   const exists = Boolean(
     db
@@ -433,6 +451,14 @@ export const deleteLibrary = (libraryId: string) => {
       .where(eq(libraries.id, libraryId))
       .get()
   )
+  const partIds = db
+    .select({id: mediaParts.id})
+    .from(mediaParts)
+    .innerJoin(mediaItems, eq(mediaParts.mediaItemId, mediaItems.id))
+    .where(eq(mediaItems.libraryId, libraryId))
+    .all()
+    .map((part) => part.id)
+  await removeTvCompatibilityCache(partIds)
   db.delete(libraries).where(eq(libraries.id, libraryId)).run()
   return exists
 }

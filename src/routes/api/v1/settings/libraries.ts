@@ -32,7 +32,7 @@ export const Route = createFileRoute("/api/v1/settings/libraries")({
             DELETE: async ({ request }) => {
                 try {
                     const { id } = await parseBody(request, deleteSchema);
-                    return json({ deleted: deleteLibrary(id) });
+                    return json({ deleted: await deleteLibrary(id) });
                 }
                 catch (error) {
                     return apiError(error);

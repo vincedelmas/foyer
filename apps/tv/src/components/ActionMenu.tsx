@@ -41,7 +41,8 @@ export function ActionMenu({
       title={title}
       description={description}
       onClose={onClose}
-      width={680}
+      width={520}
+      scroll
     >
       <View style={styles.list}>
         {items.map((item) => {
@@ -74,7 +75,7 @@ export function ActionMenu({
                         ? colors.primary
                         : colors.text
                   }
-                  size={23}
+                  size={19}
                 />
               )}
               <View style={styles.itemCopy}>
@@ -99,26 +100,26 @@ export function ActionMenu({
 }
 
 const styles = StyleSheet.create({
-  list: { gap: 8 },
+  list: { gap: 6 },
   item: {
-    minHeight: 66,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 12,
+    minHeight: 48,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 9,
     borderWidth: 2,
     borderColor: "transparent",
     backgroundColor: colors.surfaceRaised,
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: 12,
   },
   itemDanger: { backgroundColor: "rgba(216,94,84,0.09)" },
   itemSelected: { borderColor: colors.primary },
-  itemFocused: { borderColor: colors.white, transform: [{ scale: 1.015 }] },
+  itemFocused: { borderColor: colors.white },
   itemDisabled: { opacity: 0.42 },
   itemPressed: { opacity: 0.76 },
-  itemCopy: { flex: 1, gap: 3 },
-  itemLabel: { color: colors.text, fontSize: 17, fontWeight: "700" },
+  itemCopy: { flex: 1, gap: 2 },
+  itemLabel: { color: colors.text, fontSize: 14, fontWeight: "700" },
   itemLabelDanger: { color: colors.danger },
-  itemDescription: { color: colors.muted, fontSize: 12, lineHeight: 17 },
+  itemDescription: { color: colors.muted, fontSize: 10, lineHeight: 14 },
 })

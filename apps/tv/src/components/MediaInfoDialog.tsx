@@ -38,7 +38,7 @@ export function MediaInfoDialog({
       title={`Media info · ${title}`}
       description="Technical information from the indexed files and their streams."
       onClose={onClose}
-      width={1120}
+      width={860}
       scroll
     >
       {info.isPending ? (
@@ -167,15 +167,15 @@ const formatBitRate = (value: number | null) =>
   value === null ? null : `${(value / 1_000_000).toFixed(2)} Mbps`
 
 const styles = StyleSheet.create({
-  content: { gap: 18 },
+  content: { gap: 12 },
   summary: { flexDirection: "row", alignItems: "center", gap: 10 },
   pill: { color: colors.text, backgroundColor: colors.surfaceRaised, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 14, fontSize: 12, fontWeight: "700" },
   notice: { color: colors.primary, fontSize: 12 },
-  file: { padding: 20, gap: 17, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  file: { padding: 14, gap: 11, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
   fileFocused: { borderColor: colors.white },
   fileHeader: { flexDirection: "row", alignItems: "flex-start", gap: 16 },
   fileCopy: { flex: 1, gap: 5 },
-  fileName: { color: colors.text, fontSize: 18, fontWeight: "800" },
+  fileName: { color: colors.text, fontSize: 14, fontWeight: "800" },
   path: { color: colors.muted, fontSize: 11, lineHeight: 16 },
   container: { color: colors.text, fontSize: 11, fontWeight: "800", borderWidth: 1, borderColor: colors.border, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 7 },
   facts: { flexDirection: "row", flexWrap: "wrap", gap: 20 },

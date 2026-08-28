@@ -1,6 +1,7 @@
 import type { MediaSummary } from "@ploux/contracts"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import {
+  CheckIcon,
   CircleXIcon,
   InfoIcon,
   RefreshCwIcon,
@@ -61,6 +62,13 @@ export function MediaActionsDialog({
       onClose()
     },
   })
+  const watchState = useMutation({
+    mutationFn: () => tvApi.setMediaWatched(server, item!.id, !item!.watched),
+    onSuccess: async () => {
+      await invalidate(item!.id)
+      onClose()
+    },
+  })
   const refresh = useMutation({
     mutationFn: () => tvApi.refreshMetadata(server, item!.id),
     onSuccess: async () => {
@@ -88,8 +96,12 @@ export function MediaActionsDialog({
 
   if (!item) return null
   const pending =
-    clearProgress.isPending || refresh.isPending || remove.isPending
-  const error = clearProgress.error ?? refresh.error ?? remove.error
+    watchState.isPending ||
+    clearProgress.isPending ||
+    refresh.isPending ||
+    remove.isPending
+  const error =
+    watchState.error ?? clearProgress.error ?? refresh.error ?? remove.error
 
   return (
     <>
@@ -103,6 +115,15 @@ export function MediaActionsDialog({
         }
         onClose={onClose}
         items={[
+          {
+            key: "watched",
+            label: item.watched ? "Mark as unwatched" : "Mark as watched",
+            icon: CheckIcon,
+            selected: item.watched,
+            disabled: pending,
+            pending: watchState.isPending,
+            onPress: () => watchState.mutate(),
+          },
           ...(item.hasProgress
             ? [
                 {

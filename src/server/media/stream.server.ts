@@ -1,7 +1,10 @@
-import {readFile} from "node:fs/promises";
+import {randomUUID} from "node:crypto";
+import {mkdir, readFile, rename, rm} from "node:fs/promises";
+import {resolve} from "node:path";
 import {corsHeaders} from "@/server/http.server";
 import {subtitleToVtt} from "@/server/media/subtitles.server.ts";
 import {getPartFile, getSubtitleFile} from "@/server/media/repository.server.ts";
+import {tvCompatibilityCacheDirectory} from "@/server/media/tv-cache.server.ts";
 
 
 const baseHeaders = (mimeType: string, size: number, fileName: string) => ({
@@ -14,20 +17,90 @@ const baseHeaders = (mimeType: string, size: number, fileName: string) => ({
 });
 
 
-export const streamPart = (request: Request, partId: string, head = false) => {
-    const part = getPartFile(partId);
-    if (!part) {
-        return new Response("Media part not found", { status: 404, headers: corsHeaders() });
-    }
+type StreamSource = {
+    file: ReturnType<typeof Bun.file>
+    size: number
+    mimeType: string
+    fileName: string
+}
 
-    const file = Bun.file(part.filePath);
-    const size = part.size;
+const remuxJobs = new Map<string, Promise<string | null>>()
+
+const remuxForAndroidTv = async (
+    part: NonNullable<ReturnType<typeof getPartFile>>
+) => {
+    const cacheKey = `${part.id}-${part.size}-${part.modifiedAt}`
+    const cachedPath = resolve(tvCompatibilityCacheDirectory, `${cacheKey}.mkv`)
+    if (await Bun.file(cachedPath).exists()) return cachedPath
+
+    const existing = remuxJobs.get(cacheKey)
+    if (existing) return existing
+
+    const job = (async () => {
+        await mkdir(tvCompatibilityCacheDirectory, {recursive: true})
+        const temporaryPath = resolve(
+            tvCompatibilityCacheDirectory,
+            `${cacheKey}.${randomUUID()}.tmp.mkv`
+        )
+        try {
+            const process = Bun.spawn(
+                [
+                    "ffmpeg",
+                    "-v",
+                    "error",
+                    "-fflags",
+                    "+genpts",
+                    "-y",
+                    "-i",
+                    part.filePath,
+                    "-map",
+                    "0:v:0",
+                    "-map",
+                    "0:a?",
+                    "-c",
+                    "copy",
+                    "-avoid_negative_ts",
+                    "make_zero",
+                    temporaryPath,
+                ],
+                {stdout: "ignore", stderr: "pipe"}
+            )
+            const stderr = await new Response(process.stderr).text()
+            const exitCode = await process.exited
+            if (exitCode !== 0) {
+                console.warn(
+                    `Could not prepare Android TV stream for ${part.fileName}: ${stderr.trim() || `ffmpeg exited with ${exitCode}`}`
+                )
+                return null
+            }
+            await rename(temporaryPath, cachedPath)
+            return cachedPath
+        } catch (error) {
+            console.warn(
+                `Could not prepare Android TV stream for ${part.fileName}: ${error instanceof Error ? error.message : String(error)}`
+            )
+            return null
+        } finally {
+            await rm(temporaryPath, {force: true})
+        }
+    })().finally(() => remuxJobs.delete(cacheKey))
+
+    remuxJobs.set(cacheKey, job)
+    return job
+}
+
+const respondWithFile = (
+    request: Request,
+    source: StreamSource,
+    head: boolean
+) => {
+    const {file, size, mimeType, fileName} = source
     const range = request.headers.get("range");
 
     if (!range) {
         return new Response(head ? null : file, {
             status: 200,
-            headers: baseHeaders(part.mimeType, size, part.fileName),
+            headers: baseHeaders(mimeType, size, fileName),
         });
     }
 
@@ -58,10 +131,48 @@ export const streamPart = (request: Request, partId: string, head = false) => {
     return new Response(head ? null : file.slice(start, end + 1), {
         status: 206,
         headers: {
-            ...baseHeaders(part.mimeType, length, part.fileName),
+            ...baseHeaders(mimeType, length, fileName),
             "Content-Range": `bytes ${start}-${end}/${size}`,
         },
     })
+}
+
+export const streamPart = async (request: Request, partId: string, head = false) => {
+    const part = getPartFile(partId);
+    if (!part) {
+        return new Response("Media part not found", { status: 404, headers: corsHeaders() });
+    }
+
+    if (
+        new URL(request.url).searchParams.get("compat") === "android-tv" &&
+        part.container === "avi"
+    ) {
+        const remuxedPath = await remuxForAndroidTv(part)
+        if (remuxedPath) {
+            const file = Bun.file(remuxedPath)
+            return respondWithFile(
+                request,
+                {
+                    file,
+                    size: file.size,
+                    mimeType: "video/x-matroska",
+                    fileName: `${part.fileName.replace(/\.avi$/i, "")}.mkv`,
+                },
+                head
+            )
+        }
+    }
+
+    return respondWithFile(
+        request,
+        {
+            file: Bun.file(part.filePath),
+            size: part.size,
+            mimeType: part.mimeType,
+            fileName: part.fileName,
+        },
+        head
+    )
 };
 
 

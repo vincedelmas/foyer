@@ -161,7 +161,7 @@ export function CollectionActionsDialog({
         onClose={() => {
           if (!update.isPending) setMode("menu")
         }}
-        width={760}
+        width={580}
       >
         <FocusTextInput
           label={mode === "rename" ? "Collection name" : "Server folder"}
@@ -202,9 +202,9 @@ export function CollectionActionsDialog({
 
 const styles = StyleSheet.create({
   actions: {
-    marginTop: 24,
+    marginTop: 16,
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: 12,
+    gap: 9,
   },
 })

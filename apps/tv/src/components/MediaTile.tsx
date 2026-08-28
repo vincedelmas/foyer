@@ -1,36 +1,43 @@
 import type { MediaSummary } from "@ploux/contracts"
 import { formatRuntime, tmdbImage } from "@ploux/contracts"
-import {
-  CheckIcon,
-  FilmIcon,
-  MoreVerticalIcon,
-} from "lucide-react-native"
+import { CheckIcon, FilmIcon } from "lucide-react-native"
 import { Image, Pressable, StyleSheet, Text, View } from "react-native"
-import { useState } from "react"
+import { useRef, useState } from "react"
 
 import { colors } from "../theme"
-import { FocusIconButton } from "./FocusIconButton"
 
 export function MediaTile({
   item,
   onOpen,
-  onToggleWatched,
   onOpenActions,
-  busy = false,
+  hasTVPreferredFocus = false,
 }: {
   item: MediaSummary
   onOpen: () => void
-  onToggleWatched: () => void
   onOpenActions: () => void
-  busy?: boolean
+  hasTVPreferredFocus?: boolean
 }) {
   const poster = tmdbImage(item.posterPath, "w500")
   const [focused, setFocused] = useState(false)
+  const longPressed = useRef(false)
   return (
     <View style={styles.container}>
       <Pressable
         accessibilityLabel={`Open ${item.title}`}
-        onPress={onOpen}
+        accessibilityHint="Hold Select for title options"
+        hasTVPreferredFocus={hasTVPreferredFocus}
+        delayLongPress={550}
+        onLongPress={() => {
+          longPressed.current = true
+          onOpenActions()
+        }}
+        onPress={() => {
+          if (longPressed.current) {
+            longPressed.current = false
+            return
+          }
+          onOpen()
+        }}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         style={({ pressed }) => [
@@ -67,24 +74,17 @@ export function MediaTile({
             <Text style={styles.unmatchedText}>Unmatched</Text>
           </View>
         ) : null}
+        {item.watched ? (
+          <View style={styles.watchedBadge}>
+            <CheckIcon color={colors.primaryText} size={13} strokeWidth={3} />
+          </View>
+        ) : null}
+        {focused ? (
+          <View style={styles.hintBadge}>
+            <Text style={styles.hintText}>Hold Select for options</Text>
+          </View>
+        ) : null}
       </Pressable>
-      <View style={styles.watchedAction}>
-        <FocusIconButton
-          icon={CheckIcon}
-          active={item.watched}
-          label={item.watched ? "Mark as unwatched" : "Mark as watched"}
-          disabled={busy}
-          onPress={onToggleWatched}
-        />
-      </View>
-      <View style={styles.moreAction}>
-        <FocusIconButton
-          icon={MoreVerticalIcon}
-          label={`More options for ${item.title}`}
-          disabled={busy}
-          onPress={onOpenActions}
-        />
-      </View>
       <Text numberOfLines={1} style={styles.title}>
         {item.title}
       </Text>
@@ -104,13 +104,13 @@ export function MediaTile({
   )
 }
 
-const tileWidth = 184
+const tileWidth = 132
 
 const styles = StyleSheet.create({
   container: {
     width: tileWidth,
-    marginRight: 22,
-    marginBottom: 32,
+    marginRight: 14,
+    marginBottom: 22,
     position: "relative",
   },
   focused: {
@@ -120,37 +120,57 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.75 },
   poster: {
-    height: 267,
-    borderRadius: 9,
+    height: 192,
+    borderRadius: 7,
     overflow: "hidden",
     backgroundColor: colors.surface,
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: colors.border,
   },
   image: { width: "100%", height: "100%" },
   placeholder: { flex: 1, alignItems: "center", justifyContent: "center" },
-  title: { color: colors.text, fontSize: 15, fontWeight: "700", marginTop: 12 },
-  meta: { color: colors.muted, fontSize: 12, marginTop: 4 },
+  title: { color: colors.text, fontSize: 12, fontWeight: "700", marginTop: 8 },
+  meta: { color: colors.muted, fontSize: 9, marginTop: 3 },
   progressTrack: {
     position: "absolute",
-    left: 8,
-    right: 8,
-    bottom: 8,
-    height: 4,
+    left: 6,
+    right: 6,
+    bottom: 6,
+    height: 3,
     borderRadius: 2,
     backgroundColor: "#4d463d",
   },
-  progress: { height: 4, borderRadius: 2, backgroundColor: colors.primary },
-  watchedAction: { position: "absolute", top: 9, left: 9 },
-  moreAction: { position: "absolute", top: 9, right: 9 },
+  progress: { height: 3, borderRadius: 2, backgroundColor: colors.primary },
+  watchedBadge: {
+    position: "absolute",
+    top: 7,
+    left: 7,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primary,
+  },
+  hintBadge: {
+    position: "absolute",
+    left: 7,
+    right: 7,
+    bottom: 14,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
+    borderRadius: 5,
+    backgroundColor: "rgba(18,17,15,0.9)",
+  },
+  hintText: { color: colors.text, fontSize: 8, fontWeight: "800", textAlign: "center" },
   unmatchedBadge: {
     position: "absolute",
-    left: 9,
-    top: 60,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 6,
+    right: 7,
+    top: 7,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 5,
     backgroundColor: "rgba(40,36,31,0.94)",
   },
-  unmatchedText: { color: colors.text, fontSize: 10, fontWeight: "800" },
+  unmatchedText: { color: colors.text, fontSize: 8, fontWeight: "800" },
 })

@@ -2,7 +2,6 @@ import type { MediaPart, MediaSummary } from "@ploux/contracts"
 import { formatRuntime, tmdbImage } from "@ploux/contracts"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
-  ArrowLeftIcon,
   CheckIcon,
   MoreVerticalIcon,
   PlayIcon,
@@ -132,14 +131,6 @@ export function DetailScreen({
           imageStyle={styles.heroImage}
         >
           <View style={styles.overlay}>
-            <View style={styles.topBar}>
-              <FocusButton
-                label="Back"
-                icon={ArrowLeftIcon}
-                variant="ghost"
-                onPress={onBack}
-              />
-            </View>
             <View style={styles.heroContent}>
               <View style={styles.poster}>
                 {poster ? (
@@ -172,7 +163,7 @@ export function DetailScreen({
                     </View>
                   ) : null}
                 </View>
-                {item.overview ? <Text numberOfLines={4} style={styles.overview}>{item.overview}</Text> : null}
+                {item.overview ? <Text numberOfLines={2} style={styles.overview}>{item.overview}</Text> : null}
                 <View style={styles.actions}>
                   {nextPart ? (
                     <FocusButton
@@ -399,50 +390,49 @@ function formatBytes(bytes: number) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { paddingBottom: 80 },
-  hero: { height: 650, backgroundColor: colors.surface },
+  content: { paddingBottom: 54 },
+  hero: { height: 430, backgroundColor: colors.surface },
   heroImage: { opacity: 0.58 },
   overlay: { flex: 1, backgroundColor: "rgba(18,17,15,0.5)" },
-  topBar: { height: 86, paddingHorizontal: spacing.page, alignItems: "flex-start", justifyContent: "center" },
-  heroContent: { flex: 1, flexDirection: "row", alignItems: "flex-end", gap: 36, paddingHorizontal: spacing.page, paddingBottom: 52 },
-  poster: { width: 210, height: 315, borderRadius: 12, overflow: "hidden", backgroundColor: colors.surfaceRaised, elevation: 12 },
+  heroContent: { flex: 1, flexDirection: "row", alignItems: "flex-end", gap: 24, paddingHorizontal: spacing.page, paddingBottom: 28 },
+  poster: { width: 140, height: 210, borderRadius: 9, overflow: "hidden", backgroundColor: colors.surfaceRaised, elevation: 10 },
   posterImage: { width: "100%", height: "100%" },
-  copy: { flex: 1, maxWidth: 1080, gap: 14 },
-  badges: { flexDirection: "row", gap: 9 },
-  badge: { color: colors.primaryText, backgroundColor: colors.primary, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: "900" },
-  badgeOutline: { color: colors.text, borderColor: colors.border, borderWidth: 1, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 5, fontSize: 11, fontWeight: "800" },
-  title: { color: colors.text, fontSize: 57, lineHeight: 60, fontWeight: "800", letterSpacing: -1.4 },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 17 },
-  meta: { color: colors.muted, fontSize: 15, fontWeight: "700" },
+  copy: { flex: 1, maxWidth: 980, gap: 9 },
+  badges: { flexDirection: "row", gap: 7 },
+  badge: { color: colors.primaryText, backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, fontSize: 9, fontWeight: "900" },
+  badgeOutline: { color: colors.text, borderColor: colors.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, fontSize: 9, fontWeight: "800" },
+  title: { color: colors.text, fontSize: 38, lineHeight: 41, fontWeight: "800", letterSpacing: -0.8 },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  meta: { color: colors.muted, fontSize: 12, fontWeight: "700" },
   rating: { flexDirection: "row", alignItems: "center", gap: 7 },
-  ratingText: { color: colors.text, fontSize: 14, fontWeight: "700" },
-  overview: { color: colors.text, opacity: 0.82, fontSize: 16, lineHeight: 25, maxWidth: 900 },
-  actions: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 6 },
-  lowerContent: { paddingHorizontal: spacing.page, gap: 50, marginTop: 48 },
-  partsSection: { gap: 18 },
-  detailsSection: { maxWidth: 900, gap: 18 },
-  castSection: { gap: 18 },
-  castGrid: { flexDirection: "row", flexWrap: "wrap", gap: 24 },
-  sectionTitle: { color: colors.text, fontSize: 33, fontWeight: "800", letterSpacing: -0.7 },
+  ratingText: { color: colors.text, fontSize: 11, fontWeight: "700" },
+  overview: { color: colors.text, opacity: 0.82, fontSize: 13, lineHeight: 19, maxWidth: 850 },
+  actions: { flexDirection: "row", alignItems: "center", gap: 9, marginTop: 3 },
+  lowerContent: { paddingHorizontal: spacing.page, gap: 34, marginTop: 30 },
+  partsSection: { gap: 13 },
+  detailsSection: { maxWidth: 900, gap: 13 },
+  castSection: { gap: 13 },
+  castGrid: { flexDirection: "row", flexWrap: "wrap", gap: 18 },
+  sectionTitle: { color: colors.text, fontSize: 24, fontWeight: "800", letterSpacing: -0.4 },
   seasons: { gap: 5, paddingBottom: 5 },
-  episodeScroller: { maxHeight: 620, borderRadius: 14, borderWidth: 1, borderColor: colors.border },
+  episodeScroller: { maxHeight: 410, borderRadius: 11, borderWidth: 1, borderColor: colors.border },
   episodes: { backgroundColor: colors.surface },
-  episode: { minHeight: 82, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", gap: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
-  episodeNumber: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", backgroundColor: colors.surfaceRaised },
-  episodeNumberText: { color: colors.text, fontSize: 14, fontWeight: "800" },
-  episodeCopy: { flex: 1, gap: 5 },
-  episodeTitle: { color: colors.text, fontSize: 17, fontWeight: "700" },
-  episodeMeta: { color: colors.muted, fontSize: 12 },
-  subtitleCount: { color: colors.muted, fontSize: 13, fontWeight: "700" },
+  episode: { minHeight: 60, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 11, borderBottomWidth: 1, borderBottomColor: colors.border },
+  episodeNumber: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: colors.surfaceRaised },
+  episodeNumberText: { color: colors.text, fontSize: 11, fontWeight: "800" },
+  episodeCopy: { flex: 1, gap: 3 },
+  episodeTitle: { color: colors.text, fontSize: 14, fontWeight: "700" },
+  episodeMeta: { color: colors.muted, fontSize: 9 },
+  subtitleCount: { color: colors.muted, fontSize: 10, fontWeight: "700" },
   detailsCard: { borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   detailRow: { minHeight: 54, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: colors.border },
   detailLabel: { width: 180, color: colors.muted, fontSize: 13 },
   detailValue: { flex: 1, color: colors.text, fontSize: 14, fontWeight: "700" },
-  person: { width: 150 },
-  avatar: { width: 96, height: 96, borderRadius: 48, overflow: "hidden", backgroundColor: colors.surfaceRaised, marginBottom: 12 },
+  person: { width: 116 },
+  avatar: { width: 72, height: 72, borderRadius: 36, overflow: "hidden", backgroundColor: colors.surfaceRaised, marginBottom: 8 },
   avatarImage: { width: "100%", height: "100%" },
-  personName: { color: colors.text, fontSize: 14, fontWeight: "700" },
-  character: { color: colors.muted, fontSize: 12, marginTop: 4 },
+  personName: { color: colors.text, fontSize: 11, fontWeight: "700" },
+  character: { color: colors.muted, fontSize: 9, marginTop: 3 },
   centered: { flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center", gap: 18, padding: 60 },
   centeredTitle: { color: colors.text, fontSize: 36, fontWeight: "800" },
   centeredDescription: { color: colors.muted, fontSize: 16 },

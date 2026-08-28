@@ -12,6 +12,7 @@ import {resolve} from "node:path"
 import {db, ensureDatabase} from "@/server/db/index.server"
 import {libraries, mediaItems, mediaParts, subtitleTracks} from "@/server/db/schema"
 import {isPathInsideRoot} from "@/server/media/file-utils.server"
+import {removeTvCompatibilityCache} from "@/server/media/tv-cache.server"
 
 
 interface FfprobeStream {
@@ -306,6 +307,7 @@ export const deleteMediaFiles = async (mediaId: string): Promise<MediaDeleteResu
         }
     }
 
+    await removeTvCompatibilityCache(partIds)
     for (const targetPath of existingTargets) await unlink(targetPath)
     db.delete(mediaItems).where(eq(mediaItems.id, mediaId)).run()
 

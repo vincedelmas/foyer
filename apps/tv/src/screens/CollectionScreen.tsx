@@ -5,9 +5,8 @@ import {
   type MediaWatchFilter,
 } from "@ploux/contracts"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import {
-  ArrowLeftIcon,
   ArrowUpDownIcon,
   CheckIcon,
   FilmIcon,
@@ -28,7 +27,6 @@ import {
 import { tvApi } from "../api"
 import { ActionMenu } from "../components/ActionMenu"
 import { AppHeader } from "../components/AppHeader"
-import { CollectionActionsDialog } from "../components/CollectionActionsDialog"
 import { FocusButton } from "../components/FocusButton"
 import { FocusTextInput } from "../components/FocusTextInput"
 import { IdentifyDialog } from "../components/IdentifyDialog"
@@ -71,15 +69,12 @@ export function CollectionScreen({
   onOpenMedia: (item: MediaSummary) => void
   onOpenSettings: () => void
 }) {
-  const queryClient = useQueryClient()
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
   const [watch, setWatch] = useState<MediaWatchFilter>("all")
   const [sort, setSort] = useState<MediaSort>("recent")
   const [page, setPage] = useState(1)
   const [picker, setPicker] = useState<"watch" | "sort" | null>(null)
-  const [collectionActions, setCollectionActions] =
-    useState<MediaFolderSummary | null>(null)
   const [mediaActions, setMediaActions] = useState<MediaSummary | null>(null)
   const [identify, setIdentify] = useState<MediaSummary | null>(null)
   const [info, setInfo] = useState<MediaSummary | null>(null)
@@ -138,20 +133,6 @@ export function CollectionScreen({
         pageSize: PAGE_SIZE,
       }),
   })
-  const watchState = useMutation({
-    mutationFn: (input: { id: string; watched: boolean }) =>
-      tvApi.setMediaWatched(server, input.id, input.watched),
-    onSuccess: async (_, input) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["tv-library", server] }),
-        queryClient.invalidateQueries({ queryKey: ["tv-watching", server] }),
-        queryClient.invalidateQueries({
-          queryKey: ["tv-media", server, input.id],
-        }),
-      ])
-    },
-  })
-
   const changeWatch = (value: MediaWatchFilter) => {
     setWatch(value)
     setPage(1)
@@ -171,14 +152,6 @@ export function CollectionScreen({
     <View style={styles.screen}>
       <AppHeader active="other" onHome={onHome} onSettings={onOpenSettings} />
       <ScrollView contentContainerStyle={styles.content}>
-        <FocusButton
-          label="My media"
-          icon={ArrowLeftIcon}
-          variant="ghost"
-          size="small"
-          onPress={onHome}
-          style={styles.back}
-        />
         <View style={styles.titleRow}>
           <View style={styles.titleCopy}>
             <View style={styles.badge}>
@@ -192,11 +165,6 @@ export function CollectionScreen({
               {library.data?.pagination.totalItems ?? folder.titleCount} titles
             </Text>
           </View>
-          <FocusButton
-            label="Collection options"
-            variant="secondary"
-            onPress={() => setCollectionActions(folder)}
-          />
         </View>
 
         <View style={styles.toolbar}>
@@ -227,9 +195,6 @@ export function CollectionScreen({
         {library.isFetching ? (
           <Text style={styles.refreshing}>Refreshing…</Text>
         ) : null}
-        {watchState.isError ? (
-          <Text style={styles.error}>{watchState.error.message}</Text>
-        ) : null}
         {library.isPending ? (
           <ActivityIndicator color={colors.primary} size="large" />
         ) : null}
@@ -241,16 +206,13 @@ export function CollectionScreen({
         ) : null}
         {library.data?.items.length ? (
           <View style={styles.grid}>
-            {library.data.items.map((item) => (
+            {library.data.items.map((item, index) => (
               <MediaTile
                 key={item.id}
                 item={item}
+                hasTVPreferredFocus={index === 0}
                 onOpen={() => onOpenMedia(item)}
-                onToggleWatched={() =>
-                  watchState.mutate({ id: item.id, watched: !item.watched })
-                }
                 onOpenActions={() => setMediaActions(item)}
-                busy={watchState.isPending && watchState.variables?.id === item.id}
               />
             ))}
           </View>
@@ -314,13 +276,6 @@ export function CollectionScreen({
           onPress: () => changeSort(option.value),
         }))}
       />
-      <CollectionActionsDialog
-        server={server}
-        folder={collectionActions}
-        visible={collectionActions !== null}
-        onClose={() => setCollectionActions(null)}
-        onDeleted={onHome}
-      />
       <MediaActionsDialog
         server={server}
         item={mediaActions}
@@ -348,23 +303,22 @@ export function CollectionScreen({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: spacing.page, paddingBottom: 80 },
-  back: { alignSelf: "flex-start", marginTop: 10 },
-  titleRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 30, marginTop: 22 },
-  titleCopy: { gap: 9 },
-  badge: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 7, paddingHorizontal: 11, height: 32, borderRadius: 16, backgroundColor: colors.surfaceRaised },
-  badgeText: { color: colors.text, fontSize: 12, fontWeight: "800" },
-  heading: { color: colors.text, fontSize: 58, lineHeight: 62, fontWeight: "800", letterSpacing: -1.5 },
-  description: { color: colors.muted, fontSize: 14 },
-  toolbar: { marginTop: 35, marginBottom: 30, flexDirection: "row", alignItems: "flex-end", gap: 12 },
-  searchField: { flex: 1, maxWidth: 650, position: "relative" },
-  searchIcon: { position: "absolute", left: 17, bottom: 18, zIndex: 2 },
-  searchInput: { paddingLeft: 48 },
+  content: { paddingHorizontal: spacing.page, paddingBottom: 54 },
+  titleRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 20, marginTop: 8 },
+  titleCopy: { gap: 5 },
+  badge: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 8, height: 24, borderRadius: 12, backgroundColor: colors.surfaceRaised },
+  badgeText: { color: colors.text, fontSize: 9, fontWeight: "800" },
+  heading: { color: colors.text, fontSize: 34, lineHeight: 38, fontWeight: "800", letterSpacing: -0.8 },
+  description: { color: colors.muted, fontSize: 11 },
+  toolbar: { marginTop: 18, marginBottom: 18, flexDirection: "row", alignItems: "flex-end", gap: 9 },
+  searchField: { flex: 1, maxWidth: 480, position: "relative" },
+  searchIcon: { position: "absolute", left: 13, bottom: 14, zIndex: 2 },
+  searchInput: { paddingLeft: 40 },
   refreshing: { color: colors.muted, alignSelf: "flex-end", marginBottom: 8 },
   grid: { flexDirection: "row", flexWrap: "wrap" },
-  empty: { minHeight: 300, alignItems: "center", justifyContent: "center", gap: 10, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
-  emptyTitle: { color: colors.text, fontSize: 25, fontWeight: "800" },
-  emptyDescription: { color: colors.muted, fontSize: 14 },
+  empty: { minHeight: 190, alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  emptyTitle: { color: colors.text, fontSize: 19, fontWeight: "800" },
+  emptyDescription: { color: colors.muted, fontSize: 12 },
   error: { color: colors.danger, fontSize: 13, marginBottom: 10 },
   pagination: { marginTop: 24, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 20 },
   pageLabel: { color: colors.text, minWidth: 150, textAlign: "center", fontSize: 15, fontWeight: "700" },

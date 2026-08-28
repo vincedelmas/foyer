@@ -16,7 +16,7 @@ export const colors = {
 } as const
 
 export const spacing = {
-  page: 56,
-  section: 42,
-  gap: 20,
+  page: 32,
+  section: 28,
+  gap: 14,
 } as const

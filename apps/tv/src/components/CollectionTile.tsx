@@ -1,26 +1,24 @@
 import type { MediaFolderSummary } from "@ploux/contracts"
 import { tmdbImage } from "@ploux/contracts"
-import {
-  FilmIcon,
-  MoreVerticalIcon,
-  TvIcon,
-} from "lucide-react-native"
+import { FilmIcon, TvIcon } from "lucide-react-native"
 import { Image, Pressable, StyleSheet, Text, View } from "react-native"
-import { useState } from "react"
+import { useRef, useState } from "react"
 
 import { colors } from "../theme"
-import { FocusIconButton } from "./FocusIconButton"
 
 export function CollectionTile({
   folder,
   onOpen,
   onOpenActions,
+  hasTVPreferredFocus = false,
 }: {
   folder: MediaFolderSummary
   onOpen: () => void
   onOpenActions: () => void
+  hasTVPreferredFocus?: boolean
 }) {
   const [focused, setFocused] = useState(false)
+  const longPressed = useRef(false)
   const TypeIcon = folder.kind === "movies" ? FilmIcon : TvIcon
   const artwork = Array.from({ length: 5 }, (_, index) =>
     tmdbImage(folder.posterPaths[index], "w500")
@@ -30,7 +28,20 @@ export function CollectionTile({
     <View style={styles.container}>
       <Pressable
         accessibilityLabel={`Open ${folder.name}`}
-        onPress={onOpen}
+        accessibilityHint="Hold Select for collection options"
+        hasTVPreferredFocus={hasTVPreferredFocus}
+        delayLongPress={550}
+        onLongPress={() => {
+          longPressed.current = true
+          onOpenActions()
+        }}
+        onPress={() => {
+          if (longPressed.current) {
+            longPressed.current = false
+            return
+          }
+          onOpen()
+        }}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         style={({ pressed }) => [
@@ -77,25 +88,23 @@ export function CollectionTile({
             {folder.titleCount} {folder.titleCount === 1 ? "title" : "titles"}
           </Text>
         </View>
+        {focused ? (
+          <View style={styles.hintBadge}>
+            <Text style={styles.hint}>Hold Select for options</Text>
+          </View>
+        ) : null}
       </Pressable>
-      <View style={styles.actions}>
-        <FocusIconButton
-          icon={MoreVerticalIcon}
-          label={`More options for ${folder.name}`}
-          onPress={onOpenActions}
-        />
-      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { width: 550, height: 320, position: "relative" },
+  container: { width: 286, height: 168, position: "relative" },
   card: {
     flex: 1,
     overflow: "hidden",
-    borderRadius: 16,
-    borderWidth: 3,
+    borderRadius: 11,
+    borderWidth: 2,
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
@@ -131,19 +140,28 @@ const styles = StyleSheet.create({
     top: "30%",
     backgroundColor: "rgba(18,17,15,0.66)",
   },
-  copy: { position: "absolute", left: 24, right: 24, bottom: 22, gap: 6 },
+  copy: { position: "absolute", left: 15, right: 15, bottom: 13, gap: 3 },
   badge: {
     alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
-    paddingHorizontal: 10,
-    height: 30,
-    borderRadius: 15,
+    gap: 5,
+    paddingHorizontal: 7,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: "rgba(40,36,31,0.94)",
   },
-  badgeText: { color: colors.text, fontSize: 12, fontWeight: "800" },
-  title: { color: colors.text, fontSize: 34, fontWeight: "800" },
-  meta: { color: colors.muted, fontSize: 13, fontWeight: "600" },
-  actions: { position: "absolute", top: 14, right: 14 },
+  badgeText: { color: colors.text, fontSize: 9, fontWeight: "800" },
+  title: { color: colors.text, fontSize: 22, lineHeight: 25, fontWeight: "800" },
+  meta: { color: colors.muted, fontSize: 10, fontWeight: "600" },
+  hintBadge: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 5,
+    borderRadius: 5,
+    backgroundColor: "rgba(18,17,15,0.9)",
+  },
+  hint: { color: colors.primary, fontSize: 9, fontWeight: "800" },
 })

@@ -5,6 +5,7 @@ import type {
 } from "@ploux/contracts"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { NavigationBar } from "expo-navigation-bar"
 import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
 import { ActivityIndicator, StyleSheet, View } from "react-native"
@@ -66,6 +67,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <StatusBar hidden />
+      <NavigationBar hidden style="light" />
       {!server ? (
         <SettingsScreen
           initialServer="http://10.0.2.2:3000"

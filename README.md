@@ -19,7 +19,7 @@ It deliberately has no transcoder, accounts, sharing, plugins, live TV, or cloud
 
 ## Quick start
 
-Requirements: Bun 1.4+, optionally FFmpeg/ffprobe for detailed stream information, and optionally a
+Requirements: Bun 1.4+, optionally FFmpeg/ffprobe for detailed stream information and Android TV AVI compatibility, and optionally a
 [TMDB v4 read access token](https://www.themoviedb.org/settings/api).
 
 ```bash
@@ -46,7 +46,7 @@ MEDIA_PATH=/path/to/your/media docker compose up --build
 ```
 
 The compose setup mounts `MEDIA_PATH` read/write at `/media` so explicitly confirmed permanent deletion works. Use paths below `/media`
-when adding libraries through the dashboard. The Docker image includes ffprobe for detailed media information.
+when adding libraries through the dashboard. The Docker image includes FFmpeg/ffprobe for detailed media information and TV remuxing.
 
 ## Folder and filename conventions
 
@@ -80,8 +80,10 @@ tracks embedded in a container.
 
 ## Direct-play limits
 
-Ploux never transcodes or rewrites media. It serves `Range` requests from the original file, which makes seeking efficient but means the
-playback device must support the container and every codec inside it. The explicit permanent-delete action is the sole operation that
+Ploux never transcodes video or audio. It serves `Range` requests from the original file, which makes seeking efficient. For Android TV,
+AVI files are remuxed on demand into a cached Matroska container so Media3 can expose embedded audio tracks such as AC-3; the encoded
+video and audio streams are copied unchanged. The playback device must still support every codec inside the resulting container. The
+explicit permanent-delete action is the sole operation that
 removes source media and indexed external subtitle files.
 
 - Browsers are usually safest with MP4 containing H.264/H.265 where supported and AAC audio, or WebM.

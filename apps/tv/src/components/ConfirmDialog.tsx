@@ -23,9 +23,9 @@ export function ConfirmDialog({
   onClose: () => void
 }) {
   return (
-    <TvModal visible={visible} title={title} onClose={onClose} width={700}>
+    <TvModal visible={visible} title={title} onClose={onClose} width={520}>
       <View style={styles.warning}>
-        <AlertTriangleIcon color={colors.danger} size={27} />
+        <AlertTriangleIcon color={colors.danger} size={21} />
         <Text style={styles.description}>{description}</Text>
       </View>
       <View style={styles.actions}>
@@ -48,10 +48,10 @@ export function ConfirmDialog({
 }
 
 const styles = StyleSheet.create({
-  warning: { flexDirection: "row", alignItems: "flex-start", gap: 15 },
-  description: { flex: 1, color: colors.muted, fontSize: 16, lineHeight: 25 },
+  warning: { flexDirection: "row", alignItems: "flex-start", gap: 11 },
+  description: { flex: 1, color: colors.muted, fontSize: 12, lineHeight: 18 },
   actions: {
-    marginTop: 26,
+    marginTop: 18,
     flexDirection: "row",
     justifyContent: "flex-end",
     gap: 12,

@@ -1,6 +1,5 @@
 import type { MediaPart } from "@ploux/contracts"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { ArrowLeftIcon } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
 import { BackHandler, StyleSheet, Text, View } from "react-native"
 import Video, {
@@ -12,7 +11,6 @@ import Video, {
 } from "react-native-video"
 
 import { tvApi } from "../api"
-import { FocusButton } from "../components/FocusButton"
 import { colors } from "../theme"
 
 export function PlayerScreen({
@@ -31,6 +29,9 @@ export function PlayerScreen({
   const videoRef = useRef<VideoRef>(null)
   const lastProgress = useRef({ currentTime: 0, duration: 0 })
   const lastSaved = useRef(0)
+  const controlsVisible = useRef(false)
+  const controlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [controls, setControls] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const queryClient = useQueryClient()
   const save = useMutation({
@@ -51,10 +52,21 @@ export function PlayerScreen({
       save.mutate({ positionSeconds: currentTime, durationSeconds: duration })
   }
 
+  const dismissControls = () => {
+    controlsVisible.current = false
+    setControls(false)
+    if (controlsTimer.current) clearTimeout(controlsTimer.current)
+    controlsTimer.current = setTimeout(() => setControls(true), 120)
+  }
+
   useEffect(() => {
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
       () => {
+        if (controlsVisible.current) {
+          dismissControls()
+          return true
+        }
         saveProgress()
         onBack()
         return true
@@ -62,6 +74,7 @@ export function PlayerScreen({
     )
     return () => {
       subscription.remove()
+      if (controlsTimer.current) clearTimeout(controlsTimer.current)
       saveProgress()
     }
   }, [onBack])
@@ -72,26 +85,43 @@ export function PlayerScreen({
     type: TextTrackType.VTT,
     uri: tvApi.absoluteUrl(server, subtitle.url),
   }))
+  const streamUrl = new URL(tvApi.absoluteUrl(server, part.streamUrl))
+  if (part.mimeType === "video/x-msvideo")
+    streamUrl.searchParams.set("compat", "android-tv")
 
   return (
     <View style={styles.screen}>
       <Video
         ref={videoRef}
         source={{
-          uri: tvApi.absoluteUrl(server, part.streamUrl),
-          type: part.mimeType,
+          uri: streamUrl.toString(),
+          type:
+            part.mimeType === "video/x-msvideo"
+              ? undefined
+              : part.mimeType,
           textTracks,
           textTracksAllowChunklessPreparation: true,
           metadata: { title: mediaTitle, subtitle: part.title ?? undefined },
         }}
         style={styles.video}
         resizeMode="contain"
-        controls
-        controlsStyles={{ seekIncrementMS: 10_000, hideSettingButton: false }}
+        controls={controls}
+        controlsStyles={{
+          seekIncrementMS: 10_000,
+          hideSettingButton: false,
+          hideNavigationBarOnFullScreenMode: true,
+          hideNotificationBarOnFullScreenMode: true,
+        }}
+        muted={false}
+        volume={1}
+        selectedAudioTrack={{ type: SelectedTrackType.INDEX, value: 0 }}
         selectedTextTrack={{ type: SelectedTrackType.SYSTEM }}
         progressUpdateInterval={1_000}
         onLoad={(event) => {
           lastProgress.current.duration = event.duration
+          if (!event.audioTracks.length) {
+            setError("Android could not find a compatible audio track in this file.")
+          }
           if (
             part.progress &&
             !part.progress.completed &&
@@ -104,6 +134,10 @@ export function PlayerScreen({
               )
             )
           }
+          controlsTimer.current = setTimeout(() => setControls(true), 120)
+        }}
+        onControlsVisibilityChange={(event) => {
+          controlsVisible.current = event.isVisible
         }}
         onProgress={(event) => {
           lastProgress.current = {
@@ -123,27 +157,6 @@ export function PlayerScreen({
           )
         }
       />
-      <View style={styles.overlay} pointerEvents="box-none">
-        <FocusButton
-          label="Back"
-          icon={ArrowLeftIcon}
-          variant="ghost"
-          onPress={() => {
-            saveProgress()
-            onBack()
-          }}
-        />
-        <View style={styles.titleBlock}>
-          <Text style={styles.title}>{mediaTitle}</Text>
-          {part.episodeNumber ? (
-            <Text style={styles.subtitle}>
-              S{part.seasonNumber ?? 1} E{part.episodeNumber}
-              {part.title ? ` · ${part.title}` : ""}
-            </Text>
-          ) : null}
-        </View>
-        <Text style={styles.direct}>DIRECT PLAY</Text>
-      </View>
       {error ? (
         <View style={styles.errorPanel}>
           <Text style={styles.errorTitle}>Playback failed</Text>
@@ -161,27 +174,6 @@ export function PlayerScreen({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.black },
   video: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0 },
-  overlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 95,
-    paddingHorizontal: 28,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 18,
-    backgroundColor: "rgba(0,0,0,0.56)",
-  },
-  titleBlock: { flex: 1, gap: 4 },
-  title: { color: colors.white, fontSize: 22, fontWeight: "800" },
-  subtitle: { color: "#c4beb6", fontSize: 13 },
-  direct: {
-    color: colors.primary,
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1.8,
-  },
   errorPanel: {
     position: "absolute",
     width: 620,

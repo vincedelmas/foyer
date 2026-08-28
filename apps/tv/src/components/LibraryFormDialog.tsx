@@ -62,7 +62,7 @@ export function LibraryFormDialog({
       title={library ? "Edit collection" : "Create a new collection"}
       description="Choose a display name, an absolute server folder, and the media layout Ploux should expect."
       onClose={onClose}
-      width={820}
+      width={620}
     >
       <View style={styles.form}>
         <FocusTextInput
@@ -116,10 +116,10 @@ export function LibraryFormDialog({
 }
 
 const styles = StyleSheet.create({
-  form: { gap: 21 },
-  typeField: { gap: 9 },
-  label: { color: colors.text, fontSize: 14, fontWeight: "700" },
-  types: { flexDirection: "row", gap: 12 },
-  error: { color: colors.danger, fontSize: 13 },
-  actions: { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
+  form: { gap: 14 },
+  typeField: { gap: 6 },
+  label: { color: colors.text, fontSize: 11, fontWeight: "700" },
+  types: { flexDirection: "row", gap: 9 },
+  error: { color: colors.danger, fontSize: 11 },
+  actions: { flexDirection: "row", justifyContent: "flex-end", gap: 9 },
 })

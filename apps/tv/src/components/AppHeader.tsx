@@ -41,18 +41,18 @@ export function AppHeader({
 
 const styles = StyleSheet.create({
   header: {
-    height: 90,
+    height: 62,
     paddingHorizontal: spacing.page,
     flexDirection: "row",
     alignItems: "center",
-    gap: 32,
+    gap: 24,
     backgroundColor: colors.background,
   },
-  brand: { flexDirection: "row", alignItems: "center", gap: 12 },
-  logo: { width: 42, height: 42, borderRadius: 10 },
+  brand: { flexDirection: "row", alignItems: "center", gap: 9 },
+  logo: { width: 30, height: 30, borderRadius: 7 },
   brandText: {
     color: colors.text,
-    fontSize: 27,
+    fontSize: 21,
     fontWeight: "800",
     letterSpacing: -1,
   },
