@@ -6,10 +6,11 @@ const [apkPath, manifestPath] = process.argv.slice(2)
 const version = process.env.PLOUX_TV_VERSION
 const versionCode = Number(process.env.PLOUX_TV_VERSION_CODE)
 const repository = process.env.GITHUB_REPOSITORY
+const releaseTag = process.env.PLOUX_TV_RELEASE_TAG
 
-if (!apkPath || !manifestPath || !version || !repository) {
+if (!apkPath || !manifestPath || !version || !repository || !releaseTag) {
   throw new Error(
-    "Usage: create-tv-update-manifest.ts <apk> <manifest>; PLOUX_TV_VERSION and GITHUB_REPOSITORY are required"
+    "Usage: create-tv-update-manifest.ts <apk> <manifest>; release environment is required"
   )
 }
 
@@ -22,8 +23,7 @@ for await (const chunk of createReadStream(apkPath)) hash.update(chunk)
 
 const sha256 = hash.digest("hex")
 const { size } = await stat(apkPath)
-const tag = `tv-v${version}`
-const assetBase = `https://github.com/${repository}/releases/download/${encodeURIComponent(tag)}`
+const assetBase = `https://github.com/${repository}/releases/download/${encodeURIComponent(releaseTag)}`
 const manifest = {
   schemaVersion: 1,
   version,

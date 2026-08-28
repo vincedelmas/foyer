@@ -1,12 +1,35 @@
 name: Build Android TV APK
 
 on:
+  workflow_call:
+    inputs:
+      version:
+        description: Semantic version created by Release Please
+        required: true
+        type: string
+      tag_name:
+        description: Existing GitHub release tag to receive the APK
+        required: true
+        type: string
+    secrets:
+      PLOUX_TV_KEYSTORE_BASE64:
+        required: true
+      PLOUX_TV_KEYSTORE_PASSWORD:
+        required: true
+      PLOUX_TV_KEY_ALIAS:
+        required: true
+      PLOUX_TV_KEY_PASSWORD:
+        required: true
   workflow_dispatch:
     inputs:
       version:
         description: App version to publish (for example 0.2.0)
         required: true
         default: 0.2.0
+        type: string
+      tag_name:
+        description: Existing release tag (defaults to v<version>)
+        required: false
         type: string
 
 permissions:
@@ -23,7 +46,7 @@ jobs:
     timeout-minutes: 30
     env:
       PLOUX_TV_VERSION: ${{ inputs.version }}
-      PLOUX_TV_VERSION_CODE: ${{ github.run_number }}
+      PLOUX_TV_RELEASE_TAG_INPUT: ${{ inputs.tag_name }}
       EXPO_PUBLIC_PLOUX_TV_REPOSITORY: ${{ github.repository }}
       PLOUX_TV_KEYSTORE_PASSWORD: ${{ secrets.PLOUX_TV_KEYSTORE_PASSWORD }}
       PLOUX_TV_KEY_ALIAS: ${{ secrets.PLOUX_TV_KEY_ALIAS }}
@@ -33,6 +56,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag_name || format('v{0}', inputs.version) }}
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -56,10 +81,32 @@ jobs:
           export PLOUX_TV_KEYSTORE_PATH
           echo "PLOUX_TV_KEYSTORE_PATH=$PLOUX_TV_KEYSTORE_PATH" >> "$GITHUB_ENV"
 
-          if [[ ! "$PLOUX_TV_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+          if [[ ! "$PLOUX_TV_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::Version must look like 0.2.0"
             exit 1
           fi
+
+          expected_tag="v$PLOUX_TV_VERSION"
+          PLOUX_TV_RELEASE_TAG="${PLOUX_TV_RELEASE_TAG_INPUT:-$expected_tag}"
+          if [ "$PLOUX_TV_RELEASE_TAG" != "$expected_tag" ]; then
+            echo "::error::Release tag must be $expected_tag"
+            exit 1
+          fi
+
+          IFS=. read -r major minor patch <<< "$PLOUX_TV_VERSION"
+          if [ "$minor" -gt 999 ] || [ "$patch" -gt 999 ]; then
+            echo "::error::Android releases require minor and patch versions below 1000"
+            exit 1
+          fi
+          PLOUX_TV_VERSION_CODE=$((10#$major * 1000000 + 10#$minor * 1000 + 10#$patch))
+          if [ "$PLOUX_TV_VERSION_CODE" -lt 1 ] || [ "$PLOUX_TV_VERSION_CODE" -gt 2100000000 ]; then
+            echo "::error::Version produces an invalid Android versionCode"
+            exit 1
+          fi
+          export PLOUX_TV_RELEASE_TAG PLOUX_TV_VERSION_CODE
+          echo "PLOUX_TV_RELEASE_TAG=$PLOUX_TV_RELEASE_TAG" >> "$GITHUB_ENV"
+          echo "PLOUX_TV_VERSION_CODE=$PLOUX_TV_VERSION_CODE" >> "$GITHUB_ENV"
+
           for value in PLOUX_TV_KEYSTORE_BASE64 PLOUX_TV_KEYSTORE_PASSWORD PLOUX_TV_KEY_ALIAS PLOUX_TV_KEY_PASSWORD; do
             if [ -z "${!value}" ]; then
               echo "::error::Missing GitHub Actions secret: $value"
@@ -74,12 +121,12 @@ jobs:
             -alias "$PLOUX_TV_KEY_ALIAS" \
             >/dev/null
 
-      - name: Refuse to overwrite an existing release
+      - name: Validate target release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view "tv-v$PLOUX_TV_VERSION" >/dev/null 2>&1; then
-            echo "::error::Release tv-v$PLOUX_TV_VERSION already exists. Choose a new version."
+          if ! gh release view "$PLOUX_TV_RELEASE_TAG" >/dev/null 2>&1; then
+            echo "::error::Release $PLOUX_TV_RELEASE_TAG does not exist. Merge the Release Please PR first."
             exit 1
           fi
 
@@ -115,14 +162,17 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish GitHub release
+      - name: Attach APK to GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "tv-v$PLOUX_TV_VERSION" \
+          gh release upload "$PLOUX_TV_RELEASE_TAG" \
             ploux-tv.apk \
             ploux-tv.apk.sha256 \
             update.json \
-            --target "$GITHUB_SHA" \
-            --title "Ploux TV $PLOUX_TV_VERSION" \
-            --generate-notes
+            --clobber
+
+      - name: Publish completed GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$PLOUX_TV_RELEASE_TAG" --draft=false

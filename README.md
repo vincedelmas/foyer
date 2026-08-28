@@ -126,9 +126,10 @@ For a long-lived install, use the permanent signing and release workflow describ
 
 ### Build an APK without an Android toolchain
 
-The `Build Android TV APK` GitHub Actions workflow builds and permanently signs the sideloadable APK entirely on GitHub's runner. It also
-publishes a public GitHub Release and update manifest used by the TV app's built-in updater. The first setup requires an OpenSSL-generated
-signing key and four GitHub Actions secrets, but no local Android SDK. See the complete [Android TV release and update guide](docs/android-tv-releases.md).
+Release Please turns Conventional Commits into a release PR. Merging that PR creates the versioned GitHub release, then the `Build Android
+TV APK` workflow builds and permanently signs the APK entirely on GitHub's runner before publishing the release. The TV app consumes its
+attached update manifest. The first setup requires an OpenSSL-generated signing key and four GitHub Actions secrets, but no local Android
+SDK. See the complete [Android TV release and update guide](docs/android-tv-releases.md).
 
 ## API
 

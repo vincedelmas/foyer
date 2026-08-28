@@ -58,26 +58,35 @@ repository secrets in workflow logs or to builds from untrusted forks.
 
 ## Publish a version
 
-1. Push the code to the public repo's default branch.
-2. Open **Actions → Build Android TV APK → Run workflow**.
-3. Enter a new semantic version, such as `0.2.0`, and run it.
-4. The workflow builds with the permanent key and publishes `ploux-tv.apk`, `ploux-tv.apk.sha256`, and `update.json` under a release named
-   `tv-v0.2.0`.
+Release Please manages versions from Conventional Commit messages pushed to `master`:
 
-The workflow run number becomes Android's increasing `versionCode`. A version tag cannot be overwritten; use a new version for every
-published build. The Gradle cache is retained between workflow runs, so later builds should avoid downloading and transforming most
-dependencies again.
+- `feat: add something` proposes a minor release.
+- `fix: correct something` proposes a patch release.
+- `feat!:` or a `BREAKING CHANGE:` footer proposes a major release.
+- `refactor:` entries appear under **Refactors** in the changelog. A refactor alone does not select a new SemVer version, so it waits for the
+  next feature/fix release unless a `Release-As: x.y.z` footer explicitly requests one.
+
+Every push updates a Release Please PR containing the next version, `CHANGELOG.md`, and the web/TV version files. Nothing is published until
+that PR is merged. Merging it creates a draft `v0.2.0` release and immediately invokes the signed Android workflow. The release becomes
+public only after `ploux-tv.apk`, `ploux-tv.apk.sha256`, and `update.json` have been attached successfully.
+
+Before the first run, enable **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests**. Add the four
+signing secrets before merging the first Release Please PR.
+
+Android's `versionCode` is derived from SemVer (`0.2.1` becomes `2001`) rather than a workflow counter. The Gradle cache is retained between
+workflow runs, so later builds should avoid downloading and transforming most dependencies again. The Android workflow remains manually
+runnable as a recovery mechanism, but its version/tag must already exist as a Release Please release.
 
 ## First permanent installation
 
-1. In Downloader, open the release APK URL, for example:
+1. For the first installation, in `Downloader`, open the release APK URL, for example:
 
    ```text
-   https://github.com/vincedelmas/ploux/releases/download/tv-v0.2.0/ploux-tv.apk
+   https://github.com/vincedelmas/ploux/releases/download/v0.2.0/ploux-tv.apk
    ```
 
 2. Install and open it, then enter the Ploux server's LAN URL again.
 
-For future versions, choose **Install update** in Ploux TV. The first time, the Shield may ask you to allow Ploux TV to install unknown
-apps. Grant that per-app permission, return to Ploux, and retry. All later APKs signed with the same key install over the current app while
-preserving its local settings.
+3. For future versions, choose **Install update** inside the Ploux TV app. The first time, the TV may ask you to allow Ploux TV to install
+   unknown apps. Grant that per-app permission, return to Ploux, and retry. All later APKs signed with the same key install over the current
+   app while preserving its local settings.

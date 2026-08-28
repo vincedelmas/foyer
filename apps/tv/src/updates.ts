@@ -81,7 +81,7 @@ function isTvUpdate(value: unknown): value is TvUpdate {
     /^[a-f\d]{64}$/i.test(value.sha256) &&
     apkUrl.protocol === "https:" &&
     apkUrl.hostname === "github.com" &&
-    apkUrl.pathname.startsWith(`/${repository}/releases/download/tv-v`)
+    apkUrl.pathname.startsWith(`/${repository}/releases/download/v`)
   )
 }
 
@@ -107,14 +107,12 @@ export async function findLatestTvUpdate(): Promise<TvUpdate | null> {
     throw new Error("GitHub returned an invalid releases response")
   }
 
-  const release = releasesPayload
-    .filter(isGithubRelease)
-    .find(
-      (candidate) =>
-        !candidate.draft &&
-        !candidate.prerelease &&
-        candidate.tag_name.startsWith("tv-v")
-    )
+  const release = releasesPayload.filter(isGithubRelease).find(
+    (candidate) =>
+      !candidate.draft &&
+      !candidate.prerelease &&
+      candidate.assets.some((asset) => asset.name === "update.json")
+  )
   if (!release) return null
 
   const manifestAsset = release.assets.find(
@@ -130,6 +128,9 @@ export async function findLatestTvUpdate(): Promise<TvUpdate | null> {
   )
   if (!isTvUpdate(manifest)) {
     throw new Error("The update manifest is invalid")
+  }
+  if (release.tag_name !== `v${manifest.version}`) {
+    throw new Error("The update manifest version does not match its release")
   }
 
   return manifest.versionCode > currentTvVersionCode ? manifest : null
