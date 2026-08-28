@@ -6,6 +6,7 @@
                 "src/router.tsx",
                 "src/start.ts",
                 "src/routes/**/*.{ts,tsx}",
+                "server.ts",
                 "vite.config.ts",
                 "drizzle.config.ts"
             ],

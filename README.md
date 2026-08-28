@@ -8,7 +8,7 @@ It deliberately has no transcoder, accounts, sharing, plugins, live TV, or cloud
 
 ## Stack
 
-- Bun runtime and workspaces
+- Bun runtime and workspaces, including a native `Bun.serve` production server
 - TanStack Start in client-only SPA mode, with Vite and React 19 Compiler
 - TanStack Router, Query, Form, Store, and Table
 - React Native TV/Expo client for Android TV
@@ -37,6 +37,15 @@ For production:
 ```bash
 bun run build
 bun run start
+```
+
+The build writes browser assets to `dist/client`, the TanStack Start handler to `dist/server`, and the bundled Bun entry to
+`dist/server.js`. For PM2, run that last file with Bun as the interpreter. The server bundle contains its JavaScript dependencies, so the
+deployment needs `dist`, `drizzle`, and Bun, plus FFmpeg/ffprobe for optional media inspection and TV remuxing. It does not need Nitro or a
+production `node_modules` installation.
+
+```bash
+pm2 start dist/server.js --name ploux --interpreter bun
 ```
 
 Or with Docker:
