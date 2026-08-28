@@ -2,14 +2,16 @@
   "expo": {
     "name": "Ploux TV",
     "slug": "ploux-tv",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "orientation": "landscape",
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
     "android": {
       "package": "com.ploux.tv",
       "versionCode": 1,
-      "permissions": ["android.permission.REQUEST_INSTALL_PACKAGES"],
+      "permissions": [
+        "android.permission.REQUEST_INSTALL_PACKAGES"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#12110f"
