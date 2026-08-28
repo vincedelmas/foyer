@@ -16,10 +16,11 @@
         "apps/tv": {
             "entry": [
                 "index.ts",
-                "App.tsx"
+                "App.tsx",
+                "plugins/with-release-signing.cjs"
             ],
             "project": [
-                "**/*.{ts,tsx}"
+                "**/*.{ts,tsx,cjs}"
             ],
             "ignoreDependencies": [
                 "expo-updates",

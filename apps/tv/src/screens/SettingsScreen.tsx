@@ -4,6 +4,7 @@ import {
   ArrowLeftIcon,
   CheckCircleIcon,
   DatabaseIcon,
+  DownloadIcon,
   FilmIcon,
   FolderSyncIcon,
   PencilIcon,
@@ -25,6 +26,7 @@ import { CollectionActionsDialog } from "../components/CollectionActionsDialog"
 import { FocusButton } from "../components/FocusButton"
 import { FocusTextInput } from "../components/FocusTextInput"
 import { LibraryFormDialog } from "../components/LibraryFormDialog"
+import { useTvUpdater } from "../components/TvUpdateProvider"
 import { colors, spacing } from "../theme"
 
 export function SettingsScreen({
@@ -107,6 +109,7 @@ function SettingsDashboard({
   onBack: () => void
 }) {
   const queryClient = useQueryClient()
+  const updater = useTvUpdater()
   const [editLibrary, setEditLibrary] = useState<LibraryRecord | null>(null)
   const [collectionActions, setCollectionActions] =
     useState<MediaFolderSummary | null>(null)
@@ -196,6 +199,41 @@ function SettingsDashboard({
         {scanAll.isError ? (
           <Text style={styles.error}>{scanAll.error.message}</Text>
         ) : null}
+
+        <View style={styles.settingsSection}>
+          <View style={styles.updateRow}>
+            <View style={styles.copy}>
+              <Text style={styles.sectionTitle}>App updates</Text>
+              <Text style={styles.description}>
+                Ploux TV {updater.currentVersion} · build {updater.currentVersionCode || "development"}
+              </Text>
+              <Text
+                style={[
+                  styles.updateStatus,
+                  updater.status === "error" && styles.error,
+                ]}
+              >
+                {updateStatus(updater)}
+              </Text>
+            </View>
+            <FocusButton
+              label={
+                updater.update
+                  ? "View update"
+                  : updater.status === "checking"
+                    ? "Checking…"
+                    : "Check for updates"
+              }
+              icon={DownloadIcon}
+              variant="secondary"
+              disabled={!updater.supported || updater.status === "checking"}
+              onPress={() => {
+                if (updater.update) updater.showUpdate()
+                else void updater.checkForUpdates()
+              }}
+            />
+          </View>
+        </View>
 
         <View style={styles.settingsSection}>
           <View style={styles.copy}>
@@ -294,6 +332,22 @@ function SettingsDashboard({
   )
 }
 
+function updateStatus(updater: ReturnType<typeof useTvUpdater>) {
+  if (!updater.supported) return "Update checks are enabled in signed release builds."
+  if (updater.status === "checking") return "Checking the public release feed…"
+  if (updater.status === "available" && updater.update) {
+    return `Version ${updater.update.version} is ready to install.`
+  }
+  if (updater.status === "downloading") {
+    return `Downloading… ${Math.round(updater.progress * 100)}%`
+  }
+  if (updater.status === "verifying") return "Verifying the downloaded APK…"
+  if (updater.status === "installing") return "Waiting for Android’s installer…"
+  if (updater.status === "up-to-date") return "This TV is up to date."
+  if (updater.status === "error") return updater.error ?? "The update check failed."
+  return "Checks automatically once a day when Ploux starts."
+}
+
 function ConnectionForm({
   server,
   setServer,
@@ -379,6 +433,8 @@ const styles = StyleSheet.create({
   statLabel: { color: colors.muted, fontSize: 10 },
   statValue: { color: colors.text, fontSize: 26, fontWeight: "800" },
   settingsSection: { padding: 18, gap: 15, borderRadius: 13, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  updateRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 20 },
+  updateStatus: { color: colors.muted, fontSize: 11, lineHeight: 16 },
   sectionTitle: { color: colors.text, fontSize: 22, fontWeight: "800" },
   libraryList: { gap: 6 },
   libraryRow: { minHeight: 58, paddingHorizontal: 13, flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 9, backgroundColor: colors.surfaceRaised },

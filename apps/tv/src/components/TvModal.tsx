@@ -21,6 +21,7 @@ export function TvModal({
   children,
   width = 600,
   scroll = false,
+  dismissible = true,
 }: {
   visible: boolean
   title: string
@@ -29,18 +30,19 @@ export function TvModal({
   children: ReactNode
   width?: ViewStyle["width"]
   scroll?: boolean
+  dismissible?: boolean
 }) {
   useEffect(() => {
     if (!visible) return
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
       () => {
-        onClose()
+        if (dismissible) onClose()
         return true
       }
     )
     return () => subscription.remove()
-  }, [onClose, visible])
+  }, [dismissible, onClose, visible])
 
   const content = <View style={styles.body}>{children}</View>
 
@@ -49,7 +51,7 @@ export function TvModal({
       animationType="fade"
       transparent
       visible={visible}
-      onRequestClose={onClose}
+      onRequestClose={dismissible ? onClose : () => undefined}
       statusBarTranslucent
     >
       <View style={styles.scrim}>
@@ -61,7 +63,9 @@ export function TvModal({
                 <Text style={styles.description}>{description}</Text>
               ) : null}
             </View>
-            <FocusIconButton icon={XIcon} label="Close" onPress={onClose} />
+            {dismissible ? (
+              <FocusIconButton icon={XIcon} label="Close" onPress={onClose} />
+            ) : null}
           </View>
           {scroll ? (
             <ScrollView

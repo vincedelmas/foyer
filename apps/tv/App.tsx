@@ -10,6 +10,7 @@ import { StatusBar } from "expo-status-bar"
 import { useEffect, useState } from "react"
 import { ActivityIndicator, StyleSheet, View } from "react-native"
 
+import { TvUpdateProvider } from "./src/components/TvUpdateProvider"
 import { CollectionScreen } from "./src/screens/CollectionScreen"
 import { DetailScreen } from "./src/screens/DetailScreen"
 import { HomeScreen } from "./src/screens/HomeScreen"
@@ -66,75 +67,77 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StatusBar hidden />
-      <NavigationBar hidden style="light" />
-      {!server ? (
-        <SettingsScreen
-          initialServer="http://10.0.2.2:3000"
-          firstRun
-          onSave={saveServer}
-          onBack={() => undefined}
-        />
-      ) : screen.name === "home" ? (
-        <HomeScreen
-          server={server}
-          onOpenCollection={(folder) =>
-            setScreen({ name: "collection", folder })
-          }
-          onOpenMedia={(media) =>
-            setScreen({ name: "detail", media, returnTo: { name: "home" } })
-          }
-          onOpenSettings={() => setScreen({ name: "settings" })}
-        />
-      ) : screen.name === "collection" ? (
-        <CollectionScreen
-          server={server}
-          initialFolder={screen.folder}
-          onHome={() => setScreen({ name: "home" })}
-          onOpenMedia={(media) =>
-            setScreen({
-              name: "detail",
-              media,
-              returnTo: { name: "collection", folder: screen.folder },
-            })
-          }
-          onOpenSettings={() => setScreen({ name: "settings" })}
-        />
-      ) : screen.name === "settings" ? (
-        <SettingsScreen
-          initialServer={server}
-          onSave={saveServer}
-          onBack={() => setScreen({ name: "home" })}
-        />
-      ) : screen.name === "detail" ? (
-        <DetailScreen
-          server={server}
-          summary={screen.media}
-          onBack={() => setScreen(screen.returnTo)}
-          onPlay={(part, media) =>
-            setScreen({
-              name: "player",
-              media,
-              part,
-              returnTo: screen.returnTo,
-            })
-          }
-        />
-      ) : (
-        <PlayerScreen
-          server={server}
-          mediaId={screen.media.id}
-          mediaTitle={screen.media.title}
-          part={screen.part}
-          onBack={() =>
-            setScreen({
-              name: "detail",
-              media: screen.media,
-              returnTo: screen.returnTo,
-            })
-          }
-        />
-      )}
+      <TvUpdateProvider enabled={Boolean(server) && screen.name === "home"}>
+        <StatusBar hidden />
+        <NavigationBar hidden style="light" />
+        {!server ? (
+          <SettingsScreen
+            initialServer="http://10.0.2.2:3000"
+            firstRun
+            onSave={saveServer}
+            onBack={() => undefined}
+          />
+        ) : screen.name === "home" ? (
+          <HomeScreen
+            server={server}
+            onOpenCollection={(folder) =>
+              setScreen({ name: "collection", folder })
+            }
+            onOpenMedia={(media) =>
+              setScreen({ name: "detail", media, returnTo: { name: "home" } })
+            }
+            onOpenSettings={() => setScreen({ name: "settings" })}
+          />
+        ) : screen.name === "collection" ? (
+          <CollectionScreen
+            server={server}
+            initialFolder={screen.folder}
+            onHome={() => setScreen({ name: "home" })}
+            onOpenMedia={(media) =>
+              setScreen({
+                name: "detail",
+                media,
+                returnTo: { name: "collection", folder: screen.folder },
+              })
+            }
+            onOpenSettings={() => setScreen({ name: "settings" })}
+          />
+        ) : screen.name === "settings" ? (
+          <SettingsScreen
+            initialServer={server}
+            onSave={saveServer}
+            onBack={() => setScreen({ name: "home" })}
+          />
+        ) : screen.name === "detail" ? (
+          <DetailScreen
+            server={server}
+            summary={screen.media}
+            onBack={() => setScreen(screen.returnTo)}
+            onPlay={(part, media) =>
+              setScreen({
+                name: "player",
+                media,
+                part,
+                returnTo: screen.returnTo,
+              })
+            }
+          />
+        ) : (
+          <PlayerScreen
+            server={server}
+            mediaId={screen.media.id}
+            mediaTitle={screen.media.title}
+            part={screen.part}
+            onBack={() =>
+              setScreen({
+                name: "detail",
+                media: screen.media,
+                returnTo: screen.returnTo,
+              })
+            }
+          />
+        )}
+      </TvUpdateProvider>
     </QueryClientProvider>
   )
 }

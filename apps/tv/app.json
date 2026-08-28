@@ -9,12 +9,14 @@
     "android": {
       "package": "com.ploux.tv",
       "versionCode": 1,
+      "permissions": ["android.permission.REQUEST_INSTALL_PACKAGES"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#12110f"
       }
     },
     "plugins": [
+      "./plugins/with-release-signing.cjs",
       [
         "@react-native-tvos/config-tv",
         {

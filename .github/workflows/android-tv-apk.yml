@@ -2,9 +2,15 @@ name: Build Android TV APK
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: App version to publish (for example 0.2.0)
+        required: true
+        default: 0.2.0
+        type: string
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: android-tv-apk-${{ github.ref }}
@@ -12,9 +18,18 @@ concurrency:
 
 jobs:
   build:
-    name: Build standalone APK
+    name: Build and publish signed APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      PLOUX_TV_VERSION: ${{ inputs.version }}
+      PLOUX_TV_VERSION_CODE: ${{ github.run_number }}
+      EXPO_PUBLIC_PLOUX_TV_REPOSITORY: ${{ github.repository }}
+      PLOUX_TV_KEYSTORE_PATH: ${{ runner.temp }}/ploux-tv-release.p12
+      PLOUX_TV_KEYSTORE_PASSWORD: ${{ secrets.PLOUX_TV_KEYSTORE_PASSWORD }}
+      PLOUX_TV_KEY_ALIAS: ${{ secrets.PLOUX_TV_KEY_ALIAS }}
+      PLOUX_TV_KEY_PASSWORD: ${{ secrets.PLOUX_TV_KEY_PASSWORD }}
+      PLOUX_TV_KEYSTORE_TYPE: PKCS12
 
     steps:
       - name: Check out repository
@@ -34,11 +49,47 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Validate release inputs
+        env:
+          PLOUX_TV_KEYSTORE_BASE64: ${{ secrets.PLOUX_TV_KEYSTORE_BASE64 }}
+        run: |
+          if [[ ! "$PLOUX_TV_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Version must look like 0.2.0"
+            exit 1
+          fi
+          for value in PLOUX_TV_KEYSTORE_BASE64 PLOUX_TV_KEYSTORE_PASSWORD PLOUX_TV_KEY_ALIAS PLOUX_TV_KEY_PASSWORD; do
+            if [ -z "${!value}" ]; then
+              echo "::error::Missing GitHub Actions secret: $value"
+              exit 1
+            fi
+          done
+          printf '%s' "$PLOUX_TV_KEYSTORE_BASE64" | base64 --decode > "$PLOUX_TV_KEYSTORE_PATH"
+          keytool -list \
+            -keystore "$PLOUX_TV_KEYSTORE_PATH" \
+            -storetype PKCS12 \
+            -storepass "$PLOUX_TV_KEYSTORE_PASSWORD" \
+            -alias "$PLOUX_TV_KEY_ALIAS" \
+            >/dev/null
+
+      - name: Refuse to overwrite an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "tv-v$PLOUX_TV_VERSION" >/dev/null 2>&1; then
+            echo "::error::Release tv-v$PLOUX_TV_VERSION already exists. Choose a new version."
+            exit 1
+          fi
+
       - name: Generate Android project
         working-directory: apps/tv
         run: |
           bun run prebuild
           chmod +x android/gradlew
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
 
       - name: Build standalone release APK
         working-directory: apps/tv/android
@@ -47,10 +98,28 @@ jobs:
       - name: Give the APK a stable name
         run: cp apps/tv/android/app/build/outputs/apk/release/app-release.apk ploux-tv.apk
 
+      - name: Create update manifest and checksum
+        run: bun scripts/create-tv-update-manifest.ts ploux-tv.apk update.json
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ploux-tv-apk
-          path: ploux-tv.apk
+          path: |
+            ploux-tv.apk
+            ploux-tv.apk.sha256
+            update.json
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "tv-v$PLOUX_TV_VERSION" \
+            ploux-tv.apk \
+            ploux-tv.apk.sha256 \
+            update.json \
+            --target "$GITHUB_SHA" \
+            --title "Ploux TV $PLOUX_TV_VERSION" \
+            --generate-notes
