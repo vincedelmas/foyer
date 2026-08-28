@@ -1,32 +1,48 @@
 {
-  "$schema": "https://unpkg.com/knip@6/schema.json",
-  "workspaces": {
-    ".": {
-      "entry": [
-        "src/router.tsx",
-        "src/start.ts",
-        "src/routes/**/*.{ts,tsx}",
-        "vite.config.ts",
-        "drizzle.config.ts"
-      ],
-      "project": ["src/**/*.{ts,tsx}"]
+    "$schema": "https://unpkg.com/knip@6/schema.json",
+    "workspaces": {
+        ".": {
+            "entry": [
+                "src/router.tsx",
+                "src/start.ts",
+                "src/routes/**/*.{ts,tsx}",
+                "vite.config.ts",
+                "drizzle.config.ts"
+            ],
+            "project": [
+                "src/**/*.{ts,tsx}"
+            ]
+        },
+        "apps/tv": {
+            "entry": [
+                "index.ts",
+                "App.tsx"
+            ],
+            "project": [
+                "**/*.{ts,tsx}"
+            ],
+            "ignoreDependencies": [
+                "expo-updates",
+                "expo-system-ui"
+            ]
+        },
+        "packages/contracts": {
+            "entry": [
+                "src/index.ts"
+            ]
+        }
     },
-    "apps/tv": {
-      "entry": ["index.ts", "App.tsx"],
-      "project": ["**/*.{ts,tsx}"],
-      "ignoreDependencies": ["expo-updates", "expo-system-ui"]
-    },
-    "packages/contracts": {
-      "entry": ["src/index.ts"]
-    }
-  },
-  "ignore": ["src/components/ui/**", "src/routeTree.gen.ts", "drizzle/**"],
-  "ignoreDependencies": [
-    "@fontsource-variable/manrope",
-    "@fontsource-variable/newsreader",
-    "@tanstack/router-plugin",
-    "shadcn",
-    "tailwindcss",
-    "tw-animate-css"
-  ]
+    "ignore": [
+        "src/components/ui/**",
+        "src/routeTree.gen.ts",
+        "drizzle/**"
+    ],
+    "ignoreDependencies": [
+        "@fontsource-variable/manrope",
+        "@fontsource-variable/newsreader",
+        "@tanstack/router-plugin",
+        "shadcn",
+        "tailwindcss",
+        "tw-animate-css"
+    ]
 }

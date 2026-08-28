@@ -4,7 +4,15 @@ import {MediaCard} from "@/components/media-card";
 import {Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle,} from "@/components/ui/empty";
 
 
-export function MediaGrid({ items }: { items: MediaSummary[] }) {
+export function MediaGrid({
+    items,
+    emptyTitle = "No titles found",
+    emptyDescription = "Add a media folder in settings, scan it, or loosen this search.",
+}: {
+    items: MediaSummary[]
+    emptyTitle?: string
+    emptyDescription?: string
+}) {
     if (!items.length) {
         return (
             <Empty className="min-h-80 border border-dashed border-border bg-card/30">
@@ -12,10 +20,8 @@ export function MediaGrid({ items }: { items: MediaSummary[] }) {
                     <EmptyMedia variant="icon">
                         <FolderSearchIcon/>
                     </EmptyMedia>
-                    <EmptyTitle>No titles found</EmptyTitle>
-                    <EmptyDescription>
-                        Add a library in Administration, scan it, or loosen this search.
-                    </EmptyDescription>
+                    <EmptyTitle>{emptyTitle}</EmptyTitle>
+                    <EmptyDescription>{emptyDescription}</EmptyDescription>
                 </EmptyHeader>
             </Empty>
         );

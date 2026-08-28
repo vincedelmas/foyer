@@ -11,8 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as LibrariesIdRouteImport } from './routes/libraries/$id'
 import { Route as MediaIdRouteImport } from './routes/media/$id'
 import { Route as ApiV1IndexRouteImport } from './routes/api/v1/index'
+import { Route as ApiV1LibrariesRouteImport } from './routes/api/v1/libraries'
 import { Route as ApiV1LibraryRouteImport } from './routes/api/v1/library'
 import { Route as ApiV1ProgressRouteImport } from './routes/api/v1/progress'
 import { Route as WatchMediaIdPartIdRouteImport } from './routes/watch/$mediaId/$partId'
@@ -36,6 +38,11 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LibrariesIdRoute = LibrariesIdRouteImport.update({
+  id: '/libraries/$id',
+  path: '/libraries/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MediaIdRoute = MediaIdRouteImport.update({
   id: '/media/$id',
   path: '/media/$id',
@@ -44,6 +51,11 @@ const MediaIdRoute = MediaIdRouteImport.update({
 const ApiV1IndexRoute = ApiV1IndexRouteImport.update({
   id: '/api/v1/',
   path: '/api/v1/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1LibrariesRoute = ApiV1LibrariesRouteImport.update({
+  id: '/api/v1/libraries',
+  path: '/api/v1/libraries',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1LibraryRoute = ApiV1LibraryRouteImport.update({
@@ -113,7 +125,9 @@ const ApiV1AdminMetadataSearchRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/libraries/$id': typeof LibrariesIdRoute
   '/media/$id': typeof MediaIdRoute
+  '/api/v1/libraries': typeof ApiV1LibrariesRoute
   '/api/v1/library': typeof ApiV1LibraryRoute
   '/api/v1/progress': typeof ApiV1ProgressRoute
   '/watch/$mediaId/$partId': typeof WatchMediaIdPartIdRoute
@@ -131,7 +145,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/libraries/$id': typeof LibrariesIdRoute
   '/media/$id': typeof MediaIdRoute
+  '/api/v1/libraries': typeof ApiV1LibrariesRoute
   '/api/v1/library': typeof ApiV1LibraryRoute
   '/api/v1/progress': typeof ApiV1ProgressRoute
   '/watch/$mediaId/$partId': typeof WatchMediaIdPartIdRoute
@@ -150,7 +166,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/libraries/$id': typeof LibrariesIdRoute
   '/media/$id': typeof MediaIdRoute
+  '/api/v1/libraries': typeof ApiV1LibrariesRoute
   '/api/v1/library': typeof ApiV1LibraryRoute
   '/api/v1/progress': typeof ApiV1ProgressRoute
   '/watch/$mediaId/$partId': typeof WatchMediaIdPartIdRoute
@@ -170,7 +188,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/libraries/$id'
     | '/media/$id'
+    | '/api/v1/libraries'
     | '/api/v1/library'
     | '/api/v1/progress'
     | '/watch/$mediaId/$partId'
@@ -188,7 +208,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/libraries/$id'
     | '/media/$id'
+    | '/api/v1/libraries'
     | '/api/v1/library'
     | '/api/v1/progress'
     | '/watch/$mediaId/$partId'
@@ -206,7 +228,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/libraries/$id'
     | '/media/$id'
+    | '/api/v1/libraries'
     | '/api/v1/library'
     | '/api/v1/progress'
     | '/watch/$mediaId/$partId'
@@ -225,7 +249,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  LibrariesIdRoute: typeof LibrariesIdRoute
   MediaIdRoute: typeof MediaIdRoute
+  ApiV1LibrariesRoute: typeof ApiV1LibrariesRoute
   ApiV1LibraryRoute: typeof ApiV1LibraryRoute
   ApiV1ProgressRoute: typeof ApiV1ProgressRoute
   WatchMediaIdPartIdRoute: typeof WatchMediaIdPartIdRoute
@@ -257,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/libraries/$id': {
+      id: '/libraries/$id'
+      path: '/libraries/$id'
+      fullPath: '/libraries/$id'
+      preLoaderRoute: typeof LibrariesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/media/$id': {
       id: '/media/$id'
       path: '/media/$id'
@@ -269,6 +302,13 @@ declare module '@tanstack/react-router' {
       path: '/api/v1'
       fullPath: '/api/v1/'
       preLoaderRoute: typeof ApiV1IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/libraries': {
+      id: '/api/v1/libraries'
+      path: '/api/v1/libraries'
+      fullPath: '/api/v1/libraries'
+      preLoaderRoute: typeof ApiV1LibrariesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/library': {
@@ -361,7 +401,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  LibrariesIdRoute: LibrariesIdRoute,
   MediaIdRoute: MediaIdRoute,
+  ApiV1LibrariesRoute: ApiV1LibrariesRoute,
   ApiV1LibraryRoute: ApiV1LibraryRoute,
   ApiV1ProgressRoute: ApiV1ProgressRoute,
   WatchMediaIdPartIdRoute: WatchMediaIdPartIdRoute,

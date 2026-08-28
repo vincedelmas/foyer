@@ -1,290 +1,188 @@
-import {mediaKindSchema, mediaSortSchema, MediaSummary, tmdbImage} from "@ploux/contracts"
+import type {MediaFolderSummary} from "@ploux/contracts"
+import {tmdbImage} from "@ploux/contracts"
 import {useQuery} from "@tanstack/react-query"
 import {createFileRoute, Link} from "@tanstack/react-router"
-import {ArrowRightIcon, FilmIcon, PlayIcon, SearchIcon} from "lucide-react"
-import {z} from "zod"
+import {ArrowUpRightIcon, FilmIcon, FolderPlusIcon, FoldersIcon, TvIcon} from "lucide-react"
+import type React from "react"
 import {AppHeader} from "@/components/app-header"
-import {MediaGrid} from "@/components/media-grid"
 import {Badge} from "@/components/ui/badge"
 import {Button} from "@/components/ui/button"
-import {InputGroup, InputGroupAddon, InputGroupInput,} from "@/components/ui/input-group"
-import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
+import {Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
+import {Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle} from "@/components/ui/empty"
 import {Skeleton} from "@/components/ui/skeleton"
 import {api} from "@/lib/api"
 
 
-const searchSchema = z.object({
-    kind: mediaKindSchema.optional().catch(undefined),
-    search: z.string().optional().catch(undefined),
-    sort: mediaSortSchema.optional().catch("recent"),
-})
+export const Route = createFileRoute("/")({ component: HomePage })
 
-const sortItems = [
-    { label: "Recently added", value: "recent" },
-    { label: "Title A–Z", value: "title" },
-    { label: "Newest year", value: "year" },
-    { label: "Unwatched first", value: "unwatched" },
-] as const
 
-export const Route = createFileRoute("/")({
-    validateSearch: searchSchema,
-    component: LibraryPage,
-})
-
-function LibraryPage() {
-    const search = Route.useSearch()
-    const navigate = Route.useNavigate()
-    const library = useQuery({
-        queryKey: ["library", search],
-        queryFn: () => api.library(search),
+function HomePage() {
+    const folders = useQuery({
+        queryKey: ["media-folders"],
+        queryFn: api.mediaFolders,
     })
-    const items = library.data?.items ?? []
-    const featured = items.find((item) => item.backdropPath) ?? items[0]
-    const continueWatching = items.filter(
-        (item) =>
-            item.progress &&
-            item.progress.positionSeconds > 0 &&
-            !item.progress.completed
-    )
-    const sectionTitle = search.search
-        ? `Results for “${search.search}”`
-        : search.kind === "movie"
-            ? "Movies"
-            : search.kind === "series"
-                ? "Series"
-                : search.kind === "anime"
-                    ? "Anime"
-                    : "The archive"
-
-    const updateSearch = (value: string) => {
-        void navigate({
-            search: (previous) => ({ ...previous, search: value || undefined }),
-            replace: true,
-        })
-    }
 
     return (
         <div className="min-h-svh">
-            <AppHeader search={search.search} onSearchChange={updateSearch}/>
-
-            <main>
-                {!search.kind && !search.search && featured ? (
-                    <FeaturedTitle item={featured}/>
-                ) : null}
-
-                <div className="mx-auto flex max-w-[100rem] flex-col gap-12 px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
-                    <InputGroup className="sm:hidden">
-                        <InputGroupAddon>
-                            <SearchIcon/>
-                        </InputGroupAddon>
-                        <InputGroupInput
-                            aria-label="Search your library"
-                            placeholder="Search the archive…"
-                            value={search.search ?? ""}
-                            onChange={(event) => updateSearch(event.target.value)}
-                        />
-                    </InputGroup>
-
-                    {!search.kind && !search.search && continueWatching.length ? (
-                        <section
-                            className="flex flex-col gap-5"
-                            aria-labelledby="continue-heading"
+            <AppHeader/>
+            <main className="mx-auto flex max-w-[100rem] flex-col gap-10 px-4 py-10 sm:px-6 sm:py-14 lg:px-10 lg:py-20">
+                <section className="flex flex-col gap-8" aria-labelledby="media-folders-heading">
+                    <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+                        <div className="max-w-2xl">
+                            <p className="mb-2 text-xs font-semibold tracking-[0.2em] text-primary uppercase">
+                                Your shelves
+                            </p>
+                            <h1
+                                id="media-folders-heading"
+                                className="font-heading text-5xl leading-none font-medium tracking-tight sm:text-7xl"
+                            >
+                                My media
+                            </h1>
+                            <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                                Every folder is its own collection, arranged exactly the way
+                                you keep it on your server.
+                            </p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            nativeButton={false}
+                            render={<Link to="/admin"/>}
                         >
-                            <div>
-                                <p className="mb-1 text-xs font-semibold tracking-[0.18em] text-primary uppercase">
-                                    Pick up the thread
-                                </p>
-                                <h2
-                                    id="continue-heading"
-                                    className="font-heading text-3xl font-medium"
-                                >
-                                    Continue watching
-                                </h2>
-                            </div>
-                            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                                {continueWatching.slice(0, 3).map((item) => (
-                                    <ContinueCard key={item.id} item={item}/>
-                                ))}
-                            </div>
-                        </section>
+                            <FolderPlusIcon data-icon="inline-start"/>
+                            Add media folder
+                        </Button>
+                    </div>
+
+                    {folders.isPending ? <FolderGridSkeleton/> : null}
+
+                    {folders.isError ? (
+                        <Empty className="min-h-80 border border-border bg-card/30">
+                            <EmptyHeader>
+                                <EmptyMedia variant="icon">
+                                    <FoldersIcon/>
+                                </EmptyMedia>
+                                <EmptyTitle>Could not open your media folders</EmptyTitle>
+                                <EmptyDescription>{folders.error.message}</EmptyDescription>
+                            </EmptyHeader>
+                        </Empty>
                     ) : null}
 
-                    <section
-                        className="flex flex-col gap-6"
-                        aria-labelledby="library-heading"
-                    >
-                        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-                            <div>
-                                <p className="mb-1 text-xs font-semibold tracking-[0.18em] text-primary uppercase">
-                                    {library.data
-                                        ? `${library.data.stats.titles} titles at home`
-                                        : "Reading the shelves"}
-                                </p>
-                                <h1
-                                    id="library-heading"
-                                    className="font-heading text-4xl font-medium tracking-tight sm:text-5xl"
-                                >
-                                    {sectionTitle}
-                                </h1>
-                            </div>
-                            <Select
-                                items={sortItems}
-                                value={search.sort ?? "recent"}
-                                onValueChange={(value) => {
-                                    if (value)
-                                        void navigate({
-                                            search: (previous) => ({ ...previous, sort: value }),
-                                        })
-                                }}
-                            >
-                                <SelectTrigger className="w-44" aria-label="Sort titles">
-                                    <SelectValue/>
-                                </SelectTrigger>
-                                <SelectContent alignItemWithTrigger={false} align="end">
-                                    <SelectGroup>
-                                        {sortItems.map((item) => (
-                                            <SelectItem key={item.value} value={item.value}>
-                                                {item.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
+                    {folders.data?.length ? (
+                        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                            {folders.data.map((folder, index) => (
+                                <MediaFolderCard
+                                    key={folder.id}
+                                    folder={folder}
+                                    index={index}
+                                />
+                            ))}
                         </div>
+                    ) : null}
 
-                        {library.isPending ? <LibrarySkeleton/> : null}
-                        {library.isError ? (
-                            <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-6">
-                                <p className="font-medium">The archive could not be opened.</p>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    {library.error.message}
-                                </p>
-                            </div>
-                        ) : null}
-                        {library.data ? <MediaGrid items={items}/> : null}
-                    </section>
-                </div>
+                    {folders.data && !folders.data.length ? (
+                        <Empty className="min-h-96 border border-border bg-card/30">
+                            <EmptyHeader>
+                                <EmptyMedia variant="icon">
+                                    <FolderPlusIcon/>
+                                </EmptyMedia>
+                                <EmptyTitle>Your shelves are ready</EmptyTitle>
+                                <EmptyDescription>
+                                    Add a server folder and choose whether it contains movies or
+                                    TV shows, then scan it to fill the collection.
+                                </EmptyDescription>
+                            </EmptyHeader>
+                            <EmptyContent>
+                                <Button nativeButton={false} render={<Link to="/admin"/>}>
+                                    <FolderPlusIcon data-icon="inline-start"/>
+                                    Add your first folder
+                                </Button>
+                            </EmptyContent>
+                        </Empty>
+                    ) : null}
+                </section>
             </main>
         </div>
     )
 }
 
-function FeaturedTitle({ item }: { item: MediaSummary }) {
-    const backdrop = tmdbImage(item.backdropPath, "original")
-    return (
-        <section className="relative min-h-[32rem] overflow-hidden lg:min-h-[39rem]">
-            {backdrop ? (
-                <img
-                    src={backdrop}
-                    alt=""
-                    className="absolute inset-0 size-full object-cover object-center"
-                />
-            ) : (
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_30%,var(--accent),transparent_42%)]"/>
-            )}
-            <div className="cinema-fade-side absolute inset-0"/>
-            <div className="cinema-fade absolute inset-x-0 bottom-0 h-2/3"/>
-            <div className="relative mx-auto flex min-h-[32rem] max-w-[100rem] items-end px-4 pb-14 sm:px-6 lg:min-h-[39rem] lg:items-center lg:px-10 lg:pb-0">
-                <div
-                    data-archive-item
-                    className="flex max-w-2xl flex-col items-start gap-5"
-                >
-                    <Badge variant="secondary">Recently added</Badge>
-                    <div className="flex flex-col gap-3">
-                        <h1 className="font-heading text-5xl leading-[0.95] font-medium tracking-tight text-balance sm:text-7xl lg:text-8xl">
-                            {item.title}
-                        </h1>
-                        <p className="text-sm font-medium text-muted-foreground">
-                            {item.year ?? "Unknown year"} ·{" "}
-                            {item.kind === "movie"
-                                ? "Movie"
-                                : item.kind === "anime"
-                                    ? "Anime"
-                                    : "Series"}
-                        </p>
-                    </div>
-                    {item.overview ? (
-                        <p className="line-clamp-3 max-w-xl text-sm leading-6 text-foreground/80 sm:text-base">
-                            {item.overview}
-                        </p>
-                    ) : null}
-                    <div className="flex flex-wrap gap-3">
-                        {item.nextPartId ? (
-                            <Button
-                                size="lg"
-                                render={
-                                    <Link
-                                        to="/watch/$mediaId/$partId"
-                                        params={{ mediaId: item.id, partId: item.nextPartId }}
-                                    />
-                                }
-                                nativeButton={false}
-                            >
-                                <PlayIcon data-icon="inline-start" className="fill-current"/>
-                                {item.progress?.positionSeconds ? "Resume" : "Play"}
-                            </Button>
-                        ) : null}
-                        <Button
-                            size="lg"
-                            variant="secondary"
-                            render={<Link to="/media/$id" params={{ id: item.id }}/>}
-                            nativeButton={false}
-                        >
-                            Details
-                            <ArrowRightIcon data-icon="inline-end"/>
-                        </Button>
-                    </div>
-                </div>
-            </div>
-        </section>
-    )
-}
 
-function ContinueCard({ item }: { item: MediaSummary }) {
-    const backdrop = tmdbImage(item.backdropPath, "w780")
+function MediaFolderCard({
+    folder,
+    index,
+}: {
+    folder: MediaFolderSummary
+    index: number
+}) {
+    const TypeIcon = folder.kind === "movies" ? FilmIcon : TvIcon
+    const artwork = Array.from({ length: 5 }, (_, artworkIndex) =>
+        folder.posterPaths[artworkIndex]
+    )
+
     return (
         <Link
-            to="/watch/$mediaId/$partId"
-            params={{ mediaId: item.id, partId: item.nextPartId ?? "" }}
-            className="group relative aspect-[16/7] overflow-hidden rounded-xl bg-card ring-1 ring-border transition outline-none hover:-translate-y-1 hover:ring-primary/50 focus-visible:ring-2 focus-visible:ring-ring"
+            to="/libraries/$id"
+            params={{ id: folder.id }}
+            className="group block rounded-xl outline-none"
+            aria-label={`Open ${folder.name}`}
         >
-            {backdrop ? (
-                <img
-                    src={backdrop}
-                    alt=""
-                    className="size-full object-cover transition duration-500 group-hover:scale-105"
-                />
-            ) : (
-                <FilmIcon className="absolute top-1/2 left-1/2 size-9 -translate-1/2 text-muted-foreground"/>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/55 to-transparent"/>
-            <div className="absolute inset-0 flex max-w-[70%] flex-col justify-end gap-2 p-5">
-                <p className="truncate font-heading text-2xl font-medium">
-                    {item.title}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                    {item.progress?.percentage ?? 0}% watched
-                </p>
-                <div className="h-1 overflow-hidden rounded-full bg-muted">
-                    <div
-                        className="h-full bg-primary"
-                        style={{ width: `${item.progress?.percentage ?? 0}%` }}
-                    />
-                </div>
-            </div>
+            <Card
+                data-archive-item
+                className="relative aspect-[16/10] gap-0 py-0 transition duration-300 group-hover:-translate-y-1 group-hover:ring-primary/50 group-focus-visible:ring-2 group-focus-visible:ring-ring"
+                style={{ "--archive-index": index } as React.CSSProperties}
+            >
+                <CardContent className="absolute inset-0 grid grid-cols-[1.35fr_1fr_1fr] grid-rows-2 gap-px bg-border px-0">
+                    {artwork.map((posterPath, artworkIndex) => {
+                        const poster = tmdbImage(posterPath, "w500")
+                        return (
+                            <div
+                                key={artworkIndex}
+                                className={artworkIndex === 0 ? "row-span-2 bg-muted" : "bg-muted"}
+                            >
+                                {poster ? (
+                                    <img
+                                        src={poster}
+                                        alt=""
+                                        loading="lazy"
+                                        className="size-full object-cover transition duration-700 group-hover:scale-[1.025]"
+                                    />
+                                ) : (
+                                    <div className="grid size-full place-items-center bg-[radial-gradient(circle_at_top,var(--accent),var(--muted))]">
+                                        <TypeIcon className="size-5 text-muted-foreground/40"/>
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
+                </CardContent>
+                <div className="absolute inset-0 bg-linear-to-t from-background via-background/30 to-transparent"/>
+                <CardHeader className="absolute inset-x-0 bottom-0 gap-2 p-5 sm:p-6">
+                    <div className="flex items-center gap-2">
+                        <Badge variant="secondary">
+                            <TypeIcon data-icon="inline-start"/>
+                            {folder.kind === "movies" ? "Movies" : "TV shows"}
+                        </Badge>
+                    </div>
+                    <CardTitle className="truncate text-3xl sm:text-4xl">
+                        {folder.name}
+                    </CardTitle>
+                    <CardDescription>
+                        {folder.titleCount} {folder.titleCount === 1 ? "title" : "titles"}
+                    </CardDescription>
+                    <CardAction className="grid size-10 place-items-center self-end rounded-full bg-primary text-primary-foreground shadow-lg transition group-hover:rotate-3 group-hover:scale-105">
+                        <ArrowUpRightIcon className="size-5"/>
+                    </CardAction>
+                </CardHeader>
+            </Card>
         </Link>
     )
 }
 
-function LibrarySkeleton() {
+
+function FolderGridSkeleton() {
     return (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
-            {Array.from({ length: 12 }, (_, index) => (
-                <div key={index} className="flex flex-col gap-3">
-                    <Skeleton className="aspect-[2/3] w-full rounded-xl"/>
-                    <Skeleton className="h-4 w-4/5"/>
-                    <Skeleton className="h-3 w-2/5"/>
-                </div>
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 3 }, (_, index) => (
+                <Skeleton key={index} className="aspect-[16/10] rounded-xl"/>
             ))}
         </div>
     )

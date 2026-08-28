@@ -1,20 +1,19 @@
 import {api} from "@/lib/api";
 import {Input} from "@/components/ui/input";
 import {toast} from "@/components/ui/toast";
-import {FolderPlusIcon} from "lucide-react";
+import {FilmIcon, FolderPlusIcon, TvIcon} from "lucide-react";
 import {useForm} from "@tanstack/react-form";
 import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {Field, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field";
-import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import type {LibraryKind} from "@ploux/contracts";
+import {ToggleGroup, ToggleGroupItem} from "@/components/ui/toggle-group";
 
 
 const kindItems = [
-    { label: "Movies", value: "movies" },
-    { label: "Series", value: "series" },
-    { label: "Anime", value: "anime" },
-    { label: "Mixed", value: "mixed" },
+    { label: "Movies", value: "movies", icon: FilmIcon },
+    { label: "TV shows", value: "series", icon: TvIcon },
 ] as const;
 
 
@@ -24,10 +23,13 @@ export function LibraryForm() {
     const create = useMutation({
         mutationFn: api.createLibrary,
         onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ["admin"] });
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["admin"] }),
+                queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
+            ]);
             toast.add({
                 type: "success",
-                title: "Library added",
+                title: "Media folder added",
                 description: "Run a scan to index its files.",
             })
         },
@@ -35,7 +37,7 @@ export function LibraryForm() {
             toast.add({
                 type: "error",
                 description: error.message,
-                title: "Could not add library",
+                title: "Could not add media folder",
             }),
     })
 
@@ -43,7 +45,7 @@ export function LibraryForm() {
         defaultValues: {
             name: "",
             path: "",
-            kind: "movies",
+            kind: "movies" as LibraryKind,
         },
         onSubmit: async ({ value, formApi }) => {
             await create.mutateAsync(value);
@@ -75,7 +77,7 @@ export function LibraryForm() {
                                 id={field.name}
                                 value={field.state.value}
                                 onBlur={field.handleBlur}
-                                placeholder="Living room movies"
+                                placeholder="Fun movies"
                                 aria-invalid={!field.state.meta.isValid}
                                 onChange={(ev) => field.handleChange(ev.target.value)}
                             />
@@ -113,27 +115,30 @@ export function LibraryForm() {
                 <form.Field name="kind">
                     {(field) =>
                         <Field>
-                            <FieldLabel>Content type</FieldLabel>
-                            <Select
-                                items={kindItems}
-                                value={field.state.value}
+                                <FieldLabel>Media type</FieldLabel>
+                            <ToggleGroup
+                                variant="outline"
+                                className="w-full"
+                                value={[field.state.value]}
                                 onValueChange={(value) => {
-                                    if (value) field.handleChange(value)
+                                    if (value[0]) field.handleChange(value[0] as LibraryKind)
                                 }}
                             >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue/>
-                                </SelectTrigger>
-                                <SelectContent alignItemWithTrigger={false}>
-                                    <SelectGroup>
-                                        {kindItems.map((item) => (
-                                            <SelectItem key={item.value} value={item.value}>
-                                                {item.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
+                                {kindItems.map((item) => {
+                                    const Icon = item.icon
+                                    return (
+                                        <ToggleGroupItem
+                                            key={item.value}
+                                            value={item.value}
+                                            className="flex-1"
+                                            aria-label={item.label}
+                                        >
+                                            <Icon/>
+                                            {item.label}
+                                        </ToggleGroupItem>
+                                    )
+                                })}
+                            </ToggleGroup>
                         </Field>
                     }
                 </form.Field>
@@ -144,7 +149,7 @@ export function LibraryForm() {
                                 ? <Spinner data-icon="inline-start"/>
                                 : <FolderPlusIcon data-icon="inline-start"/>
                             }
-                            Add library
+                            Add folder
                         </Button>
                     )}
                 </form.Subscribe>

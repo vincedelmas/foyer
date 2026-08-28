@@ -1,7 +1,7 @@
 import {and, eq, like, or} from "drizzle-orm";
 import {db, ensureDatabase} from "@/server/db/index.server"
-import {MediaItemRow, mediaItems, MediaPartRow, mediaParts, playbackProgress, ProgressRow, SubtitleRow, subtitleTracks} from "@/server/db/schema"
-import {LibraryStats, MediaKind, MediaPart, MediaProgress, MediaSort, MediaSummary, PersonCredit, SeasonMetadata, SubtitleTrack} from "@ploux/contracts";
+import {libraries, MediaItemRow, mediaItems, MediaPartRow, mediaParts, playbackProgress, ProgressRow, SubtitleRow, subtitleTracks} from "@/server/db/schema"
+import {LibraryStats, MediaFolderSummary, MediaKind, MediaPart, MediaProgress, MediaSort, MediaSummary, PersonCredit, SeasonMetadata, SubtitleTrack} from "@ploux/contracts";
 
 
 const parseJson = <T>(value: string, fallback: T): T => {
@@ -73,8 +73,9 @@ const asSummary = (item: MediaItemRow, parts: MediaPartRow[], progressByPart: Ma
 };
 
 
-const loadMediaRows = (kind?: MediaKind, search?: string) => {
+const loadMediaRows = (kind?: MediaKind, search?: string, libraryId?: string) => {
     const filters = [
+        libraryId ? eq(mediaItems.libraryId, libraryId) : undefined,
         kind ? eq(mediaItems.kind, kind) : undefined,
         search
             ? or(
@@ -130,10 +131,10 @@ const applySort = (items: MediaSummary[], sort: MediaSort) => {
 }
 
 
-export const listMedia = (input: { kind?: MediaKind, search?: string, sort?: MediaSort }) => {
+export const listMedia = (input: { libraryId?: string, kind?: MediaKind, search?: string, sort?: MediaSort }) => {
     ensureDatabase();
-    const all = hydrateSummaries(loadMediaRows());
-    const filtered = hydrateSummaries(loadMediaRows(input.kind, input.search?.trim() || undefined));
+    const all = hydrateSummaries(loadMediaRows(undefined, undefined, input.libraryId));
+    const filtered = hydrateSummaries(loadMediaRows(input.kind, input.search?.trim() || undefined, input.libraryId));
 
     const stats: LibraryStats = {
         titles: all.length,
@@ -149,6 +150,29 @@ export const listMedia = (input: { kind?: MediaKind, search?: string, sort?: Med
         items: applySort(filtered, input.sort ?? "recent"),
     };
 };
+
+
+export const listMediaFolders = (): MediaFolderSummary[] => {
+    ensureDatabase()
+    const folderRows = db.select().from(libraries).all()
+    const itemRows = db.select().from(mediaItems).all()
+
+    return folderRows.map((folder) => {
+        const folderItems = itemRows
+            .filter((item) => item.libraryId === folder.id)
+            .sort((left, right) => right.addedAt - left.addedAt)
+
+        return {
+            id: folder.id,
+            name: folder.name,
+            kind: folder.kind,
+            titleCount: folderItems.length,
+            posterPaths: folderItems
+                .flatMap((item) => item.posterPath ? [item.posterPath] : [])
+                .slice(0, 5),
+        }
+    })
+}
 
 
 export const getMediaDetail = (mediaId: string) => {

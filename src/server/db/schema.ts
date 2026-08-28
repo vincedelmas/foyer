@@ -11,7 +11,7 @@ export const libraries = sqliteTable("libraries", {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
     path: text("path").notNull(),
-    kind: text("kind", { enum: ["movies", "series", "anime", "mixed"] }).notNull(),
+    kind: text("kind", { enum: ["movies", "series"] }).notNull(),
     ...timestamps,
 }, (table) => [
     uniqueIndex("libraries_path_unique").on(table.path),

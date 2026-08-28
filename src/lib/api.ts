@@ -1,4 +1,4 @@
-import type {LibraryRecord, LibraryResponse, MediaDetail, MediaKind, MediaSort, ScanRecord, TmdbCandidate} from "@ploux/contracts";
+import type {LibraryKind, LibraryRecord, LibraryResponse, MediaDetail, MediaFolderSummary, MediaKind, MediaSort, ScanRecord, TmdbCandidate} from "@ploux/contracts";
 
 
 class ApiError extends Error {
@@ -34,13 +34,15 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
 
 
 export const api = {
-    library: (input: { kind?: MediaKind; search?: string; sort?: MediaSort }) => {
+    library: (input: { libraryId?: string; kind?: MediaKind; search?: string; sort?: MediaSort }) => {
         const query = new URLSearchParams()
+        if (input.libraryId) query.set("libraryId", input.libraryId)
         if (input.kind) query.set("kind", input.kind)
         if (input.search) query.set("search", input.search)
         if (input.sort) query.set("sort", input.sort)
         return request<LibraryResponse>(`/api/v1/library?${query}`)
     },
+    mediaFolders: () => request<MediaFolderSummary[]>("/api/v1/libraries"),
     media: (id: string) => request<MediaDetail>(`/api/v1/media/${id}`),
     progress: (input: {
         partId: string
@@ -59,9 +61,14 @@ export const api = {
             tmdbSource: "environment" | "database"
             databasePath: string
         }>("/api/v1/admin/settings"),
-    createLibrary: (input: { name: string; path: string; kind: string }) =>
+    createLibrary: (input: { name: string; path: string; kind: LibraryKind }) =>
         request<LibraryRecord>("/api/v1/admin/libraries", {
             method: "POST",
+            body: JSON.stringify(input),
+        }),
+    updateLibrary: (input: { id: string; name: string; path: string; kind: LibraryKind }) =>
+        request<LibraryRecord>("/api/v1/admin/libraries", {
+            method: "PUT",
             body: JSON.stringify(input),
         }),
     deleteLibrary: (id: string) =>

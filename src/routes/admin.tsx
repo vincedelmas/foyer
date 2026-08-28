@@ -32,10 +32,11 @@ function AdminPage() {
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: ["admin"] }),
                 queryClient.invalidateQueries({ queryKey: ["library"] }),
+                queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
             ])
             toast.add({
-                title: "All libraries scanned",
-                description: `${result.scans.length} libraries completed.`,
+                title: "All media folders scanned",
+                description: `${result.scans.length} folders completed.`,
                 type: "success",
             })
         },
@@ -54,14 +55,14 @@ function AdminPage() {
                 <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
                     <div>
                         <p className="mb-2 text-xs font-semibold tracking-[0.18em] text-primary uppercase">
-                            Control room
+                            Ploux settings
                         </p>
                         <h1 className="font-heading text-5xl font-medium tracking-tight sm:text-6xl">
-                            Administration
+                            Settings
                         </h1>
                         <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
-                            Point Ploux at folders, scan files, and keep metadata tidy. Files
-                            are always read-only.
+                            Create your media folders, point them at the server, and keep
+                            metadata tidy. Your files are always read-only.
                         </p>
                     </div>
                     <Button
@@ -73,7 +74,7 @@ function AdminPage() {
                         ) : (
                             <FolderSyncIcon data-icon="inline-start"/>
                         )}
-                        Scan all libraries
+                        Scan all folders
                     </Button>
                 </div>
 
@@ -95,7 +96,7 @@ function AdminPage() {
                     />
                     <StatCard
                         icon={LibraryIcon}
-                        title="Libraries"
+                        title="Media folders"
                         value={admin.data?.libraries.length}
                     />
                     <StatCard
@@ -112,7 +113,7 @@ function AdminPage() {
 
                 <Tabs defaultValue="libraries" className="gap-6">
                     <TabsList variant="line">
-                        <TabsTrigger value="libraries">Libraries</TabsTrigger>
+                        <TabsTrigger value="libraries">Media folders</TabsTrigger>
                         <TabsTrigger value="metadata">Metadata</TabsTrigger>
                         <TabsTrigger value="activity">Activity</TabsTrigger>
                     </TabsList>
@@ -123,8 +124,8 @@ function AdminPage() {
                                 <CardHeader>
                                     <CardTitle>Add a media folder</CardTitle>
                                     <CardDescription>
-                                        Use an absolute path visible to the server. Series and anime
-                                        should have one top-level folder per show.
+                                        Give it any name you like, then choose an absolute server
+                                        path and whether it contains movies or TV shows.
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -133,9 +134,9 @@ function AdminPage() {
                             </Card>
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Indexed libraries</CardTitle>
+                                    <CardTitle>Your media folders</CardTitle>
                                     <CardDescription>
-                                        Removing a library deletes its index only. Your media
+                                        Removing a media folder deletes its index only. Your media
                                         remains untouched.
                                     </CardDescription>
                                 </CardHeader>
@@ -147,7 +148,7 @@ function AdminPage() {
                                         <LibrariesTable libraries={admin.data.libraries}/>
                                     ) : (
                                         <p className="py-12 text-center text-sm text-muted-foreground">
-                                            No folders have been added yet.
+                                            No media folders have been added yet.
                                         </p>
                                     )}
                                 </CardContent>

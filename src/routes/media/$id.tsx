@@ -98,11 +98,7 @@ function MediaDetailsPage() {
                         >
                             <div className="flex flex-wrap gap-2">
                                 <Badge>
-                                    {item.kind === "movie"
-                                        ? "Movie"
-                                        : item.kind === "anime"
-                                            ? "Anime"
-                                            : "Series"}
+                                    {item.kind === "movie" ? "Movie" : "TV show"}
                                 </Badge>
                                 {item.contentRating ? (
                                     <Badge variant="outline">{item.contentRating}</Badge>

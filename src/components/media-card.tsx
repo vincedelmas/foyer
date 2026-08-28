@@ -55,7 +55,7 @@ export function MediaCard({ item, index = 0 }: { item: MediaSummary, index?: num
                     </h3>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                         {item.year ?? "Unknown year"} ·{" "}
-                        {item.kind === "movie" ? "Movie" : item.kind === "anime" ? "Anime" : "Series"}
+                        {item.kind === "movie" ? "Movie" : "TV show"}
                     </p>
                 </div>
             </Link>

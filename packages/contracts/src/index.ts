@@ -4,7 +4,7 @@ import {z} from "zod";
 export const mediaKindSchema = z.enum(["movie", "series", "anime"])
 export type MediaKind = z.infer<typeof mediaKindSchema>
 
-export const libraryKindSchema = z.enum(["movies", "series", "anime", "mixed"])
+export const libraryKindSchema = z.enum(["movies", "series"])
 export type LibraryKind = z.infer<typeof libraryKindSchema>
 
 export const mediaSortSchema = z.enum(["recent", "title", "year", "unwatched"])
@@ -14,6 +14,10 @@ export const libraryInputSchema = z.object({
     name: z.string().trim().min(1).max(80),
     path: z.string().trim().min(1),
     kind: libraryKindSchema,
+})
+
+export const libraryUpdateSchema = libraryInputSchema.extend({
+    id: z.string().min(1),
 })
 
 export const progressInputSchema = z.object({
@@ -119,6 +123,14 @@ export interface LibraryRecord {
     kind: LibraryKind
     createdAt: number
     updatedAt: number
+}
+
+export interface MediaFolderSummary {
+    id: string
+    name: string
+    kind: LibraryKind
+    titleCount: number
+    posterPaths: string[]
 }
 
 export interface LibraryStats {

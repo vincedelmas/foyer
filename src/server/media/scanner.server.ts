@@ -28,7 +28,7 @@ import { autoMatchMetadata, isTmdbConfigured } from "./tmdb.server"
 
 interface DiscoveredTitle {
   sourceKey: string
-  kind: "movie" | "series" | "anime"
+  kind: "movie" | "series"
   title: string
   year: number | null
   videos: DiscoveredVideo[]
@@ -97,14 +97,8 @@ const discoverLibrary = async (library: LibraryRow) => {
 
   for (const videoPath of files.filter(isVideo)) {
     const episode = inferEpisode(videoPath)
-    const isSeries =
-      library.kind !== "movies" &&
-      (library.kind !== "mixed" || Boolean(episode))
-    const kind = isSeries
-      ? library.kind === "anime"
-        ? "anime"
-        : "series"
-      : "movie"
+    const isSeries = library.kind === "series"
+    const kind = isSeries ? "series" : "movie"
     const relativePath = relative(library.path, videoPath)
     const movie = cleanMovieTitle(videoPath)
     const title = isSeries
@@ -356,6 +350,33 @@ export const createLibrary = (input: {
     })
     .run()
   return db.select().from(libraries).where(eq(libraries.path, path)).get()
+}
+
+export const updateLibrary = (input: {
+  id: string
+  name: string
+  path: string
+  kind: LibraryKind
+}) => {
+  ensureDatabase()
+  const existing = db
+    .select({ id: libraries.id })
+    .from(libraries)
+    .where(eq(libraries.id, input.id))
+    .get()
+  if (!existing) throw new Error("Media folder not found")
+
+  db.update(libraries)
+    .set({
+      name: input.name,
+      path: resolve(input.path),
+      kind: input.kind,
+      updatedAt: Date.now(),
+    })
+    .where(eq(libraries.id, input.id))
+    .run()
+
+  return db.select().from(libraries).where(eq(libraries.id, input.id)).get()
 }
 
 export const deleteLibrary = (libraryId: string) => {
