@@ -67,8 +67,11 @@ Release Please manages versions from Conventional Commit messages pushed to `mas
   next feature/fix release unless a `Release-As: x.y.z` footer explicitly requests one.
 
 Every push updates a Release Please PR containing the next version, `CHANGELOG.md`, and the web/TV version files. Nothing is published until
-that PR is merged. Merging it creates a draft `v0.2.0` release and immediately invokes the signed Android workflow. The release becomes
+that PR is merged. Merging it creates a draft `v0.2.1` release and immediately invokes the signed Android workflow. The release becomes
 public only after `ploux-tv.apk`, `ploux-tv.apk.sha256`, and `update.json` have been attached successfully.
+
+Version `0.2.1` also publishes a one-time `tv-v0.2.1` compatibility release. The updater bundled in `0.2.0` only recognizes that older tag
+prefix; once `0.2.1` is installed, the updater accepts both formats and prefers canonical `v` releases.
 
 Before the first run, enable **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests**. Add the four
 signing secrets before merging the first Release Please PR.
@@ -82,7 +85,7 @@ runnable as a recovery mechanism, but its version/tag must already exist as a Re
 1. For the first installation, in `Downloader`, open the release APK URL, for example:
 
    ```text
-   https://github.com/vincedelmas/ploux/releases/download/v0.2.0/ploux-tv.apk
+   https://github.com/vincedelmas/ploux/releases/download/tv-v0.2.0/ploux-tv.apk
    ```
 
 2. Install and open it, then enter the Ploux server's LAN URL again.

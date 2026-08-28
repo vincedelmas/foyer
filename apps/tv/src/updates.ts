@@ -9,6 +9,8 @@ const repository =
 const releasesUrl = `https://api.github.com/repos/${repository}/releases?per_page=20`
 const apkMimeType = "application/vnd.android.package-archive"
 const installerFlags = 0x10000001
+const canonicalReleaseTagPattern = /^v\d+\.\d+\.\d+$/
+const legacyReleaseTagPattern = /^tv-v\d+\.\d+\.\d+$/
 
 type GithubAsset = {
   name: string
@@ -74,14 +76,26 @@ function isTvUpdate(value: unknown): value is TvUpdate {
     return false
   }
 
-  const apkUrl = new URL(value.apkUrl)
+  if (!/^\d+\.\d+\.\d+$/.test(value.version)) return false
+
+  let apkUrl: URL
+  try {
+    apkUrl = new URL(value.apkUrl)
+  } catch {
+    return false
+  }
+
+  const expectedApkPaths = [
+    `/${repository}/releases/download/tv-v${value.version}/ploux-tv.apk`,
+    `/${repository}/releases/download/v${value.version}/ploux-tv.apk`,
+  ]
   return (
     value.versionCode > 0 &&
     value.size > 0 &&
     /^[a-f\d]{64}$/i.test(value.sha256) &&
     apkUrl.protocol === "https:" &&
     apkUrl.hostname === "github.com" &&
-    apkUrl.pathname.startsWith(`/${repository}/releases/download/v`)
+    expectedApkPaths.includes(apkUrl.pathname)
   )
 }
 
@@ -107,12 +121,18 @@ export async function findLatestTvUpdate(): Promise<TvUpdate | null> {
     throw new Error("GitHub returned an invalid releases response")
   }
 
-  const release = releasesPayload.filter(isGithubRelease).find(
+  const releases = releasesPayload.filter(isGithubRelease).filter(
     (candidate) =>
       !candidate.draft &&
       !candidate.prerelease &&
+      (canonicalReleaseTagPattern.test(candidate.tag_name) ||
+        legacyReleaseTagPattern.test(candidate.tag_name)) &&
       candidate.assets.some((asset) => asset.name === "update.json")
   )
+  const release =
+    releases.find((candidate) =>
+      canonicalReleaseTagPattern.test(candidate.tag_name)
+    ) ?? releases[0]
   if (!release) return null
 
   const manifestAsset = release.assets.find(
@@ -129,8 +149,18 @@ export async function findLatestTvUpdate(): Promise<TvUpdate | null> {
   if (!isTvUpdate(manifest)) {
     throw new Error("The update manifest is invalid")
   }
-  if (release.tag_name !== `v${manifest.version}`) {
+  if (
+    release.tag_name !== `tv-v${manifest.version}` &&
+    release.tag_name !== `v${manifest.version}`
+  ) {
     throw new Error("The update manifest version does not match its release")
+  }
+  const apkUrl = new URL(manifest.apkUrl)
+  if (
+    apkUrl.pathname !==
+    `/${repository}/releases/download/${release.tag_name}/ploux-tv.apk`
+  ) {
+    throw new Error("The update APK does not belong to its release")
   }
 
   return manifest.versionCode > currentTvVersionCode ? manifest : null

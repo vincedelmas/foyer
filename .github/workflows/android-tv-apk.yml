@@ -151,6 +151,13 @@ jobs:
       - name: Create update manifest and checksum
         run: bun scripts/create-tv-update-manifest.ts ploux-tv.apk update.json
 
+      - name: Create the 0.2.1 legacy update manifest
+        if: ${{ env.PLOUX_TV_VERSION == '0.2.1' }}
+        run: |
+          mkdir -p legacy-release
+          PLOUX_TV_RELEASE_TAG="tv-v$PLOUX_TV_VERSION" \
+            bun scripts/create-tv-update-manifest.ts ploux-tv.apk legacy-release/update.json
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -171,6 +178,29 @@ jobs:
             ploux-tv.apk.sha256 \
             update.json \
             --clobber
+
+      - name: Publish the 0.2.1 compatibility release
+        if: ${{ env.PLOUX_TV_VERSION == '0.2.1' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          legacy_tag="tv-v$PLOUX_TV_VERSION"
+          if gh release view "$legacy_tag" >/dev/null 2>&1; then
+            gh release upload "$legacy_tag" \
+              ploux-tv.apk \
+              ploux-tv.apk.sha256 \
+              legacy-release/update.json \
+              --clobber
+          else
+            gh release create "$legacy_tag" \
+              ploux-tv.apk \
+              ploux-tv.apk.sha256 \
+              legacy-release/update.json \
+              --target "$GITHUB_SHA" \
+              --title "Ploux TV $PLOUX_TV_VERSION compatibility update" \
+              --notes "Compatibility release for Ploux TV 0.2.0 installations. Future updates use the canonical v-prefixed releases."
+          fi
+          gh release edit "$legacy_tag" --draft=false
 
       - name: Publish completed GitHub release
         env:
