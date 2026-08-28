@@ -116,6 +116,7 @@ function MediaFolderPage() {
                 page: 1,
             }),
             replace: true,
+            resetScroll: false,
         })
     }, [id, navigate, search.watch])
 
@@ -131,6 +132,7 @@ function MediaFolderPage() {
                     page: 1,
                 }),
                 replace: true,
+                resetScroll: false,
             })
         }, 350)
 
@@ -147,6 +149,7 @@ function MediaFolderPage() {
         storeWatchFilter(id, watch)
         void navigate({
             search: (previous) => ({...previous, watch, page: 1}),
+            resetScroll: false,
         })
     }
 
@@ -276,6 +279,7 @@ function MediaFolderPage() {
                                             if (value) {
                                                 void navigate({
                                                     search: (previous) => ({...previous, sort: value, page: 1}),
+                                                    resetScroll: false,
                                                 })
                                             }
                                         }}

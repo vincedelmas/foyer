@@ -4,6 +4,7 @@ import {libraries, MediaItemRow, mediaItems, MediaPartRow, mediaParts, playbackP
 import {LibraryStats, MediaFolderSummary, MediaKind, MediaPart, MediaProgress, MediaSort, MediaSummary, MediaWatchFilter, PersonCredit, SeasonMetadata, SubtitleTrack} from "@ploux/contracts";
 import {filterByWatchStatus, selectCurrentlyWatching} from "@/server/media/progress-utils"
 import {sortMedia} from "@/server/media/media-sort"
+import {isPlaybackCompleted} from "@/server/media/playback-completion"
 
 
 const parseJson = <T>(value: string, fallback: T): T => {
@@ -437,10 +438,7 @@ export const saveProgress = (input: { partId: string, positionSeconds: number, d
 
     const positionSeconds = Math.round(input.positionSeconds)
     const durationSeconds = Math.round(input.durationSeconds)
-    const completed =
-        durationSeconds > 0 &&
-        (positionSeconds / durationSeconds >= 0.9 ||
-            durationSeconds - positionSeconds <= 120)
+    const completed = isPlaybackCompleted(positionSeconds, durationSeconds)
     const now = Date.now()
     db.insert(playbackProgress)
         .values({
