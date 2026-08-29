@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.3](https://github.com/vincedelmas/ploux/compare/v0.3.2...v0.3.3) (2026-08-29)
+
+
+### Bug Fixes
+
+* **tv:** prevent native player crashes on 32-bit devices ([f8b9294](https://github.com/vincedelmas/ploux/commit/f8b929458657cbd3e81c891ec9bc4e5e8e95e882))
+
 ## [0.3.2](https://github.com/vincedelmas/ploux/compare/v0.3.1...v0.3.2) (2026-08-29)
 
 
