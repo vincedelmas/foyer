@@ -13,7 +13,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.os.Process
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
@@ -113,7 +112,6 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-    hideSystemUi()
 
     try {
       options = PlaybackOptions.parse(
@@ -126,6 +124,7 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
 
     progressReporter = PlaybackProgressReporter(options.serverUrl)
     createInterface()
+    hideSystemUi()
     try {
       createPlayer()
       startPlayback()
@@ -151,36 +150,24 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
       .setEnableDecoderFallback(true)
       .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
 
-    // The Shield TV Tube runs a 32-bit userspace with a small process memory
-    // limit. Keep that path on Media3's built-in SSA/ASS support: loading a
-    // second native subtitle renderer and OpenGL surface can terminate the
-    // whole application before ExoPlayer can report an error.
-    val libassHandler = if (Process.is64Bit()) {
-      AssHandler(
-        AssRenderType.OVERLAY_CANVAS,
-        AssHandlerConfig(
-          glyphSize = 5_000,
-          cacheSize = 32,
-          maxRenderPixels = 1_280 * 720,
-        ),
-      )
-    } else null
+    val libassHandler = AssHandler(
+      AssRenderType.OVERLAY_OPEN_GL,
+      AssHandlerConfig(
+        glyphSize = 5_000,
+        cacheSize = 32,
+        maxRenderPixels = 1_280 * 720,
+      ),
+    )
     assHandler = libassHandler
 
-    val mediaSourceFactory = if (libassHandler != null) {
-      val assSubtitleParserFactory = AssSubtitleParserFactory(libassHandler)
-      val assExtractorsFactory = extractorsFactory.withAssMkvSupport(
-        assSubtitleParserFactory,
-        libassHandler,
-      )
-      DefaultMediaSourceFactory(dataSourceFactory, assExtractorsFactory)
-        .setSubtitleParserFactory(assSubtitleParserFactory)
-    } else {
-      DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
-    }
-    val renderersFactory = if (libassHandler != null) {
-      AssRenderersFactory(libassHandler, platformRenderers)
-    } else platformRenderers
+    val assSubtitleParserFactory = AssSubtitleParserFactory(libassHandler)
+    val assExtractorsFactory = extractorsFactory.withAssMkvSupport(
+      assSubtitleParserFactory,
+      libassHandler,
+    )
+    val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory, assExtractorsFactory)
+      .setSubtitleParserFactory(assSubtitleParserFactory)
+    val renderersFactory = AssRenderersFactory(libassHandler, platformRenderers)
 
     val loadControl = DefaultLoadControl.Builder()
       .setBufferDurationsMs(
@@ -213,13 +200,11 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
         )
         exoPlayer.addListener(this)
         exoPlayer.repeatMode = Player.REPEAT_MODE_OFF
-        libassHandler?.init(exoPlayer)
+        libassHandler.init(exoPlayer)
       }
 
     playerView.player = player
-    libassHandler?.let { handler ->
-      playerView.subtitleView?.addView(AssSubtitleView(this, handler))
-    }
+    playerView.subtitleView?.addView(AssSubtitleView(this, libassHandler))
     mediaSession = MediaSession.Builder(this, player).build()
   }
 
@@ -817,14 +802,18 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
   private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 
   private fun hideSystemUi() {
+    // PhoneWindow does not have a DecorView until the activity content has
+    // been installed. Asking Window for its insets controller earlier crashes
+    // Android 11 instead of returning null, so always resolve it via DecorView.
+    val decorView = window.decorView
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-      window.insetsController?.apply {
+      decorView.windowInsetsController?.apply {
         systemBarsBehavior = android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
       }
     } else {
       @Suppress("DEPRECATION")
-      window.decorView.systemUiVisibility = (
+      decorView.systemUiVisibility = (
         View.SYSTEM_UI_FLAG_FULLSCREEN or
           View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
           View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
