@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/vincedelmas/ploux/compare/v0.3.0...v0.3.1) (2026-08-29)
+
+
+### Bug Fixes
+
+* **tv:** configure native player module for app builds ([b41a462](https://github.com/vincedelmas/ploux/commit/b41a462aed551f9064f98f988f4e31099f4db8d9))
+
 ## [0.3.0](https://github.com/vincedelmas/ploux/compare/v0.2.2...v0.3.0) (2026-08-29)
 
 
