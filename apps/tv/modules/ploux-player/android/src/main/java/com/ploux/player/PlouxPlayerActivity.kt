@@ -28,6 +28,7 @@ import android.widget.TextView
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
@@ -220,7 +221,7 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     updatePartInterface()
     player.prepare()
     player.playWhenReady = true
-    showControls(requestPlayFocus = true)
+    showControls(requestTimelineFocus = true)
   }
 
   private fun asMediaItem(part: PlaybackPart): MediaItem {
@@ -263,7 +264,7 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     if (playbackState == Player.STATE_ENDED) {
       lastPositionMs = lastDurationMs
       saveProgress()
-      showControls(requestPlayFocus = true)
+      showControls(requestTimelineFocus = true)
       playButton.text = "Replay"
     }
   }
@@ -301,7 +302,7 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     showError(playbackError.orEmpty(), error.errorCodeName)
   }
 
-  private fun togglePlayback() {
+  private fun togglePlayback(requestTimelineFocus: Boolean = false) {
     when {
       player.playbackState == Player.STATE_ENDED -> {
         player.seekTo(0)
@@ -310,7 +311,7 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
       player.isPlaying -> player.pause()
       else -> player.play()
     }
-    showControls()
+    showControls(requestTimelineFocus)
   }
 
   private fun seekBy(offsetMs: Long) {
@@ -352,12 +353,23 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
       for (index in 0 until group.length) {
         if (!group.isTrackSupported(index)) continue
         val format = group.getTrackFormat(index)
-        val fallback = if (trackType == C.TRACK_TYPE_AUDIO) "Audio" else "Subtitles"
-        val details = listOfNotNull(
-          format.label?.takeIf { it.isNotBlank() },
-          format.language?.takeIf { it.isNotBlank() && it != "und" }?.uppercase(Locale.getDefault()),
-          format.codecs?.takeIf { it.isNotBlank() },
-        ).distinct()
+        val fallback = if (trackType == C.TRACK_TYPE_AUDIO) "Audio" else "Subtitle"
+        val details = buildList {
+          displayLanguage(format.language)?.let(::add)
+          meaningfulTrackLabel(format.label)?.let(::add)
+          if (trackType == C.TRACK_TYPE_TEXT) {
+            subtitleFormatLabel(format)?.let(::add)
+            if (format.selectionFlags and C.SELECTION_FLAG_FORCED != 0) add("Forced")
+            if (format.selectionFlags and C.SELECTION_FLAG_DEFAULT != 0) add("Default")
+            if (
+              format.roleFlags and C.ROLE_FLAG_CAPTION != 0 ||
+              format.roleFlags and C.ROLE_FLAG_DESCRIBES_MUSIC_AND_SOUND != 0
+            ) add("SDH/CC")
+          } else {
+            format.codecs?.takeIf { it.isNotBlank() }?.uppercase(Locale.ROOT)?.let(::add)
+            if (format.roleFlags and C.ROLE_FLAG_COMMENTARY != 0) add("Commentary")
+          }
+        }.distinctBy { it.lowercase(Locale.ROOT) }
         add(
           SelectableTrack(
             group = group,
@@ -368,6 +380,40 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
         )
       }
     }
+  }
+
+  private fun meaningfulTrackLabel(label: String?): String? {
+    val value = label?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    return value.takeUnless { GENERIC_TRACK_LABEL.matches(it) }
+  }
+
+  private fun displayLanguage(language: String?): String? {
+    val source = language?.trim()?.lowercase(Locale.ROOT)
+      ?.takeIf { it.isNotEmpty() && it != "und" } ?: return null
+    val normalized = LANGUAGE_ALIASES[source] ?: source
+    val displayName = Locale.forLanguageTag(normalized.replace('_', '-'))
+      .getDisplayLanguage(Locale.ENGLISH)
+      .trim()
+    return displayName.takeIf {
+      it.isNotEmpty() && !it.equals(normalized, ignoreCase = true)
+    } ?: source.uppercase(Locale.ROOT)
+  }
+
+  private fun subtitleFormatLabel(format: Format): String? = when (format.sampleMimeType) {
+    MimeTypes.TEXT_SSA -> "ASS/SSA"
+    MimeTypes.TEXT_VTT -> "WebVTT"
+    MimeTypes.APPLICATION_SUBRIP -> "SRT"
+    MimeTypes.APPLICATION_TTML -> "TTML"
+    MimeTypes.APPLICATION_TX3G -> "TX3G"
+    MimeTypes.APPLICATION_VOBSUB -> "VobSub"
+    MimeTypes.APPLICATION_PGS -> "PGS"
+    MimeTypes.APPLICATION_DVBSUBS -> "DVB"
+    else -> format.codecs?.takeIf { it.isNotBlank() }?.uppercase(Locale.ROOT)
+      ?: format.sampleMimeType
+        ?.substringAfter('/')
+        ?.removePrefix("x-")
+        ?.takeIf { it.isNotBlank() }
+        ?.uppercase(Locale.ROOT)
   }
 
   private fun showAudioPicker() {
@@ -441,11 +487,11 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     } else 0
   }
 
-  private fun showControls(requestPlayFocus: Boolean = false) {
+  private fun showControls(requestTimelineFocus: Boolean = false) {
     if (errorView.visibility == View.VISIBLE) return
     controlsVisible = true
     controlsView.visibility = View.VISIBLE
-    if (requestPlayFocus) playButton.post { playButton.requestFocus() }
+    if (requestTimelineFocus) timelineView.post { timelineView.requestFocus() }
     scheduleControlsHide()
   }
 
@@ -483,17 +529,17 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
 
     return when (event.keyCode) {
       KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-        togglePlayback()
+        togglePlayback(requestTimelineFocus = true)
         true
       }
       KeyEvent.KEYCODE_MEDIA_PLAY -> {
         player.play()
-        showControls()
+        showControls(requestTimelineFocus = true)
         true
       }
       KeyEvent.KEYCODE_MEDIA_PAUSE -> {
         player.pause()
-        showControls()
+        showControls(requestTimelineFocus = true)
         true
       }
       KeyEvent.KEYCODE_MEDIA_REWIND -> {
@@ -508,26 +554,32 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
       KeyEvent.KEYCODE_ENTER,
       KeyEvent.KEYCODE_NUMPAD_ENTER -> {
         if (!controlsVisible) {
-          showControls(requestPlayFocus = true)
+          showControls(requestTimelineFocus = true)
+          true
+        } else if (currentFocus === timelineView) {
+          togglePlayback(requestTimelineFocus = true)
+          true
+        } else if (currentFocus === playerView) {
+          showControls(requestTimelineFocus = true)
           true
         } else super.dispatchKeyEvent(event)
       }
       KeyEvent.KEYCODE_DPAD_LEFT -> {
-        if (!controlsVisible) {
+        if (!controlsVisible || currentFocus === timelineView || currentFocus === playerView) {
           seekBy(-SEEK_INTERVAL_MS)
           true
         } else super.dispatchKeyEvent(event)
       }
       KeyEvent.KEYCODE_DPAD_RIGHT -> {
-        if (!controlsVisible) {
+        if (!controlsVisible || currentFocus === timelineView || currentFocus === playerView) {
           seekBy(SEEK_INTERVAL_MS)
           true
         } else super.dispatchKeyEvent(event)
       }
       KeyEvent.KEYCODE_DPAD_UP,
       KeyEvent.KEYCODE_DPAD_DOWN -> {
-        if (!controlsVisible) {
-          showControls(requestPlayFocus = true)
+        if (!controlsVisible || currentFocus === playerView) {
+          showControls(requestTimelineFocus = true)
           true
         } else super.dispatchKeyEvent(event)
       }
@@ -633,7 +685,7 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
           loadingView.visibility = View.VISIBLE
           player.prepare()
           player.play()
-          showControls(requestPlayFocus = true)
+          showControls(requestTimelineFocus = true)
         })
       }
       addView(actionButton("Back") { finishWithResult("error", message) })
@@ -689,8 +741,10 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     controlsView.addView(partTitleView)
 
     timelineView = SeekBar(this).apply {
+      id = View.generateViewId()
       max = TIMELINE_MAX
-      isFocusable = false
+      isFocusable = true
+      isFocusableInTouchMode = true
       isClickable = false
       progressTintList = ColorStateList.valueOf(ACCENT)
       progressBackgroundTintList = ColorStateList.valueOf(Color.rgb(73, 70, 66))
@@ -714,7 +768,11 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     audioButton = actionButton("Audio") { showAudioPicker() }
     subtitleButton = actionButton("Subtitles") { showSubtitlePicker() }
     listOf(previousButton, rewindButton, playButton, forwardButton, nextButton, audioButton, subtitleButton)
-      .forEach(actions::addView)
+      .forEach { button ->
+        button.nextFocusUpId = timelineView.id
+        actions.addView(button)
+      }
+    timelineView.nextFocusDownId = playButton.id
     controlsView.addView(actions, linearMatchWidth(ViewGroup.LayoutParams.WRAP_CONTENT))
 
     controlsView.addView(
@@ -740,6 +798,7 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
   }
 
   private fun actionButton(label: String, onClick: () -> Unit) = Button(this).apply {
+    id = View.generateViewId()
     text = label
     textSize = 14f
     isAllCaps = false
@@ -850,6 +909,25 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     private const val PROGRESS_SAVE_INTERVAL_MS = 10_000L
     private const val TIMELINE_UPDATE_INTERVAL_MS = 500L
     private const val TIMELINE_MAX = 1_000
+    private val GENERIC_TRACK_LABEL = Regex(
+      "^(?:audio|subtitles?|track)(?:[\\s._-]*\\d+)?$",
+      RegexOption.IGNORE_CASE,
+    )
+    private val LANGUAGE_ALIASES = mapOf(
+      "fre" to "fr",
+      "ger" to "de",
+      "deu" to "de",
+      "dut" to "nl",
+      "nld" to "nl",
+      "cze" to "cs",
+      "ces" to "cs",
+      "rum" to "ro",
+      "ron" to "ro",
+      "chi" to "zh",
+      "zho" to "zh",
+      "jpn" to "ja",
+      "kor" to "ko",
+    )
     private val ACCENT = Color.rgb(232, 135, 82)
     private val MUTED_TEXT = Color.rgb(215, 211, 205)
     private val DIM_TEXT = Color.rgb(155, 151, 145)
