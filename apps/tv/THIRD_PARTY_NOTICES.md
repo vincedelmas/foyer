@@ -15,7 +15,7 @@ Ploux uses its native file hashing API to verify large update APKs without loadi
 
 ## AndroidX Media3
 
-- Version: 1.9.0
+- Version: 1.8.0
 - Project: https://github.com/androidx/media
 - License: Apache License 2.0
 - License text: https://github.com/androidx/media/blob/release/LICENSE
@@ -25,9 +25,9 @@ extractors, hardware-video integration, and player views.
 
 ## Jellyfin AndroidX Media3 FFmpeg decoder
 
-- Version: 1.9.0+1 (`org.jellyfin.media3:media3-ffmpeg-decoder`)
+- Version: 1.8.0+1 (`org.jellyfin.media3:media3-ffmpeg-decoder`)
 - Project and corresponding source: https://github.com/jellyfin/jellyfin-androidx-media
-- Release: https://github.com/jellyfin/jellyfin-androidx-media/releases/tag/v1.9.0%2B1
+- Release: https://github.com/jellyfin/jellyfin-androidx-media/releases/tag/v1.8.0%2B1
 - License: GNU General Public License, version 3
 - License text: https://github.com/jellyfin/jellyfin-androidx-media/blob/master/LICENSE
 

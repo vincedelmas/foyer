@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
@@ -49,6 +50,7 @@ import androidx.media3.session.MediaSession
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import io.github.peerless2012.ass.media.AssHandler
+import io.github.peerless2012.ass.media.AssHandlerConfig
 import io.github.peerless2012.ass.media.factory.AssRenderersFactory
 import io.github.peerless2012.ass.media.kt.withAssMkvSupport
 import io.github.peerless2012.ass.media.parser.AssSubtitleParserFactory
@@ -61,7 +63,7 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
   private lateinit var options: PlaybackOptions
   private lateinit var player: ExoPlayer
   private lateinit var mediaSession: MediaSession
-  private lateinit var assHandler: AssHandler
+  private var assHandler: AssHandler? = null
   private lateinit var progressReporter: PlaybackProgressReporter
   private lateinit var playerView: PlayerView
   private lateinit var loadingView: ProgressBar
@@ -124,9 +126,14 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
 
     progressReporter = PlaybackProgressReporter(options.serverUrl)
     createInterface()
-    createPlayer()
-    startPlayback()
-    handler.post(progressRunnable)
+    try {
+      createPlayer()
+      startPlayback()
+      handler.post(progressRunnable)
+    } catch (error: Throwable) {
+      playbackError = "The native player could not be initialized: ${error.message ?: error.javaClass.simpleName}"
+      showError(playbackError.orEmpty(), error.javaClass.simpleName)
+    }
   }
 
   private fun createPlayer() {
@@ -140,19 +147,40 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
       .setConstantBitrateSeekingEnabled(true)
       .setConstantBitrateSeekingAlwaysEnabled(true)
 
-    assHandler = AssHandler(AssRenderType.OVERLAY_OPEN_GL)
-    val assSubtitleParserFactory = AssSubtitleParserFactory(assHandler)
-    val assExtractorsFactory = extractorsFactory.withAssMkvSupport(
-      assSubtitleParserFactory,
-      assHandler,
-    )
-    val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory, assExtractorsFactory)
-      .setSubtitleParserFactory(assSubtitleParserFactory)
-
     val platformRenderers = DefaultRenderersFactory(this)
       .setEnableDecoderFallback(true)
       .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
-    val renderersFactory = AssRenderersFactory(assHandler, platformRenderers)
+
+    // The Shield TV Tube runs a 32-bit userspace with a small process memory
+    // limit. Keep that path on Media3's built-in SSA/ASS support: loading a
+    // second native subtitle renderer and OpenGL surface can terminate the
+    // whole application before ExoPlayer can report an error.
+    val libassHandler = if (Process.is64Bit()) {
+      AssHandler(
+        AssRenderType.OVERLAY_CANVAS,
+        AssHandlerConfig(
+          glyphSize = 5_000,
+          cacheSize = 32,
+          maxRenderPixels = 1_280 * 720,
+        ),
+      )
+    } else null
+    assHandler = libassHandler
+
+    val mediaSourceFactory = if (libassHandler != null) {
+      val assSubtitleParserFactory = AssSubtitleParserFactory(libassHandler)
+      val assExtractorsFactory = extractorsFactory.withAssMkvSupport(
+        assSubtitleParserFactory,
+        libassHandler,
+      )
+      DefaultMediaSourceFactory(dataSourceFactory, assExtractorsFactory)
+        .setSubtitleParserFactory(assSubtitleParserFactory)
+    } else {
+      DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
+    }
+    val renderersFactory = if (libassHandler != null) {
+      AssRenderersFactory(libassHandler, platformRenderers)
+    } else platformRenderers
 
     val loadControl = DefaultLoadControl.Builder()
       .setBufferDurationsMs(
@@ -185,11 +213,13 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
         )
         exoPlayer.addListener(this)
         exoPlayer.repeatMode = Player.REPEAT_MODE_OFF
-        assHandler.init(exoPlayer)
+        libassHandler?.init(exoPlayer)
       }
 
     playerView.player = player
-    playerView.subtitleView?.addView(AssSubtitleView(this, assHandler))
+    libassHandler?.let { handler ->
+      playerView.subtitleView?.addView(AssSubtitleView(this, handler))
+    }
     mediaSession = MediaSession.Builder(this, player).build()
   }
 
@@ -538,10 +568,11 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     if (::player.isInitialized) {
       saveProgress()
       playerView.player = null
-      mediaSession.release()
+      if (::mediaSession.isInitialized) mediaSession.release()
       player.release()
-      assHandler.release()
     }
+    assHandler?.release()
+    assHandler = null
     if (::progressReporter.isInitialized) progressReporter.close()
     super.onDestroy()
   }
@@ -610,14 +641,16 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
       gravity = Gravity.CENTER
     })
     errorView.addView(horizontalRow(Gravity.CENTER).apply {
-      addView(actionButton("Try again") {
-        playbackError = null
-        errorView.visibility = View.GONE
-        loadingView.visibility = View.VISIBLE
-        player.prepare()
-        player.play()
-        showControls(requestPlayFocus = true)
-      })
+      if (::player.isInitialized) {
+        addView(actionButton("Try again") {
+          playbackError = null
+          errorView.visibility = View.GONE
+          loadingView.visibility = View.VISIBLE
+          player.prepare()
+          player.play()
+          showControls(requestPlayFocus = true)
+        })
+      }
       addView(actionButton("Back") { finishWithResult("error", message) })
     })
     errorView.post { (errorView.getChildAt(3) as? ViewGroup)?.getChildAt(0)?.requestFocus() }

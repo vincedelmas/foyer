@@ -22,7 +22,9 @@ android {
 }
 
 dependencies {
-  def media3Version = '1.9.0'
+  // ass-media 0.5.1 is built against Media3 1.8.0 and relies on unstable
+  // Media3 APIs. Keep every player extension on that exact binary version.
+  def media3Version = '1.8.0'
 
   implementation 'com.facebook.react:react-android'
   implementation "androidx.media3:media3-exoplayer:${media3Version}"
@@ -33,7 +35,7 @@ dependencies {
   // Software audio fallback used by Jellyfin's Media3 player. It lets the
   // Shield decode AC3/E-AC3/DTS to PCM when the platform decoder or HDMI sink
   // cannot accept the original audio stream.
-  implementation 'org.jellyfin.media3:media3-ffmpeg-decoder:1.9.0+1'
+  implementation 'org.jellyfin.media3:media3-ffmpeg-decoder:1.8.0+1'
 
   // libass renderer for embedded and external ASS/SSA subtitle styling.
   implementation 'io.github.peerless2012:ass-media:0.5.1'
