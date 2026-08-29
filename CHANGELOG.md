@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.5](https://github.com/vincedelmas/ploux/compare/v0.3.4...v0.3.5) (2026-08-29)
+
+
+### Bug Fixes
+
+* **tv:** improve player remote controls and track labels ([b97f523](https://github.com/vincedelmas/ploux/commit/b97f5238da1a5ea75e93613446e694e22bae70a1))
+
 ## [0.3.4](https://github.com/vincedelmas/ploux/compare/v0.3.3...v0.3.4) (2026-08-29)
 
 
