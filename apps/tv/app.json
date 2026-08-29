@@ -2,7 +2,7 @@
   "expo": {
     "name": "Ploux TV",
     "slug": "ploux-tv",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "orientation": "landscape",
     "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
