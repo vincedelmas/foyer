@@ -141,9 +141,9 @@ jobs:
         with:
           cache-provider: basic
 
-      - name: Build ARM64 standalone release APK
+      - name: Build Shield-compatible ARM release APK
         working-directory: apps/tv/android
-        run: ./gradlew assembleRelease --no-daemon --build-cache -PreactNativeArchitectures=arm64-v8a
+        run: ./gradlew assembleRelease --no-daemon --build-cache -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
 
       - name: Give the APK a stable name
         run: cp apps/tv/android/app/build/outputs/apk/release/app-release.apk ploux-tv.apk

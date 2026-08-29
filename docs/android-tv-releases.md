@@ -78,10 +78,10 @@ Before the first run, enable **Settings → Actions → General → Allow GitHub
 signing secrets before merging the first Release Please PR.
 
 Android's `versionCode` is derived from SemVer (`0.2.1` becomes `2001`) rather than a workflow counter. The Gradle cache is retained between
-workflow runs, and the build cache reuses unchanged native compilation where possible. Release APKs target ARM64 only because Ploux TV is
-built for the NVIDIA Shield; 32-bit ARM devices and x86 Android emulators are intentionally excluded. The Android workflow remains manually
-runnable as a recovery mechanism, but its version/tag must already exist as a Release Please release. The APK is attached directly to that
-release rather than also being stored as a duplicate short-lived Actions artifact.
+workflow runs, and the build cache reuses unchanged native compilation where possible. Release APKs include 32-bit and 64-bit ARM so they
+support both the 32-bit NVIDIA Shield TV 2019 Tube and 64-bit Shield models. The unused x86 Android emulator architectures remain excluded.
+The Android workflow remains manually runnable as a recovery mechanism, but its version/tag must already exist as a Release Please release.
+The APK is attached directly to that release rather than also being stored as a duplicate short-lived Actions artifact.
 
 ## First permanent installation
 
