@@ -6,6 +6,7 @@ import {type MouseEvent, useEffect, useState} from "react"
 import {z} from "zod"
 import {AppHeader} from "@/components/app-header"
 import {MediaGrid} from "@/components/media-grid"
+import {CollectionActions} from "@/components/media-folder-card"
 import {Badge} from "@/components/ui/badge"
 import {Button} from "@/components/ui/button"
 import {Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle} from "@/components/ui/empty"
@@ -220,15 +221,22 @@ function MediaFolderPage() {
                 {folder ? (
                     <>
                         <section className="flex flex-col gap-4" aria-labelledby="folder-heading">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant="secondary">
-                                    <TypeIcon data-icon="inline-start"/>
-                                    {folder.kind === "movies" ? "Movies" : "TV shows"}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                    {library.data?.stats.titles ?? folder.titleCount}{" "}
-                                    {(library.data?.stats.titles ?? folder.titleCount) === 1 ? "title" : "titles"}
-                                </span>
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <Badge variant="secondary">
+                                        <TypeIcon data-icon="inline-start"/>
+                                        {folder.kind === "movies" ? "Movies" : "TV shows"}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                        {library.data?.stats.titles ?? folder.titleCount}{" "}
+                                        {(library.data?.stats.titles ?? folder.titleCount) === 1 ? "title" : "titles"}
+                                    </span>
+                                </div>
+                                <CollectionActions
+                                    folder={folder}
+                                    placement="page"
+                                    onDeleted={() => void navigate({to: "/"})}
+                                />
                             </div>
                             <h1
                                 id="folder-heading"
@@ -320,7 +328,7 @@ function MediaFolderPage() {
                                         emptyDescription={
                                             search.search
                                                 ? `Nothing in ${folder.name} matches “${search.search}”.`
-                                                : "Scan this folder from settings to index its media."
+                                                : "Use Collection actions to rescan this folder and index its media."
                                         }
                                     />
                                     {library.data.pagination.totalItems ? (

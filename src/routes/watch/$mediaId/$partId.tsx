@@ -1,7 +1,7 @@
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query"
 import {createFileRoute, Link} from "@tanstack/react-router"
 import {useSelector} from "@tanstack/react-store"
-import {ArrowLeftIcon, CaptionsIcon, ExpandIcon, GaugeIcon,} from "lucide-react"
+import {ArrowLeftIcon, CaptionsIcon, ExpandIcon, FileWarningIcon, GaugeIcon,} from "lucide-react"
 import {useEffect, useRef, useState} from "react"
 import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert"
 import {Badge} from "@/components/ui/badge"
@@ -41,19 +41,11 @@ function WatchPage() {
     const part = media.data.parts.find((candidate) => candidate.id === partId)
     if (!part) {
         return (
-            <div className="grid min-h-svh place-items-center bg-black p-6 text-white">
-                <div className="flex flex-col items-center gap-4 text-center">
-                    <h1 className="font-heading text-4xl">
-                        This file is no longer available
-                    </h1>
-                    <Button
-                        render={<Link to="/media/$id" params={{ id: mediaId }}/>}
-                        nativeButton={false}
-                    >
-                        Back to title
-                    </Button>
-                </div>
-            </div>
+            <PlayerUnavailable
+                mediaId={mediaId}
+                title="This episode is no longer available"
+                description="It is no longer part of this title. Rescan its collection if files were moved or deleted."
+            />
         )
     }
 
@@ -67,6 +59,92 @@ function DirectPlayer({
                           mediaId,
                           part,
                       }: {
+    mediaTitle: string
+    mediaId: string
+    part: import("@ploux/contracts").MediaPart
+}) {
+    const availability = useQuery({
+        queryKey: ["stream-availability", part.id],
+        queryFn: async ({signal}) => {
+            const response = await fetch(part.streamUrl, {
+                method: "HEAD",
+                signal,
+            })
+            if (response.status === 404) return false
+            if (!response.ok) {
+                throw new Error(`The media server responded with status ${response.status}.`)
+            }
+            return true
+        },
+        retry: false,
+    })
+
+    if (availability.isPending) {
+        return (
+            <div className="grid min-h-svh place-items-center bg-black">
+                <Spinner className="size-8 text-white"/>
+            </div>
+        )
+    }
+
+    if (availability.isError) {
+        return (
+            <PlayerUnavailable
+                mediaId={mediaId}
+                title={`Could not check “${mediaTitle}”`}
+                description={availability.error.message}
+            />
+        )
+    }
+
+    if (!availability.data) {
+        return (
+            <PlayerUnavailable
+                mediaId={mediaId}
+                title={`“${mediaTitle}” is unavailable`}
+                description="Ploux can no longer find this file on the server. It may have been moved or deleted. Rescan its collection to remove the stale entry."
+            />
+        )
+    }
+
+    return <ReadyPlayer mediaTitle={mediaTitle} mediaId={mediaId} part={part}/>
+}
+
+function PlayerUnavailable({
+    mediaId,
+    title,
+    description,
+}: {
+    mediaId: string
+    title: string
+    description: string
+}) {
+    return (
+        <main className="grid min-h-svh place-items-center bg-black p-6 text-white">
+            <Alert className="max-w-xl border-white/15 bg-white/5 text-white">
+                <FileWarningIcon/>
+                <AlertTitle>{title}</AlertTitle>
+                <AlertDescription className="flex flex-col items-start gap-4 text-white/65">
+                    <p>{description}</p>
+                    <Button
+                        variant="secondary"
+                        render={<Link to="/media/$id" params={{id: mediaId}}/>}
+                        nativeButton={false}
+                    >
+                        <ArrowLeftIcon data-icon="inline-start"/>
+                        Back to title
+                    </Button>
+                </AlertDescription>
+            </Alert>
+        </main>
+    )
+}
+
+function ReadyPlayer({
+    mediaTitle,
+    mediaId,
+    part,
+}: {
     mediaTitle: string
     mediaId: string
     part: import("@ploux/contracts").MediaPart

@@ -56,6 +56,7 @@ import {Input} from "@/components/ui/input"
 import {Spinner} from "@/components/ui/spinner"
 import {toast} from "@/components/ui/toast"
 import {api} from "@/lib/api"
+import {cn} from "@/lib/utils"
 
 
 type EditMode = "rename" | "path"
@@ -136,7 +137,15 @@ export function MediaFolderCard({
 }
 
 
-function CollectionActions({folder}: {folder: MediaFolderSummary}) {
+export function CollectionActions({
+    folder,
+    placement = "card",
+    onDeleted,
+}: {
+    folder: MediaFolderSummary
+    placement?: "card" | "page"
+    onDeleted?: () => void
+}) {
     const queryClient = useQueryClient()
     const [editMode, setEditMode] = useState<EditMode | null>(null)
     const [editValue, setEditValue] = useState("")
@@ -166,7 +175,7 @@ function CollectionActions({folder}: {folder: MediaFolderSummary}) {
                     ? "Collection renamed"
                     : "Server folder updated",
                 description: variables.mode === "path"
-                    ? "Scan this collection from Settings to sync its files."
+                    ? "Rescan this collection to sync its files."
                     : undefined,
             })
         },
@@ -242,6 +251,7 @@ function CollectionActions({folder}: {folder: MediaFolderSummary}) {
                 title: "Collection deleted",
                 description: "Your media files were not touched.",
             })
+            onDeleted?.()
         },
         onError: (error) =>
             toast.add({
@@ -262,22 +272,28 @@ function CollectionActions({folder}: {folder: MediaFolderSummary}) {
         await update.mutateAsync({mode: editMode, value})
     }
     const isCollectionWorkPending = scan.isPending || refresh.isPending
+    const isCardPlacement = placement === "card"
 
     return (
         <>
-            <div className="absolute top-3 right-3">
+            <div className={cn(isCardPlacement && "absolute top-3 right-3")}>
                 <DropdownMenu>
                     <DropdownMenuTrigger
                         render={
                             <Button
-                                variant="secondary"
-                                size="icon"
+                                variant={isCardPlacement ? "secondary" : "outline"}
+                                size={isCardPlacement ? "icon" : "default"}
                                 aria-label={`More options for ${folder.name}`}
                                 disabled={isCollectionWorkPending}
                             />
                         }
                     >
-                        {isCollectionWorkPending ? <Spinner/> : <EllipsisVerticalIcon/>}
+                        {isCollectionWorkPending ? (
+                            <Spinner data-icon={isCardPlacement ? undefined : "inline-start"}/>
+                        ) : (
+                            <EllipsisVerticalIcon data-icon={isCardPlacement ? undefined : "inline-start"}/>
+                        )}
+                        {isCardPlacement ? null : "Collection actions"}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-60">
                         <DropdownMenuGroup>
