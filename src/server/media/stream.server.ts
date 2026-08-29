@@ -1,5 +1,5 @@
 import {randomUUID} from "node:crypto";
-import {mkdir, readFile, rename, rm} from "node:fs/promises";
+import {mkdir, readFile, rename, rm, stat} from "node:fs/promises";
 import {resolve} from "node:path";
 import {corsHeaders} from "@/server/http.server";
 import {subtitleToVtt} from "@/server/media/subtitles.server.ts";
@@ -22,6 +22,54 @@ type StreamSource = {
     size: number
     mimeType: string
     fileName: string
+}
+
+const unavailableFileResponse = (status: 404 | 500, message: string) =>
+    new Response(message, {
+        status,
+        headers: {
+            ...corsHeaders(),
+            "Cache-Control": "no-store",
+            "Content-Type": "text/plain; charset=utf-8",
+        },
+    })
+
+const streamSource = async (
+    filePath: string,
+    mimeType: string,
+    fileName: string
+): Promise<StreamSource | Response> => {
+    try {
+        const fileStat = await stat(filePath)
+        if (!fileStat.isFile()) {
+            return unavailableFileResponse(
+                404,
+                "Media file is no longer available. Rescan the collection to update Ploux."
+            )
+        }
+
+        return {
+            file: Bun.file(filePath),
+            size: fileStat.size,
+            mimeType,
+            fileName,
+        }
+    } catch (error) {
+        if (
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            (error.code === "ENOENT" || error.code === "ENOTDIR")
+        ) {
+            return unavailableFileResponse(
+                404,
+                "Media file is no longer available. Rescan the collection to update Ploux."
+            )
+        }
+
+        console.error(`Could not access media file ${filePath}`, error)
+        return unavailableFileResponse(500, "Could not access the media file.")
+    }
 }
 
 const remuxJobs = new Map<string, Promise<string | null>>()
@@ -143,6 +191,9 @@ export const streamPart = async (request: Request, partId: string, head = false)
         return new Response("Media part not found", { status: 404, headers: corsHeaders() });
     }
 
+    const source = await streamSource(part.filePath, part.mimeType, part.fileName)
+    if (source instanceof Response) return source
+
     if (
         new URL(request.url).searchParams.get("compat") === "android-tv" &&
         part.container === "avi"
@@ -165,12 +216,7 @@ export const streamPart = async (request: Request, partId: string, head = false)
 
     return respondWithFile(
         request,
-        {
-            file: Bun.file(part.filePath),
-            size: part.size,
-            mimeType: part.mimeType,
-            fileName: part.fileName,
-        },
+        source,
         head
     )
 };
