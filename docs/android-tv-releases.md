@@ -59,7 +59,7 @@ repository secrets in workflow logs or to builds from untrusted forks.
 
 ## Publish a version
 
-Release Please manages versions from Conventional Commit messages pushed to `master`:
+Release Please manages versions from Conventional Commit messages pushed to `main`:
 
 - `feat: add something` proposes a minor release.
 - `fix: correct something` proposes a patch release.
@@ -78,8 +78,10 @@ Before the first run, enable **Settings → Actions → General → Allow GitHub
 signing secrets before merging the first Release Please PR.
 
 Android's `versionCode` is derived from SemVer (`0.2.1` becomes `2001`) rather than a workflow counter. The Gradle cache is retained between
-workflow runs, so later builds should avoid downloading and transforming most dependencies again. The Android workflow remains manually
-runnable as a recovery mechanism, but its version/tag must already exist as a Release Please release.
+workflow runs, and the build cache reuses unchanged native compilation where possible. Release APKs target ARM64 only because Ploux TV is
+built for the NVIDIA Shield; 32-bit ARM devices and x86 Android emulators are intentionally excluded. The Android workflow remains manually
+runnable as a recovery mechanism, but its version/tag must already exist as a Release Please release. The APK is attached directly to that
+release rather than also being stored as a duplicate short-lived Actions artifact.
 
 ## First permanent installation
 

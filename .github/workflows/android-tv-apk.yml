@@ -71,7 +71,7 @@ jobs:
           java-version: 17
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install --frozen-lockfile --filter @ploux/tv
 
       - name: Validate release inputs
         env:
@@ -141,9 +141,9 @@ jobs:
         with:
           cache-provider: basic
 
-      - name: Build standalone release APK
+      - name: Build ARM64 standalone release APK
         working-directory: apps/tv/android
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease --no-daemon --build-cache -PreactNativeArchitectures=arm64-v8a
 
       - name: Give the APK a stable name
         run: cp apps/tv/android/app/build/outputs/apk/release/app-release.apk ploux-tv.apk
@@ -157,17 +157,6 @@ jobs:
           mkdir -p legacy-release
           PLOUX_TV_RELEASE_TAG="tv-v$PLOUX_TV_VERSION" \
             bun scripts/create-tv-update-manifest.ts ploux-tv.apk legacy-release/update.json
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: ploux-tv-apk
-          path: |
-            ploux-tv.apk
-            ploux-tv.apk.sha256
-            update.json
-          if-no-files-found: error
-          retention-days: 30
 
       - name: Attach APK to GitHub release
         env:
