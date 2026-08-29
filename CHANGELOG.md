@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/vincedelmas/ploux/compare/v0.3.1...v0.3.2) (2026-08-29)
+
+
+### Bug Fixes
+
+* **tv:** restore 32-bit Shield compatibility ([8bb4e98](https://github.com/vincedelmas/ploux/commit/8bb4e984646d9a465ffb77dbfb4a9cfce6d1b611))
+
 ## [0.3.1](https://github.com/vincedelmas/ploux/compare/v0.3.0...v0.3.1) (2026-08-29)
 
 
