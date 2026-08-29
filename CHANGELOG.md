@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4](https://github.com/vincedelmas/ploux/compare/v0.3.3...v0.3.4) (2026-08-29)
+
+
+### Bug Fixes
+
+* **tv:** initialize fullscreen after creating player view ([d2f859b](https://github.com/vincedelmas/ploux/commit/d2f859b8e49ea31c5066a2b2a1b5619b06e5a9e3))
+
 ## [0.3.3](https://github.com/vincedelmas/ploux/compare/v0.3.2...v0.3.3) (2026-08-29)
 
 
