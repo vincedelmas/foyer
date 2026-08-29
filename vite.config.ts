@@ -4,9 +4,9 @@ import viteReact from "@vitejs/plugin-react";
 import {tanstackStart} from "@tanstack/react-start/plugin/vite";
 
 
-const config = defineConfig({
+const config = defineConfig(({command}) => ({
     resolve: {
-        noExternal: true,
+        ...(command === "build" ? {noExternal: true} : {}),
         tsconfigPaths: true,
     },
     plugins: [
@@ -14,7 +14,7 @@ const config = defineConfig({
         tanstackStart(),
         viteReact({ compiler: true }),
     ],
-})
+}))
 
 
 export default config;
