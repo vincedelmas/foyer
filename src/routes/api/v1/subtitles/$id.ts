@@ -7,7 +7,7 @@ export const Route = createFileRoute("/api/v1/subtitles/$id")({
     server: {
         handlers: {
             OPTIONS: emptyCors,
-            GET: ({ params }) => streamSubtitle(params.id),
+            GET: ({ request, params }) => streamSubtitle(request, params.id),
         },
     },
 })

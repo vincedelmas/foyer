@@ -37,6 +37,7 @@ type Screen =
       name: "player"
       media: MediaSummary
       part: MediaPart
+      parts: MediaPart[]
       returnTo: ReturnScreen
     }
 
@@ -113,11 +114,12 @@ export default function App() {
             server={server}
             summary={screen.media}
             onBack={() => setScreen(screen.returnTo)}
-            onPlay={(part, media) =>
+            onPlay={(part, media, parts) =>
               setScreen({
                 name: "player",
                 media,
                 part,
+                parts,
                 returnTo: screen.returnTo,
               })
             }
@@ -128,6 +130,7 @@ export default function App() {
             mediaId={screen.media.id}
             mediaTitle={screen.media.title}
             part={screen.part}
+            parts={screen.parts}
             onBack={() =>
               setScreen({
                 name: "detail",

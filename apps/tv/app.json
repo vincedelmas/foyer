@@ -34,7 +34,8 @@
         {
           "android": {
             "usesCleartextTraffic": true,
-            "minSdkVersion": 24
+            "minSdkVersion": 24,
+            "kotlinVersion": "2.2.0"
           }
         }
       ]

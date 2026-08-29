@@ -1,0 +1,34 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.ploux.player'
+version = '0.1.0'
+
+android {
+  namespace 'com.ploux.player'
+
+  defaultConfig {
+    minSdkVersion 24
+    consumerProguardFiles 'consumer-rules.pro'
+  }
+}
+
+dependencies {
+  def media3Version = '1.9.0'
+
+  implementation 'com.facebook.react:react-android'
+  implementation "androidx.media3:media3-exoplayer:${media3Version}"
+  implementation "androidx.media3:media3-datasource:${media3Version}"
+  implementation "androidx.media3:media3-session:${media3Version}"
+  implementation "androidx.media3:media3-ui:${media3Version}"
+
+  // Software audio fallback used by Jellyfin's Media3 player. It lets the
+  // Shield decode AC3/E-AC3/DTS to PCM when the platform decoder or HDMI sink
+  // cannot accept the original audio stream.
+  implementation 'org.jellyfin.media3:media3-ffmpeg-decoder:1.9.0+1'
+
+  // libass renderer for embedded and external ASS/SSA subtitle styling.
+  implementation 'io.github.peerless2012:ass-media:0.5.1'
+}

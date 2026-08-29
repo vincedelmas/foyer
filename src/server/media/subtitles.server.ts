@@ -55,3 +55,21 @@ export const subtitleToVtt = (source: string, format: string) => {
 
   return `WEBVTT\n\n${cues.join("\n\n")}\n`
 }
+
+export const subtitleForClient = (
+  source: string,
+  format: string,
+  preserveAssFormatting: boolean
+) => {
+  if (preserveAssFormatting && (format === "ass" || format === "ssa")) {
+    return {
+      body: source.replace(/^\uFEFF/, ""),
+      contentType: "text/x-ssa; charset=utf-8",
+    }
+  }
+
+  return {
+    body: subtitleToVtt(source, format),
+    contentType: "text/vtt; charset=utf-8",
+  }
+}

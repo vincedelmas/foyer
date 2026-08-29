@@ -36,7 +36,7 @@ export function DetailScreen({
   server: string
   summary: MediaSummary
   onBack: () => void
-  onPlay: (part: MediaPart, media: MediaSummary) => void
+  onPlay: (part: MediaPart, media: MediaSummary, parts: MediaPart[]) => void
 }) {
   const queryClient = useQueryClient()
   const media = useQuery({
@@ -176,7 +176,7 @@ export function DetailScreen({
                       }
                       icon={PlayIcon}
                       hasTVPreferredFocus
-                      onPress={() => onPlay(nextPart, item)}
+                      onPress={() => onPlay(nextPart, item, item.parts)}
                     />
                   ) : null}
                   <FocusIconButton
@@ -237,7 +237,7 @@ export function DetailScreen({
                         watched: part.progress?.completed !== true,
                       })
                     }
-                    onPlay={() => onPlay(part, item)}
+                    onPlay={() => onPlay(part, item, item.parts)}
                   />
                 ))}
               </ScrollView>

@@ -2,7 +2,7 @@ import {randomUUID} from "node:crypto";
 import {mkdir, readFile, rename, rm, stat} from "node:fs/promises";
 import {resolve} from "node:path";
 import {corsHeaders} from "@/server/http.server";
-import {subtitleToVtt} from "@/server/media/subtitles.server.ts";
+import {subtitleForClient} from "@/server/media/subtitles.server.ts";
 import {getPartFile, getSubtitleFile} from "@/server/media/repository.server.ts";
 import {tvCompatibilityCacheDirectory} from "@/server/media/tv-cache.server.ts";
 
@@ -222,7 +222,7 @@ export const streamPart = async (request: Request, partId: string, head = false)
 };
 
 
-export const streamSubtitle = async (subtitleId: string) => {
+export const streamSubtitle = async (request: Request, subtitleId: string) => {
     const subtitle = getSubtitleFile(subtitleId)
     if (!subtitle) {
         return new Response("Subtitle not found", {
@@ -231,11 +231,18 @@ export const streamSubtitle = async (subtitleId: string) => {
         })
     }
     const source = await readFile(subtitle.filePath, "utf8")
-    const vtt = subtitleToVtt(source, subtitle.format)
-    return new Response(vtt, {
+    const preserveAssFormatting =
+        new URL(request.url).searchParams.get("compat") === "android-tv" &&
+        (subtitle.format === "ass" || subtitle.format === "ssa")
+    const payload = subtitleForClient(
+        source,
+        subtitle.format,
+        preserveAssFormatting
+    )
+    return new Response(payload.body, {
         headers: {
             ...corsHeaders(),
-            "Content-Type": "text/vtt; charset=utf-8",
+            "Content-Type": payload.contentType,
             "Cache-Control": "private, max-age=3600",
         },
     })

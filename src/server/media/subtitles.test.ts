@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { subtitleToVtt } from "./subtitles.server"
+import { subtitleForClient, subtitleToVtt } from "./subtitles.server"
 
 describe("subtitle conversion", () => {
   it("converts SRT timestamps to browser-compatible WebVTT", () => {
@@ -27,5 +27,26 @@ describe("subtitle conversion", () => {
     expect(
       subtitleToVtt("WEBVTT\n\n00:01.000 --> 00:02.000\nHi", "vtt")
     ).toMatch(/^WEBVTT/)
+  })
+
+  it("preserves native ASS styling for the Android TV player", () => {
+    const source = "\uFEFF[Events]\nDialogue: 0,0:00:02.10,0:00:04.50,Default,,0,0,0,,{\\i1}Hello"
+    const result = subtitleForClient(source, "ass", true)
+
+    expect(result.contentType).toBe("text/x-ssa; charset=utf-8")
+    expect(result.body).toContain("{\\i1}Hello")
+    expect(result.body).not.toMatch(/^\uFEFF/)
+  })
+
+  it("continues converting ASS to WebVTT for browser clients", () => {
+    const result = subtitleForClient(
+      "[Events]\nDialogue: 0,0:00:02.10,0:00:04.50,Default,,0,0,0,,{\\i1}Hello",
+      "ass",
+      false
+    )
+
+    expect(result.contentType).toBe("text/vtt; charset=utf-8")
+    expect(result.body).toMatch(/^WEBVTT/)
+    expect(result.body).not.toContain("{\\i1}")
   })
 })
