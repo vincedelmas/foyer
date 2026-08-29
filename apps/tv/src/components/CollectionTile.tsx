@@ -29,6 +29,7 @@ export function CollectionTile({
       <Pressable
         accessibilityLabel={`Open ${folder.name}`}
         accessibilityHint="Hold Select for collection options"
+        android_disableSound
         hasTVPreferredFocus={hasTVPreferredFocus}
         delayLongPress={550}
         onLongPress={() => {

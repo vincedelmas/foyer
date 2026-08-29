@@ -24,6 +24,7 @@ import {
 import {
   ActivityIndicator,
   BackHandler,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -103,18 +104,25 @@ export function PlayerScreen({
   saveMutation.current = save.mutate
 
   const source = useMemo(
-    () => ({
-      uri: tvApi.absoluteUrl(server, part.streamUrl),
-      isNetwork: true,
-      autoplay: true,
-      hwDecoderEnabled: VLCHardwareDecoder.Automatic,
-      mediaOptions: [
-        ":network-caching=1500",
-        ":http-reconnect",
-        ":deinterlace=auto",
-      ],
-    }),
-    [part.streamUrl, server]
+    () => {
+      const streamUrl = new URL(tvApi.absoluteUrl(server, part.streamUrl))
+      if (part.mimeType === "video/x-msvideo") {
+        streamUrl.searchParams.set("compat", "android-tv")
+      }
+
+      return {
+        uri: streamUrl.toString(),
+        isNetwork: true,
+        autoplay: true,
+        hwDecoderEnabled: VLCHardwareDecoder.Automatic,
+        mediaOptions: [
+          ":network-caching=500",
+          ":http-reconnect",
+          ":deinterlace=auto",
+        ],
+      }
+    },
+    [part.mimeType, part.streamUrl, server]
   )
 
   const clearControlsTimer = useCallback(() => {
@@ -202,19 +210,31 @@ export function PlayerScreen({
         if (event.eventKeyAction === 1 || trackDialog) return
 
         const wasHidden = !controlsVisible.current
-        if (event.eventType === "playPause") {
+        if (
+          event.eventType === "playPause" ||
+          (event.eventType === "play" && !playingRef.current) ||
+          (event.eventType === "pause" && playingRef.current)
+        ) {
           togglePlayback()
           return
         }
-        if (wasHidden && event.eventType === "select") {
-          togglePlayback()
-          return
-        }
-        if (wasHidden && event.eventType === "left") {
+        if (["rewind", "longRewind"].includes(event.eventType)) {
           seekBy(-seekSeconds)
           return
         }
-        if (wasHidden && event.eventType === "right") {
+        if (["fastForward", "longFastForward"].includes(event.eventType)) {
+          seekBy(seekSeconds)
+          return
+        }
+        if (wasHidden && event.eventType === "select") {
+          showControls()
+          return
+        }
+        if (wasHidden && ["left", "longLeft"].includes(event.eventType)) {
+          seekBy(-seekSeconds)
+          return
+        }
+        if (wasHidden && ["right", "longRight"].includes(event.eventType)) {
           seekBy(seekSeconds)
           return
         }
@@ -384,6 +404,18 @@ export function PlayerScreen({
         <View pointerEvents="none" style={styles.loading}>
           <ActivityIndicator color={colors.primary} size="large" />
         </View>
+      ) : null}
+
+      {!controls && !error && !trackDialog ? (
+        <Pressable
+          accessibilityLabel="Show playback controls"
+          accessibilityRole="button"
+          android_disableSound
+          focusable
+          hasTVPreferredFocus
+          onPress={showControls}
+          style={styles.remoteCapture}
+        />
       ) : null}
 
       {controls && !error ? (
@@ -633,6 +665,13 @@ const styles = StyleSheet.create({
     left: 0,
     alignItems: "center",
     justifyContent: "center",
+  },
+  remoteCapture: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   },
   controls: {
     position: "absolute",

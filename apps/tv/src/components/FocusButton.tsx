@@ -31,6 +31,7 @@ export function FocusButton({
   return (
     <Pressable
       {...props}
+      android_disableSound
       onFocus={(event) => {
         setFocused(true)
         onFocus?.(event)

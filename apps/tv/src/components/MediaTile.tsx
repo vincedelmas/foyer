@@ -25,6 +25,7 @@ export function MediaTile({
       <Pressable
         accessibilityLabel={`Open ${item.title}`}
         accessibilityHint="Hold Select for title options"
+        android_disableSound
         hasTVPreferredFocus={hasTVPreferredFocus}
         delayLongPress={550}
         onLongPress={() => {

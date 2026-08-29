@@ -68,6 +68,7 @@ function FileCard({ file }: { file: MediaFileInfo }) {
   return (
     <Pressable
       accessibilityLabel={`Technical information for ${file.fileName}`}
+      android_disableSound
       onPress={() => undefined}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}

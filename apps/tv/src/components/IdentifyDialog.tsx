@@ -106,6 +106,7 @@ export function IdentifyDialog({
           return (
             <Pressable
               key={candidate.id}
+              android_disableSound
               onFocus={() => setFocused(candidate.id)}
               onBlur={() => setFocused(null)}
               onPress={() => identify.mutate(candidate.id)}

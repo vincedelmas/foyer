@@ -23,6 +23,7 @@ export function FocusIconButton({
   return (
     <Pressable
       {...props}
+      android_disableSound
       accessibilityLabel={label}
       accessibilityRole="button"
       onFocus={(event) => {

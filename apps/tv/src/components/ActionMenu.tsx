@@ -50,6 +50,7 @@ export function ActionMenu({
           return (
             <Pressable
               key={item.key}
+              android_disableSound
               disabled={item.disabled || item.pending}
               hasTVPreferredFocus={item.key === firstEnabledKey}
               onFocus={() => setFocused(item.key)}
