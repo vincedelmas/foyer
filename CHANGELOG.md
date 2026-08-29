@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0](https://github.com/vincedelmas/ploux/compare/v0.2.2...v0.3.0) (2026-08-29)
+
+
+### Features
+
+* **tv:** replace LibVLC with native Media3 playback ([61a5d05](https://github.com/vincedelmas/ploux/commit/61a5d0517dc2d95e2b840ef0a46e65d734482f56))
+* **web:** add collection actions and playback error feedback ([8148b09](https://github.com/vincedelmas/ploux/commit/8148b09110cd806e34a05c8fcb14ae9a5e13c134))
+
+
+### Bug Fixes
+
+* **dev:** scope server dependency bundling to production ([58f4ccb](https://github.com/vincedelmas/ploux/commit/58f4ccbfa6a192c8b6cfd0c3c020e0b9cd4632bb))
+* **streaming:** handle missing media files safely ([43b4e2d](https://github.com/vincedelmas/ploux/commit/43b4e2d0fcb780e77abb90a73902104c7752b3e1))
+* **tv:** restore remote controls and fast AVI playback ([1eb556c](https://github.com/vincedelmas/ploux/commit/1eb556c804993aedb86a2ce8dd63eb24d457dd06))
+
 ## [0.2.2](https://github.com/vincedelmas/ploux/compare/v0.2.1...v0.2.2) (2026-08-28)
 
 
