@@ -39,6 +39,23 @@ describe("media filename inference", () => {
     })
   })
 
+  it("combines a season folder with numbered episode filenames", () => {
+    expect(
+      inferEpisode("/media/Kaamelott/Season 2/Kaamelott 01.avi")
+    ).toEqual({
+      seasonNumber: 2,
+      episodeNumber: 1,
+      title: null,
+    })
+    expect(
+      inferEpisode("/media/Kaamelott/Saison 3/Kaamelott 100 - The End.avi")
+    ).toEqual({
+      seasonNumber: 3,
+      episodeNumber: 100,
+      title: "The End",
+    })
+  })
+
   it("recognizes anime episode numbers and subtitle languages", () => {
     expect(inferEpisode("Frieren - 08 [1080p].mkv")?.episodeNumber).toBe(8)
     expect(

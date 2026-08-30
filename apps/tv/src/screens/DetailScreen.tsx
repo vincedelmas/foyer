@@ -8,7 +8,7 @@ import {MediaActionsDialog} from "../components/MediaActionsDialog";
 import {useQuery} from "@tanstack/react-query";
 import {CheckIcon, CircleXIcon, MoreVerticalIcon, PlayIcon, StarIcon} from "lucide-react-native";
 import {formatBytes, formatRuntime, MediaPart, MediaSummary, tmdbImage} from "@foyer/contracts";
-import {ActivityIndicator, BackHandler, Image, ImageBackground, ScrollView, StyleSheet, Text, View} from "react-native";
+import {ActivityIndicator, BackHandler, FlatList, Image, ImageBackground, ScrollView, StyleSheet, Text, View} from "react-native";
 import {mediaOptions} from "../query-options";
 import {
     useClearMediaPartProgressMutation,
@@ -91,6 +91,7 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
     const selectedParts = seasons.get(selectedSeason ?? 1) ?? [];
     const selectedSeasonWatched = item.watchedSeasons.includes(selectedSeason ?? 1);
     const showPartList = item.kind !== "movie" || item.parts.length > 1;
+    const visibleParts = item.kind === "movie" ? item.parts : selectedParts;
 
     const rating = item.tmdbVoteAverage === null
         ? null
@@ -100,186 +101,194 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
 
     return (
         <View style={styles.screen}>
-            <ScrollView contentContainerStyle={styles.content}>
-                <ImageBackground
-                    style={styles.hero}
-                    imageStyle={styles.heroImage}
-                    source={backdrop ? { uri: backdrop } : undefined}
-                >
-                    <View style={styles.overlay}>
-                        <View style={styles.heroContent}>
-                            <View style={styles.poster}>
-                                {poster &&
-                                    <Image
-                                        source={{ uri: poster }}
-                                        style={styles.posterImage}
-                                    />
-                                }
-                            </View>
-                            <View style={styles.copy}>
-                                <View style={styles.badges}>
-                                    <Text style={styles.badge}>
-                                        {item.kind === "movie" ? "MOVIE" : "TV SHOW"}
-                                    </Text>
-                                    {item.contentRating &&
-                                        <Text style={styles.badgeOutline}>
-                                            PEGI {item.contentRating}
-                                        </Text>
-                                    }
-                                    {item.metadataStatus === "unmatched" &&
-                                        <Text style={styles.badgeOutline}>
-                                            NEEDS IDENTIFICATION
-                                        </Text>
-                                    }
-                                </View>
-                                <Text numberOfLines={2} style={styles.title}>
-                                    {item.title}
-                                </Text>
-                                <View style={styles.metaRow}>
-                                    {item.year ? <Text style={styles.meta}>{item.year}</Text> : null}
-                                    {item.runtimeMinutes ? <Text style={styles.meta}>{formatRuntime(item.runtimeMinutes)}</Text> : null}
-                                    <Text style={styles.meta}>
-                                        {item.parts.length} {item.kind === "movie" ? (item.parts.length === 1 ? "file" : "files") : (item.parts.length === 1 ? "episode" : "episodes")}
-                                    </Text>
-                                    {rating ? (
-                                        <View style={styles.rating}>
-                                            <StarIcon color={colors.rating} fill={colors.rating} size={18}/>
-                                            <Text style={styles.ratingText}>{rating}</Text>
-                                        </View>
-                                    ) : null}
-                                </View>
-                                {item.overview ? <Text numberOfLines={2} style={styles.overview}>{item.overview}</Text> : null}
-                                <View style={styles.actions}>
-                                    {nextPart ? (
-                                        <FocusButton
-                                            label={
-                                                nextPart.progress?.positionSeconds &&
-                                                !nextPart.progress.completed &&
-                                                !item.watched
-                                                    ? `Resume · ${nextPart.progress.percentage}%`
-                                                    : "Play"
+            <FlatList
+                data={showPartList ? visibleParts : []}
+                keyExtractor={(part) => part.id}
+                contentContainerStyle={styles.content}
+                initialNumToRender={8}
+                maxToRenderPerBatch={8}
+                updateCellsBatchingPeriod={32}
+                windowSize={5}
+                removeClippedSubviews
+                ListHeaderComponent={
+                    <>
+                        <ImageBackground
+                            style={styles.hero}
+                            imageStyle={styles.heroImage}
+                            source={backdrop ? { uri: backdrop } : undefined}
+                        >
+                            <View style={styles.overlay}>
+                                <View style={styles.heroContent}>
+                                    <View style={styles.poster}>
+                                        {poster &&
+                                            <Image
+                                                source={{ uri: poster }}
+                                                style={styles.posterImage}
+                                            />
+                                        }
+                                    </View>
+                                    <View style={styles.copy}>
+                                        <View style={styles.badges}>
+                                            <Text style={styles.badge}>
+                                                {item.kind === "movie" ? "MOVIE" : "TV SHOW"}
+                                            </Text>
+                                            {item.contentRating &&
+                                                <Text style={styles.badgeOutline}>
+                                                    PEGI {item.contentRating}
+                                                </Text>
                                             }
-                                            icon={PlayIcon}
-                                            hasTVPreferredFocus
-                                            onPress={() => onPlay(nextPart, item, item.parts)}
-                                        />
-                                    ) : null}
-                                    <FocusIconButton
-                                        icon={CheckIcon}
-                                        active={item.watched}
-                                        label={item.watched ? "Mark as unwatched" : "Mark as watched"}
-                                        onPress={() => {
-                                            if (!watchMedia.isPending) watchMedia.mutate(!item.watched)
-                                        }}
-                                    />
-                                    <FocusButton
-                                        label="More options"
-                                        icon={MoreVerticalIcon}
-                                        variant="secondary"
-                                        onPress={() => setActionsOpen(true)}
-                                    />
+                                            {item.metadataStatus === "unmatched" &&
+                                                <Text style={styles.badgeOutline}>
+                                                    NEEDS IDENTIFICATION
+                                                </Text>
+                                            }
+                                        </View>
+                                        <Text numberOfLines={2} style={styles.title}>
+                                            {item.title}
+                                        </Text>
+                                        <View style={styles.metaRow}>
+                                            {item.year ? <Text style={styles.meta}>{item.year}</Text> : null}
+                                            {item.runtimeMinutes ? <Text style={styles.meta}>{formatRuntime(item.runtimeMinutes)}</Text> : null}
+                                            <Text style={styles.meta}>
+                                                {item.parts.length} {item.kind === "movie" ? (item.parts.length === 1 ? "file" : "files") : (item.parts.length === 1 ? "episode" : "episodes")}
+                                            </Text>
+                                            {rating ? (
+                                                <View style={styles.rating}>
+                                                    <StarIcon color={colors.rating} fill={colors.rating} size={18}/>
+                                                    <Text style={styles.ratingText}>{rating}</Text>
+                                                </View>
+                                            ) : null}
+                                        </View>
+                                        {item.overview ? <Text numberOfLines={2} style={styles.overview}>{item.overview}</Text> : null}
+                                        <View style={styles.actions}>
+                                            {nextPart ? (
+                                                <FocusButton
+                                                    label={
+                                                        nextPart.progress?.positionSeconds &&
+                                                        !nextPart.progress.completed &&
+                                                        !item.watched
+                                                            ? `Resume · ${nextPart.progress.percentage}%`
+                                                            : "Play"
+                                                    }
+                                                    icon={PlayIcon}
+                                                    hasTVPreferredFocus
+                                                    onPress={() => onPlay(nextPart, item, item.parts)}
+                                                />
+                                            ) : null}
+                                            <FocusIconButton
+                                                icon={CheckIcon}
+                                                active={item.watched}
+                                                label={item.watched ? "Mark as unwatched" : "Mark as watched"}
+                                                onPress={() => {
+                                                    if (!watchMedia.isPending) watchMedia.mutate(!item.watched)
+                                                }}
+                                            />
+                                            <FocusButton
+                                                label="More options"
+                                                icon={MoreVerticalIcon}
+                                                variant="secondary"
+                                                onPress={() => setActionsOpen(true)}
+                                            />
+                                        </View>
+                                        {watchMedia.isError || watchSeason.isError || watchPart.isError || clearPartProgress.isError ? (
+                                            <Text style={styles.errorText}>
+                                                {(watchMedia.error ?? watchSeason.error ?? watchPart.error ?? clearPartProgress.error)?.message}
+                                            </Text>
+                                        ) : null}
+                                    </View>
                                 </View>
-                                {watchMedia.isError || watchSeason.isError || watchPart.isError || clearPartProgress.isError ? (
-                                    <Text style={styles.errorText}>
-                                        {(watchMedia.error ?? watchSeason.error ?? watchPart.error ?? clearPartProgress.error)?.message}
-                                    </Text>
+                            </View>
+                        </ImageBackground>
+
+                        {showPartList ? (
+                            <View style={styles.partsSection}>
+                                <Text style={styles.sectionTitle}>{item.kind === "movie" ? "Files" : "Episodes"}</Text>
+                                {item.kind !== "movie" ? (
+                                    <View style={styles.seasonControls}>
+                                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.seasons}>
+                                            {[...seasons.keys()].map((season) => (
+                                                <FocusButton
+                                                    key={season}
+                                                    label={`Season ${season}`}
+                                                    size="small"
+                                                    variant={selectedSeason === season ? "primary" : "ghost"}
+                                                    onPress={() => setSelectedSeason(season)}
+                                                />
+                                            ))}
+                                        </ScrollView>
+                                        <FocusButton
+                                            label={selectedSeasonWatched ? "Mark season unwatched" : "Mark season watched"}
+                                            icon={CheckIcon}
+                                            size="small"
+                                            variant={selectedSeasonWatched ? "primary" : "secondary"}
+                                            onPress={() => {
+                                                if (selectedSeason !== null && !watchSeason.isPending) {
+                                                    watchSeason.mutate({
+                                                        seasonNumber: selectedSeason,
+                                                        watched: !selectedSeasonWatched,
+                                                    })
+                                                }
+                                            }}
+                                        />
+                                    </View>
                                 ) : null}
                             </View>
-                        </View>
-                    </View>
-                </ImageBackground>
-
-                <View style={styles.lowerContent}>
-                    {showPartList ? (
-                        <View style={styles.partsSection}>
-                            <Text style={styles.sectionTitle}>{item.kind === "movie" ? "Files" : "Episodes"}</Text>
-                            {item.kind !== "movie" ? (
-                                <View style={styles.seasonControls}>
-                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.seasons}>
-                                        {[...seasons.keys()].map((season) => (
-                                            <FocusButton
-                                                key={season}
-                                                label={`Season ${season}`}
-                                                size="small"
-                                                variant={selectedSeason === season ? "primary" : "ghost"}
-                                                onPress={() => setSelectedSeason(season)}
-                                            />
-                                        ))}
-                                    </ScrollView>
-                                    <FocusButton
-                                        label={selectedSeasonWatched ? "Mark season unwatched" : "Mark season watched"}
-                                        icon={CheckIcon}
-                                        size="small"
-                                        variant={selectedSeasonWatched ? "primary" : "secondary"}
-                                        onPress={() => {
-                                            if (selectedSeason !== null && !watchSeason.isPending) {
-                                                watchSeason.mutate({
-                                                    seasonNumber: selectedSeason,
-                                                    watched: !selectedSeasonWatched,
-                                                })
-                                            }
-                                        }}
-                                    />
-                                </View>
-                            ) : null}
-                            <ScrollView
-                                style={styles.episodeScroller}
-                                contentContainerStyle={styles.episodes}
-                                nestedScrollEnabled
-                            >
-                                {(item.kind === "movie" ? item.parts : selectedParts).map((part, index) => (
-                                    <EpisodeRow
-                                        key={part.id}
-                                        part={part}
-                                        index={index}
-                                        clearProgressLabel={`Remove ${item.kind === "movie" ? "file" : "episode"} progress`}
-                                        onClearProgress={() => {
-                                            if (!clearPartProgress.isPending) clearPartProgress.mutate(part.id)
-                                        }}
-                                        onToggleWatched={() => {
-                                            if (!watchPart.isPending) watchPart.mutate({
-                                                partId: part.id,
-                                                watched: part.progress?.completed !== true,
-                                            })
-                                        }}
-                                        onPlay={() => onPlay(part, item, item.parts)}
-                                    />
-                                ))}
-                            </ScrollView>
-                        </View>
-                    ) : null}
-
-                    <View style={styles.detailsSection}>
-                        <Text style={styles.sectionTitle}>Details</Text>
-                        <View style={styles.detailsCard}>
-                            <DetailRow label="Original title" value={item.originalTitle}/>
-                            <DetailRow label="Language" value={item.originalLanguage?.toUpperCase()}/>
-                            <DetailRow label="Genres" value={item.genres.join(", ")}/>
-                            <DetailRow label="TMDB" value={item.tmdbId ? `#${item.tmdbId}` : "Not matched"}/>
-                        </View>
-                    </View>
-
-                    {item.cast.length ? (
-                        <View style={styles.castSection}>
-                            <Text style={styles.sectionTitle}>Cast</Text>
-                            <View style={styles.castGrid}>
-                                {item.cast.map((person) => {
-                                    const profile = tmdbImage(person.profilePath, "w342")
-                                    return (
-                                        <View key={person.id} style={styles.person}>
-                                            <View style={styles.avatar}>
-                                                {profile ? <Image source={{ uri: profile }} style={styles.avatarImage}/> : null}
-                                            </View>
-                                            <Text numberOfLines={1} style={styles.personName}>{person.name}</Text>
-                                            <Text numberOfLines={1} style={styles.character}>{person.character || "Cast"}</Text>
-                                        </View>
-                                    )
-                                })}
+                        ) : null}
+                    </>
+                }
+                renderItem={({ item: part, index }) => (
+                    <EpisodeRow
+                        part={part}
+                        index={index}
+                        first={index === 0}
+                        last={index === visibleParts.length - 1}
+                        clearProgressLabel={`Remove ${item.kind === "movie" ? "file" : "episode"} progress`}
+                        onClearProgress={() => {
+                            if (!clearPartProgress.isPending) clearPartProgress.mutate(part.id)
+                        }}
+                        onToggleWatched={() => {
+                            if (!watchPart.isPending) watchPart.mutate({
+                                partId: part.id,
+                                watched: part.progress?.completed !== true,
+                            })
+                        }}
+                        onPlay={() => onPlay(part, item, item.parts)}
+                    />
+                )}
+                ListFooterComponent={
+                    <View style={[styles.lowerContent, showPartList ? styles.lowerContentAfterParts : null]}>
+                        <View style={styles.detailsSection}>
+                            <Text style={styles.sectionTitle}>Details</Text>
+                            <View style={styles.detailsCard}>
+                                <DetailRow label="Original title" value={item.originalTitle}/>
+                                <DetailRow label="Language" value={item.originalLanguage?.toUpperCase()}/>
+                                <DetailRow label="Genres" value={item.genres.join(", ")}/>
+                                <DetailRow label="TMDB" value={item.tmdbId ? `#${item.tmdbId}` : "Not matched"}/>
                             </View>
                         </View>
-                    ) : null}
-                </View>
-            </ScrollView>
+
+                        {item.cast.length ? (
+                            <View style={styles.castSection}>
+                                <Text style={styles.sectionTitle}>Cast</Text>
+                                <View style={styles.castGrid}>
+                                    {item.cast.map((person) => {
+                                        const profile = tmdbImage(person.profilePath, "w342")
+                                        return (
+                                            <View key={person.id} style={styles.person}>
+                                                <View style={styles.avatar}>
+                                                    {profile ? <Image source={{ uri: profile }} style={styles.avatarImage}/> : null}
+                                                </View>
+                                                <Text numberOfLines={1} style={styles.personName}>{person.name}</Text>
+                                                <Text numberOfLines={1} style={styles.character}>{person.character || "Cast"}</Text>
+                                            </View>
+                                        )
+                                    })}
+                                </View>
+                            </View>
+                        ) : null}
+                    </View>
+                }
+            />
 
             <MediaActionsDialog
                 server={server}
@@ -311,6 +320,8 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
 function EpisodeRow({
                         part,
                         index,
+                        first,
+                        last,
                         clearProgressLabel,
                         onClearProgress,
                         onToggleWatched,
@@ -318,6 +329,8 @@ function EpisodeRow({
                     }: {
     part: MediaPart
     index: number
+    first: boolean
+    last: boolean
     clearProgressLabel: string
     onClearProgress: () => void
     onToggleWatched: () => void
@@ -325,7 +338,7 @@ function EpisodeRow({
 }) {
     const watched = part.progress?.completed === true
     return (
-        <View style={styles.episode}>
+        <View style={[styles.episode, first ? styles.episodeFirst : null, last ? styles.episodeLast : null]}>
             <View style={styles.episodeNumber}>
                 <Text style={styles.episodeNumberText}>{part.episodeNumber ?? index + 1}</Text>
             </View>
@@ -412,16 +425,17 @@ const styles = StyleSheet.create({
     overview: { color: colors.text, opacity: 0.82, fontSize: 13, lineHeight: 19, maxWidth: 850 },
     actions: { flexDirection: "row", alignItems: "center", gap: 9, marginTop: 3 },
     lowerContent: { paddingHorizontal: spacing.page, gap: 34, marginTop: 30 },
-    partsSection: { gap: 13 },
+    lowerContentAfterParts: { marginTop: 34 },
+    partsSection: { gap: 13, paddingHorizontal: spacing.page, paddingTop: 30, paddingBottom: 13 },
     detailsSection: { maxWidth: 900, gap: 13 },
     castSection: { gap: 13 },
     castGrid: { flexDirection: "row", flexWrap: "wrap", gap: 18 },
     sectionTitle: { color: colors.text, fontSize: 24, fontWeight: "800", letterSpacing: -0.4 },
     seasonControls: { flexDirection: "row", alignItems: "center", gap: 10 },
     seasons: { gap: 5, paddingBottom: 5 },
-    episodeScroller: { maxHeight: 410, borderRadius: 11, borderWidth: 1, borderColor: colors.border },
-    episodes: { backgroundColor: colors.surface },
-    episode: { minHeight: 60, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 11, borderBottomWidth: 1, borderBottomColor: colors.border },
+    episode: { height: 60, marginHorizontal: spacing.page, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 11, borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+    episodeFirst: { borderTopWidth: 1, borderTopLeftRadius: 11, borderTopRightRadius: 11 },
+    episodeLast: { borderBottomLeftRadius: 11, borderBottomRightRadius: 11 },
     episodeNumber: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: colors.surfaceRaised },
     episodeNumberText: { color: colors.text, fontSize: 11, fontWeight: "800" },
     episodeCopy: { flex: 1, gap: 3 },

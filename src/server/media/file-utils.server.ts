@@ -92,6 +92,26 @@ export const inferEpisode = (filePath: string) => {
     }
   }
 
+  const seasonFolder = filePath
+    .split(/[\\/]/)
+    .slice(0, -1)
+    .reverse()
+    .map((segment) =>
+      segment.match(/^(?:season|saison|s)[ ._-]*(\d{1,2})$/i)
+    )
+    .find((match) => match !== null)
+  const numberedEpisode = raw.match(
+    /(?:^|[ ._-])(\d{1,3})(?:[ ._-]+([^\d].*))?$/i
+  )
+
+  if (seasonFolder?.[1] && numberedEpisode?.[1]) {
+    return {
+      seasonNumber: Number(seasonFolder[1]),
+      episodeNumber: Number(numberedEpisode[1]),
+      title: normalizeTitle(numberedEpisode[2] ?? "") || null,
+    }
+  }
+
   const anime = raw.match(/(?:^|\s-\s|\[)(\d{1,3})(?:v\d)?(?:\]|\s|$)/i)
   if (anime) {
     return {
