@@ -54,7 +54,14 @@ export const identifyInputSchema = z.object({
 
 export const mediaIdInputSchema = z.object({ mediaId: z.string().min(1) });
 
-export const mediaWatchStateInputSchema = z.object({ watched: z.boolean() });
+export const mediaPartIdInputSchema = z.object({ partId: z.string().min(1) });
+
+export const progressDeleteInputSchema = z.union([mediaIdInputSchema, mediaPartIdInputSchema]);
+
+export const mediaWatchStateInputSchema = z.object({
+    watched: z.boolean(),
+    seasonNumber: z.number().int().min(0).optional(),
+});
 
 export const mediaPartWatchStateInputSchema = z.object({
     partId: z.string().min(1),
@@ -133,9 +140,12 @@ export interface MediaSummary {
     hasProgress: boolean
     overview: string | null
     nextPartId: string | null
+    nextPartTitle: string | null
     posterPath: string | null
     releaseDate: string | null
     backdropPath: string | null
+    nextPartSeasonNumber: number | null
+    nextPartEpisodeNumber: number | null
     tmdbVoteCount: number | null
     runtimeMinutes: number | null
     tmdbVoteAverage: number | null
@@ -149,6 +159,7 @@ export interface MediaDetail extends MediaSummary {
     cast: PersonCredit[]
     tmdbId: number | null
     partSeasons: number[]
+    watchedSeasons: number[]
     seasons: SeasonMetadata[]
     partsPagination: Pagination
     originalTitle: string | null

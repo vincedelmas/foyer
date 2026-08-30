@@ -5,13 +5,12 @@ import {AppHeader} from "../components/AppHeader";
 import {FocusButton} from "../components/FocusButton";
 import {useTvUpdater} from "../components/TvUpdateProvider";
 import {FocusTextInput} from "../components/FocusTextInput";
-import {LibraryFormDialog} from "../components/LibraryFormDialog";
 import {LibraryRecord, MediaFolderSummary} from "@foyer/contracts";
 import {CollectionActionsDialog} from "../components/CollectionActionsDialog";
 import {useScanLibraryMutation, useTestConnectionMutation} from "../query-mutations";
 import {libraryOptions, mediaFoldersOptions, settingsOptions} from "../query-options";
 import {ActivityIndicator, BackHandler, ScrollView, StyleSheet, Text, View} from "react-native";
-import {ArrowLeftIcon, CheckCircleIcon, DatabaseIcon, DownloadIcon, FilmIcon, FolderSyncIcon, PencilIcon, ServerIcon} from "lucide-react-native";
+import {CheckCircleIcon, DatabaseIcon, DownloadIcon, FilmIcon, FolderSyncIcon, PencilIcon, ServerIcon} from "lucide-react-native";
 
 
 interface SettingsScreenProps {
@@ -86,7 +85,6 @@ function SettingsDashboard({ server, editedServer, setEditedServer, test, saving
     onBack: () => void
 }) {
     const updater = useTvUpdater()
-    const [editLibrary, setEditLibrary] = useState<LibraryRecord | null>(null)
     const [collectionActions, setCollectionActions] =
         useState<MediaFolderSummary | null>(null)
     const settings = useQuery(settingsOptions(server))
@@ -123,14 +121,6 @@ function SettingsDashboard({ server, editedServer, setEditedServer, test, saving
         <View style={styles.screen}>
             <AppHeader active="settings" onHome={onBack} onSettings={() => undefined}/>
             <ScrollView contentContainerStyle={styles.content}>
-                <FocusButton
-                    label="Home"
-                    icon={ArrowLeftIcon}
-                    variant="ghost"
-                    size="small"
-                    onPress={onBack}
-                    style={styles.back}
-                />
                 <View style={styles.settingsTitleRow}>
                     <View style={styles.copy}>
                         <Text style={styles.eyebrow}>FOYER SERVER</Text>
@@ -216,14 +206,8 @@ function SettingsDashboard({ server, editedServer, setEditedServer, test, saving
                                 </View>
                                 <Text style={styles.kind}>{record.kind === "movies" ? "Movies" : "TV shows"}</Text>
                                 <FocusButton
-                                    label="Edit"
-                                    icon={PencilIcon}
-                                    variant="ghost"
-                                    size="small"
-                                    onPress={() => setEditLibrary(record)}
-                                />
-                                <FocusButton
                                     label="Manage"
+                                    icon={PencilIcon}
                                     variant="secondary"
                                     size="small"
                                     onPress={() => openActions(record)}
@@ -284,7 +268,6 @@ function SettingsDashboard({ server, editedServer, setEditedServer, test, saving
                 </View>
             </ScrollView>
 
-            <LibraryFormDialog server={server} library={editLibrary} visible={editLibrary !== null} onClose={() => setEditLibrary(null)}/>
             <CollectionActionsDialog
                 server={server}
                 folder={collectionActions}
@@ -375,7 +358,6 @@ const styles = StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     firstRunScreen: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background },
     content: { paddingHorizontal: spacing.page, paddingBottom: 56, gap: 28 },
-    back: { alignSelf: "flex-start", marginTop: 6 },
     connectionPanel: { width: 620, padding: 32, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 18 },
     copy: { gap: 5 },
     eyebrow: { color: colors.primary, fontSize: 9, fontWeight: "900", letterSpacing: 1.6 },

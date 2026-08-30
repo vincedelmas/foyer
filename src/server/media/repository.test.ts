@@ -58,6 +58,10 @@ describe("media repository", () => {
             const second = repository.listMedia({libraryId: "library", sort: "title", watch: "unwatched", page: 2, pageSize: 1})
             const episodePage = repository.getMediaDetail("show", {season: 1, page: 2, pageSize: 1})
             const playbackQueue = repository.getMediaDetail("show")
+            repository.setMediaWatched("show", true, 1)
+            const watchedSeason = repository.getMediaDetail("show")
+            const deletedEpisodeProgress = repository.deleteMediaPartProgress("s1e2")
+            const clearedEpisode = repository.getMediaDetail("show")
             console.log(JSON.stringify({
                 firstId: first.items[0].id,
                 secondId: second.items[0].id,
@@ -71,6 +75,10 @@ describe("media repository", () => {
                     pagination: episodePage.partsPagination,
                 },
                 playbackQueueSize: playbackQueue.parts.length,
+                watchedSeasons: watchedSeason.watchedSeasons,
+                deletedEpisodeProgress,
+                watchedSeasonsAfterClear: clearedEpisode.watchedSeasons,
+                clearedEpisodeProgress: clearedEpisode.parts.find((part) => part.id === "s1e2").progress,
             }))
         `], {
             cwd: process.cwd(),
@@ -110,6 +118,10 @@ describe("media repository", () => {
                 },
             },
             playbackQueueSize: 4,
+            watchedSeasons: [1],
+            deletedEpisodeProgress: 1,
+            watchedSeasonsAfterClear: [],
+            clearedEpisodeProgress: null,
         });
     });
 });

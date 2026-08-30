@@ -9,14 +9,20 @@ import {Separator} from "@/components/ui/separator";
 import {ScrollArea} from "@/components/ui/scroll-area";
 import {useSuspenseQuery} from "@tanstack/react-query";
 import {IdentifyDialog} from "@/components/identify-dialog";
+import {MediaWatchToggle} from "@/components/media-watch-toggle";
 import {createFileRoute, Link} from "@tanstack/react-router";
 import {MediaPagination} from "@/components/media-pagination";
 import {WatchToggleButton} from "@/components/watch-toggle-button";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import {formatBytes, formatRuntime, MediaPart, tmdbImage} from "@foyer/contracts";
-import {CalendarIcon, Clock3Icon, PlayIcon, RefreshCwIcon, StarIcon} from "lucide-react";
-import {useRefreshMediaMetadataMutation, useSetMediaPartWatchedMutation} from "@/lib/query-mutations";
+import {CalendarIcon, CheckIcon, CircleXIcon, Clock3Icon, PlayIcon, RefreshCwIcon, StarIcon} from "lucide-react";
+import {
+    useClearMediaPartProgressMutation,
+    useRefreshMediaMetadataMutation,
+    useSetMediaPartWatchedMutation,
+    useSetMediaSeasonWatchedMutation,
+} from "@/lib/query-mutations";
 
 
 const searchSchema = z.object({
@@ -158,6 +164,8 @@ function MediaDetailsPage() {
                                     </Button>
                                 }
 
+                                <MediaWatchToggle item={item}/>
+
                                 <IdentifyDialog
                                     media={item}
                                 />
@@ -195,15 +203,22 @@ function MediaDetailsPage() {
                                             void navigate({ resetScroll: false, search: { season: Number(value), page: 1 } });
                                         }}
                                     >
-                                        <div className="max-w-full overflow-x-auto overflow-y-hidden pb-1.5 scrollbar-none
-                                        [&::-webkit-scrollbar]:hidden">
-                                            <TabsList variant="line">
-                                                {item.partSeasons.map((season) =>
-                                                    <TabsTrigger key={season} value={String(season)}>
-                                                        Season {season}
-                                                    </TabsTrigger>
-                                                )}
-                                            </TabsList>
+                                        <div className="flex items-center gap-3">
+                                            <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden pb-1.5 scrollbar-none
+                                            [&::-webkit-scrollbar]:hidden">
+                                                <TabsList variant="line">
+                                                    {item.partSeasons.map((season) =>
+                                                        <TabsTrigger key={season} value={String(season)}>
+                                                            Season {season}
+                                                        </TabsTrigger>
+                                                    )}
+                                                </TabsList>
+                                            </div>
+                                            <SeasonWatchToggle
+                                                mediaId={item.id}
+                                                seasonNumber={selectedSeason}
+                                                watched={item.watchedSeasons.includes(selectedSeason)}
+                                            />
                                         </div>
                                         <TabsContent value={String(selectedSeason)} className="pt-3">
                                             <EpisodeList
@@ -301,6 +316,7 @@ interface EpisodeListProps {
 
 
 function EpisodeList({ mediaId, parts, fallbackLabel, startIndex }: EpisodeListProps) {
+    const clearProgress = useClearMediaPartProgressMutation(mediaId);
     const rows = (
         <>
             {parts.map((part, idx) =>
@@ -321,6 +337,21 @@ function EpisodeList({ mediaId, parts, fallbackLabel, startIndex }: EpisodeListP
                                 {part.fileName} · {formatBytes(part.size)}
                             </p>
                         </div>
+                        {part.progress?.positionSeconds && !part.progress.completed ?
+                            <Button
+                                size="icon-sm"
+                                variant="ghost"
+                                aria-label={`Remove ${fallbackLabel.toLowerCase()} progress`}
+                                disabled={clearProgress.isPending}
+                                onClick={() => clearProgress.mutate(part.id)}
+                            >
+                                {clearProgress.isPending && clearProgress.variables === part.id
+                                    ? <Spinner/>
+                                    : <CircleXIcon/>
+                                }
+                            </Button>
+                            : null
+                        }
                         <EpisodeWatchToggle mediaId={mediaId} part={part}/>
                         <Button
                             size="sm"
@@ -349,6 +380,30 @@ function EpisodeList({ mediaId, parts, fallbackLabel, startIndex }: EpisodeListP
             <div className="overflow-hidden rounded-xl border bg-card/50">
                 {rows}
             </div>
+    );
+}
+
+
+function SeasonWatchToggle({ mediaId, seasonNumber, watched }: {
+    mediaId: string
+    seasonNumber: number
+    watched: boolean
+}) {
+    const watchState = useSetMediaSeasonWatchedMutation(mediaId);
+
+    return (
+        <Button
+            size="sm"
+            variant={watched ? "default" : "outline"}
+            disabled={watchState.isPending}
+            onClick={() => watchState.mutate({ seasonNumber, watched: !watched })}
+        >
+            {watchState.isPending
+                ? <Spinner data-icon="inline-start"/>
+                : <CheckIcon data-icon="inline-start"/>
+            }
+            {watched ? "Mark season unwatched" : "Mark season watched"}
+        </Button>
     );
 }
 

@@ -15,6 +15,12 @@ export interface MediaPartWatchInput {
 }
 
 
+export interface MediaSeasonWatchInput {
+    seasonNumber: number;
+    watched: boolean;
+}
+
+
 export interface ProgressValue {
     positionSeconds: number;
     durationSeconds: number;
@@ -116,6 +122,11 @@ export const createFoyerQueries = (api: FoyerApi, cacheScope: string) => {
             mutationKey: keys.mutation("set-media-watched", mediaId),
             mutationFn: (watched: boolean) => api.setMediaWatched(mediaId, watched),
         }),
+        setMediaSeasonWatched: (mediaId: string) => mutationOptions({
+            mutationKey: keys.mutation("set-media-season-watched", mediaId),
+            mutationFn: ({ seasonNumber, watched }: MediaSeasonWatchInput) =>
+                api.setMediaSeasonWatched(mediaId, seasonNumber, watched),
+        }),
         setMediaPartWatched: () => mutationOptions({
             mutationKey: keys.mutation("set-media-part-watched"),
             mutationFn: ({ partId, watched }: MediaPartWatchInput) => api.setMediaPartWatched(partId, watched),
@@ -133,9 +144,13 @@ export const createFoyerQueries = (api: FoyerApi, cacheScope: string) => {
             mutationKey: keys.mutation("save-progress"),
             mutationFn: api.progress,
         }),
-        deleteProgress: (mediaId: string) => mutationOptions({
-            mutationKey: keys.mutation("delete-progress", mediaId),
-            mutationFn: () => api.deleteProgress(mediaId),
+        deleteMediaProgress: (mediaId: string) => mutationOptions({
+            mutationKey: keys.mutation("delete-media-progress", mediaId),
+            mutationFn: () => api.deleteMediaProgress(mediaId),
+        }),
+        deleteMediaPartProgress: () => mutationOptions({
+            mutationKey: keys.mutation("delete-media-part-progress"),
+            mutationFn: (partId: string) => api.deleteMediaPartProgress(partId),
         }),
         saveLibrary: () => mutationOptions({
             mutationKey: keys.mutation("save-library"),

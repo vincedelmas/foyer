@@ -16,12 +16,22 @@ interface MediaCardProps {
 
 export function MediaCard({ item, index = 0 }: MediaCardProps) {
     const poster = tmdbImage(item.posterPath, "w500");
+    const episodeProgress = item.kind !== "movie" && item.progress?.positionSeconds && !item.progress.completed
+        ? [
+            item.nextPartSeasonNumber === null ? null : `S${item.nextPartSeasonNumber}`,
+            item.nextPartEpisodeNumber === null ? item.nextPartTitle : `E${item.nextPartEpisodeNumber}`,
+        ].filter(Boolean).join(" · ")
+        : null;
 
     const cardMetadata = [
         item.year ?? "Unknown year",
         ...(item.kind === "movie" && item.runtimeMinutes ? [formatRuntime(item.runtimeMinutes)] : []),
         item.kind === "movie" ? "Movie" : "TV show",
-        ...(item.kind !== "movie" ? [`${item.partCount} ${item.partCount === 1 ? "ep." : "eps."}`] : []),
+        ...(episodeProgress
+            ? [`${episodeProgress} · ${item.progress?.percentage}%`]
+            : item.kind !== "movie"
+                ? [`${item.partCount} ${item.partCount === 1 ? "ep." : "eps."}`]
+                : []),
     ];
 
     return (

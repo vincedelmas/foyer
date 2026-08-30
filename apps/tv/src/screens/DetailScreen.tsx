@@ -6,11 +6,16 @@ import {MediaInfoDialog} from "../components/MediaInfoDialog";
 import {FocusIconButton} from "../components/FocusIconButton";
 import {MediaActionsDialog} from "../components/MediaActionsDialog";
 import {useQuery} from "@tanstack/react-query";
-import {CheckIcon, MoreVerticalIcon, PlayIcon, StarIcon} from "lucide-react-native";
+import {CheckIcon, CircleXIcon, MoreVerticalIcon, PlayIcon, StarIcon} from "lucide-react-native";
 import {formatBytes, formatRuntime, MediaPart, MediaSummary, tmdbImage} from "@foyer/contracts";
 import {ActivityIndicator, BackHandler, Image, ImageBackground, ScrollView, StyleSheet, Text, View} from "react-native";
 import {mediaOptions} from "../query-options";
-import {useSetMediaPartWatchedMutation, useSetMediaWatchedMutation} from "../query-mutations";
+import {
+    useClearMediaPartProgressMutation,
+    useSetMediaPartWatchedMutation,
+    useSetMediaSeasonWatchedMutation,
+    useSetMediaWatchedMutation,
+} from "../query-mutations";
 
 
 interface DetailScreenProps {
@@ -40,6 +45,8 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
 
     const watchMedia = useSetMediaWatchedMutation(server, summary.id);
     const watchPart = useSetMediaPartWatchedMutation(server, summary.id);
+    const watchSeason = useSetMediaSeasonWatchedMutation(server, summary.id);
+    const clearPartProgress = useClearMediaPartProgressMutation(server, summary.id);
 
     const seasons = useMemo(() => {
         const grouped = new Map<number, MediaPart[]>();
@@ -82,6 +89,7 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
     const nextPart = item.parts.find((part) => part.id === item.nextPartId) ?? item.parts[0];
 
     const selectedParts = seasons.get(selectedSeason ?? 1) ?? [];
+    const selectedSeasonWatched = item.watchedSeasons.includes(selectedSeason ?? 1);
     const showPartList = item.kind !== "movie" || item.parts.length > 1;
 
     const rating = item.tmdbVoteAverage === null
@@ -160,8 +168,9 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
                                         icon={CheckIcon}
                                         active={item.watched}
                                         label={item.watched ? "Mark as unwatched" : "Mark as watched"}
-                                        disabled={watchMedia.isPending}
-                                        onPress={() => watchMedia.mutate(!item.watched)}
+                                        onPress={() => {
+                                            if (!watchMedia.isPending) watchMedia.mutate(!item.watched)
+                                        }}
                                     />
                                     <FocusButton
                                         label="More options"
@@ -170,9 +179,9 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
                                         onPress={() => setActionsOpen(true)}
                                     />
                                 </View>
-                                {watchMedia.isError || watchPart.isError ? (
+                                {watchMedia.isError || watchSeason.isError || watchPart.isError || clearPartProgress.isError ? (
                                     <Text style={styles.errorText}>
-                                        {(watchMedia.error ?? watchPart.error)?.message}
+                                        {(watchMedia.error ?? watchSeason.error ?? watchPart.error ?? clearPartProgress.error)?.message}
                                     </Text>
                                 ) : null}
                             </View>
@@ -185,17 +194,33 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
                         <View style={styles.partsSection}>
                             <Text style={styles.sectionTitle}>{item.kind === "movie" ? "Files" : "Episodes"}</Text>
                             {item.kind !== "movie" ? (
-                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.seasons}>
-                                    {[...seasons.keys()].map((season) => (
-                                        <FocusButton
-                                            key={season}
-                                            label={`Season ${season}`}
-                                            size="small"
-                                            variant={selectedSeason === season ? "primary" : "ghost"}
-                                            onPress={() => setSelectedSeason(season)}
-                                        />
-                                    ))}
-                                </ScrollView>
+                                <View style={styles.seasonControls}>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.seasons}>
+                                        {[...seasons.keys()].map((season) => (
+                                            <FocusButton
+                                                key={season}
+                                                label={`Season ${season}`}
+                                                size="small"
+                                                variant={selectedSeason === season ? "primary" : "ghost"}
+                                                onPress={() => setSelectedSeason(season)}
+                                            />
+                                        ))}
+                                    </ScrollView>
+                                    <FocusButton
+                                        label={selectedSeasonWatched ? "Mark season unwatched" : "Mark season watched"}
+                                        icon={CheckIcon}
+                                        size="small"
+                                        variant={selectedSeasonWatched ? "primary" : "secondary"}
+                                        onPress={() => {
+                                            if (selectedSeason !== null && !watchSeason.isPending) {
+                                                watchSeason.mutate({
+                                                    seasonNumber: selectedSeason,
+                                                    watched: !selectedSeasonWatched,
+                                                })
+                                            }
+                                        }}
+                                    />
+                                </View>
                             ) : null}
                             <ScrollView
                                 style={styles.episodeScroller}
@@ -207,13 +232,16 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
                                         key={part.id}
                                         part={part}
                                         index={index}
-                                        pending={watchPart.isPending && watchPart.variables?.partId === part.id}
-                                        onToggleWatched={() =>
-                                            watchPart.mutate({
+                                        clearProgressLabel={`Remove ${item.kind === "movie" ? "file" : "episode"} progress`}
+                                        onClearProgress={() => {
+                                            if (!clearPartProgress.isPending) clearPartProgress.mutate(part.id)
+                                        }}
+                                        onToggleWatched={() => {
+                                            if (!watchPart.isPending) watchPart.mutate({
                                                 partId: part.id,
                                                 watched: part.progress?.completed !== true,
                                             })
-                                        }
+                                        }}
                                         onPlay={() => onPlay(part, item, item.parts)}
                                     />
                                 ))}
@@ -261,6 +289,7 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
                 onIdentify={() => setIdentifyOpen(true)}
                 onInfo={() => setInfoOpen(true)}
                 onDeleted={onBack}
+                showWatchAction={false}
             />
             <IdentifyDialog
                 server={server}
@@ -282,13 +311,15 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
 function EpisodeRow({
                         part,
                         index,
-                        pending,
+                        clearProgressLabel,
+                        onClearProgress,
                         onToggleWatched,
                         onPlay,
                     }: {
     part: MediaPart
     index: number
-    pending: boolean
+    clearProgressLabel: string
+    onClearProgress: () => void
     onToggleWatched: () => void
     onPlay: () => void
 }) {
@@ -307,11 +338,17 @@ function EpisodeRow({
                 </Text>
             </View>
             {part.subtitles.length ? <Text style={styles.subtitleCount}>CC · {part.subtitles.length}</Text> : null}
+            {part.progress?.positionSeconds && !watched ? (
+                <FocusIconButton
+                    icon={CircleXIcon}
+                    label={clearProgressLabel}
+                    onPress={onClearProgress}
+                />
+            ) : null}
             <FocusIconButton
                 icon={CheckIcon}
                 active={watched}
                 label={watched ? "Mark episode as unwatched" : "Mark episode as watched"}
-                disabled={pending}
                 onPress={onToggleWatched}
             />
             <FocusButton
@@ -380,6 +417,7 @@ const styles = StyleSheet.create({
     castSection: { gap: 13 },
     castGrid: { flexDirection: "row", flexWrap: "wrap", gap: 18 },
     sectionTitle: { color: colors.text, fontSize: 24, fontWeight: "800", letterSpacing: -0.4 },
+    seasonControls: { flexDirection: "row", alignItems: "center", gap: 10 },
     seasons: { gap: 5, paddingBottom: 5 },
     episodeScroller: { maxHeight: 410, borderRadius: 11, borderWidth: 1, borderColor: colors.border },
     episodes: { backgroundColor: colors.surface },

@@ -40,12 +40,40 @@ export const useSetMediaPartWatchedMutation = (server: string, mediaId: string, 
 };
 
 
+export const useSetMediaSeasonWatchedMutation = (server: string, mediaId: string, afterSuccess?: AfterSuccess) => {
+    const queryClient = useQueryClient();
+    const queries = tvQueries(server);
+
+    return useMutation({
+        ...queries.mutations.setMediaSeasonWatched(mediaId),
+        onSuccess: async () => {
+            await queries.invalidate.media(queryClient, mediaId);
+            await afterSuccess?.();
+        },
+    });
+};
+
+
 export const useClearMediaProgressMutation = (server: string, mediaId: string, afterSuccess?: AfterSuccess) => {
     const queryClient = useQueryClient();
     const queries = tvQueries(server);
 
     return useMutation({
-        ...queries.mutations.deleteProgress(mediaId),
+        ...queries.mutations.deleteMediaProgress(mediaId),
+        onSuccess: async () => {
+            await queries.invalidate.media(queryClient, mediaId);
+            await afterSuccess?.();
+        },
+    });
+};
+
+
+export const useClearMediaPartProgressMutation = (server: string, mediaId: string, afterSuccess?: AfterSuccess) => {
+    const queryClient = useQueryClient();
+    const queries = tvQueries(server);
+
+    return useMutation({
+        ...queries.mutations.deleteMediaPartProgress(),
         onSuccess: async () => {
             await queries.invalidate.media(queryClient, mediaId);
             await afterSuccess?.();
@@ -95,20 +123,6 @@ export const useSaveLibraryMutation = (server: string, afterSuccess?: AfterSucce
         ...queries.mutations.saveLibrary(),
         onSuccess: async () => {
             await queries.invalidate.libraries(queryClient);
-            await afterSuccess?.();
-        },
-    });
-};
-
-
-export const useUpdateLibraryMutation = (server: string, afterSuccess?: AfterSuccess) => {
-    const queryClient = useQueryClient();
-    const queries = tvQueries(server);
-
-    return useMutation({
-        ...queries.mutations.updateLibrary(),
-        onSuccess: async () => {
-            await queries.invalidate.catalog(queryClient);
             await afterSuccess?.();
         },
     });

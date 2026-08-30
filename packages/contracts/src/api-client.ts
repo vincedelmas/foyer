@@ -133,6 +133,11 @@ export const createFoyerApi = (baseUrl = "") => {
                 method: "PUT",
                 body: JSON.stringify({ watched }),
             }),
+        setMediaSeasonWatched: (id: string, seasonNumber: number, watched: boolean) =>
+            request<{ watched: boolean; updatedParts: number }>(`/api/v1/media/${id}`, {
+                method: "PUT",
+                body: JSON.stringify({ watched, seasonNumber }),
+            }),
         setMediaPartWatched: (partId: string, watched: boolean) =>
             request<{ partId: string; watched: boolean }>("/api/v1/progress", {
                 method: "PUT",
@@ -148,10 +153,15 @@ export const createFoyerApi = (baseUrl = "") => {
                 method: "POST",
                 body: JSON.stringify(input),
             }),
-        deleteProgress: (mediaId: string) =>
+        deleteMediaProgress: (mediaId: string) =>
             request<{ deleted: number }>("/api/v1/progress", {
                 method: "DELETE",
                 body: JSON.stringify({ mediaId }),
+            }),
+        deleteMediaPartProgress: (partId: string) =>
+            request<{ deleted: number }>("/api/v1/progress", {
+                method: "DELETE",
+                body: JSON.stringify({ partId }),
             }),
         settings: () =>
             request<{ libraries: LibraryRecord[]; scans: ScanRecord[] }>("/api/v1/settings/overview"),

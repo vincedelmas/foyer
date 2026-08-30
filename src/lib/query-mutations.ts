@@ -63,11 +63,34 @@ export const useSetMediaPartWatchedMutation = (mediaId: string) => {
 };
 
 
+export const useSetMediaSeasonWatchedMutation = (mediaId: string) => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        ...foyerQueries.mutations.setMediaSeasonWatched(mediaId),
+        onSuccess: async (result) => {
+            await invalidateMediaQueries(queryClient, mediaId);
+            toast.add({
+                type: "success",
+                title: result.watched ? "Season marked as watched" : "Season marked as unwatched",
+            });
+        },
+        onError: (error) => {
+            toast.add({
+                type: "error",
+                description: error.message,
+                title: "Could not change season watch status",
+            });
+        },
+    });
+};
+
+
 export const useClearMediaProgressMutation = (mediaId: string) => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        ...foyerQueries.mutations.deleteProgress(mediaId),
+        ...foyerQueries.mutations.deleteMediaProgress(mediaId),
         onSuccess: async () => {
             await invalidateMediaQueries(queryClient, mediaId);
             toast.add({ type: "success", title: "Watch progress removed" });
@@ -77,6 +100,26 @@ export const useClearMediaProgressMutation = (mediaId: string) => {
                 type: "error",
                 description: error.message,
                 title: "Could not remove watch progress",
+            });
+        },
+    });
+};
+
+
+export const useClearMediaPartProgressMutation = (mediaId: string) => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        ...foyerQueries.mutations.deleteMediaPartProgress(),
+        onSuccess: async () => {
+            await invalidateMediaQueries(queryClient, mediaId);
+            toast.add({ type: "success", title: "Playback progress removed" });
+        },
+        onError: (error) => {
+            toast.add({
+                type: "error",
+                description: error.message,
+                title: "Could not remove episode progress",
             });
         },
     });

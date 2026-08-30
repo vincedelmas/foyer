@@ -5,7 +5,7 @@ import {Spinner} from "@/components/ui/spinner";
 import {IdentifyDialog} from "@/components/identify-dialog";
 import {MediaInfoDialog} from "@/components/media-info-dialog";
 import {CircleXIcon, EllipsisVerticalIcon, InfoIcon, RefreshCwIcon, SearchIcon, Trash2Icon} from "lucide-react";
-import {useClearMediaProgressMutation, useDeleteMediaMutation, useRefreshMediaMetadataMutation} from "@/lib/query-mutations";
+import {useClearMediaPartProgressMutation, useClearMediaProgressMutation, useDeleteMediaMutation, useRefreshMediaMetadataMutation} from "@/lib/query-mutations";
 import {DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {
     AlertDialog,
@@ -25,10 +25,13 @@ export function MediaActionsMenu({ item }: { item: MediaSummary }) {
     const [identifyOpen, setIdentifyOpen] = useState(false);
 
     const refresh = useRefreshMediaMetadataMutation(item.id);
-    const clearProgress = useClearMediaProgressMutation(item.id);
+    const clearMediaProgress = useClearMediaProgressMutation(item.id);
+    const clearPartProgress = useClearMediaPartProgressMutation(item.id);
     const remove = useDeleteMediaMutation(item.id, () => setDeleteOpen(false));
 
-    const isPending = clearProgress.isPending || refresh.isPending || remove.isPending
+    const isPending = clearMediaProgress.isPending || clearPartProgress.isPending || refresh.isPending || remove.isPending;
+    const hasCurrentProgress = !!item.progress?.positionSeconds && !item.progress.completed;
+    const clearsEpisode = item.kind !== "movie" && !!item.nextPartId;
 
     return (
         <>
@@ -37,12 +40,18 @@ export function MediaActionsMenu({ item }: { item: MediaSummary }) {
                     {isPending ? <Spinner/> : <EllipsisVerticalIcon/>}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-60">
-                    {item.hasProgress &&
+                    {hasCurrentProgress &&
                         <>
                             <DropdownMenuGroup>
-                                <DropdownMenuItem disabled={isPending} onClick={() => clearProgress.mutate()}>
+                                <DropdownMenuItem
+                                    disabled={isPending}
+                                    onClick={() => {
+                                        if (clearsEpisode && item.nextPartId) clearPartProgress.mutate(item.nextPartId);
+                                        else clearMediaProgress.mutate();
+                                    }}
+                                >
                                     <CircleXIcon/>
-                                    Remove watch progress
+                                    {clearsEpisode ? "Remove episode progress" : "Remove watch progress"}
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
                             <DropdownMenuSeparator/>

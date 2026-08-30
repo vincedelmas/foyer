@@ -11,6 +11,7 @@ import { useEffect, useState } from "react"
 
 import {
   useClearMediaProgressMutation,
+  useClearMediaPartProgressMutation,
   useDeleteMediaMutation,
   useRefreshMediaMetadataMutation,
   useSetMediaWatchedMutation,
@@ -26,6 +27,7 @@ export function MediaActionsDialog({
   onIdentify,
   onInfo,
   onDeleted,
+  showWatchAction = true,
 }: {
   server: string
   item: MediaSummary | null
@@ -34,6 +36,7 @@ export function MediaActionsDialog({
   onIdentify: (item: MediaSummary) => void
   onInfo: (item: MediaSummary) => void
   onDeleted?: (item: MediaSummary) => void
+  showWatchAction?: boolean
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -42,7 +45,8 @@ export function MediaActionsDialog({
   }, [item?.id, visible])
 
   const mediaId = item?.id ?? ""
-  const clearProgress = useClearMediaProgressMutation(server, mediaId, onClose)
+  const clearMediaProgress = useClearMediaProgressMutation(server, mediaId, onClose)
+  const clearPartProgress = useClearMediaPartProgressMutation(server, mediaId, onClose)
   const watchState = useSetMediaWatchedMutation(server, mediaId, onClose)
   const refresh = useRefreshMediaMetadataMutation(server, mediaId, onClose)
   const remove = useDeleteMediaMutation(server, mediaId, () => {
@@ -55,11 +59,16 @@ export function MediaActionsDialog({
   if (!item) return null
   const pending =
     watchState.isPending ||
-    clearProgress.isPending ||
+    clearMediaProgress.isPending ||
+    clearPartProgress.isPending ||
     refresh.isPending ||
     remove.isPending
   const error =
-    watchState.error ?? clearProgress.error ?? refresh.error ?? remove.error
+    watchState.error ?? clearMediaProgress.error ?? clearPartProgress.error ?? refresh.error ?? remove.error
+
+  const hasCurrentProgress =
+    !!item.progress?.positionSeconds && !item.progress.completed
+  const clearsEpisode = item.kind !== "movie" && !!item.nextPartId
 
   return (
     <>
@@ -73,24 +82,37 @@ export function MediaActionsDialog({
         }
         onClose={onClose}
         items={[
-          {
-            key: "watched",
-            label: item.watched ? "Mark as unwatched" : "Mark as watched",
-            icon: CheckIcon,
-            selected: item.watched,
-            disabled: pending,
-            pending: watchState.isPending,
-            onPress: () => watchState.mutate(!item.watched),
-          },
-          ...(item.hasProgress
+          ...(showWatchAction
+            ? [
+                {
+                  key: "watched",
+                  label: item.watched ? "Mark as unwatched" : "Mark as watched",
+                  icon: CheckIcon,
+                  selected: item.watched,
+                  disabled: pending,
+                  pending: watchState.isPending,
+                  onPress: () => watchState.mutate(!item.watched),
+                },
+              ]
+            : []),
+          ...(hasCurrentProgress
             ? [
                 {
                   key: "progress",
-                  label: "Remove watch progress",
+                  label: clearsEpisode
+                    ? "Remove episode progress"
+                    : "Remove watch progress",
                   icon: CircleXIcon,
                   disabled: pending,
-                  pending: clearProgress.isPending,
-                  onPress: () => clearProgress.mutate(),
+                  pending:
+                    clearMediaProgress.isPending || clearPartProgress.isPending,
+                  onPress: () => {
+                    if (clearsEpisode && item.nextPartId) {
+                      clearPartProgress.mutate(item.nextPartId)
+                    } else {
+                      clearMediaProgress.mutate()
+                    }
+                  },
                 },
               ]
             : []),

@@ -36,8 +36,8 @@ export const Route = createFileRoute("/api/v1/media/$id")({
                     : json({ error: "Media not found" }, { status: 404 });
             }),
             PUT: ({ params, request }) => handleApi(async () => {
-                const { watched } = await parseBody(request, mediaWatchStateInputSchema);
-                return json(setMediaWatched(params.id, watched));
+                const { watched, seasonNumber } = await parseBody(request, mediaWatchStateInputSchema);
+                return json(setMediaWatched(params.id, watched, seasonNumber));
             }),
             DELETE: ({ params, request }) => handleApi(async () => {
                 await parseBody(request, mediaDeleteInputSchema);

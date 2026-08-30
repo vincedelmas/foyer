@@ -16,7 +16,7 @@ export function LibraryFormDialog({
 }: {
   server: string
   visible: boolean
-  library?: LibraryRecord | null
+  library?: Pick<LibraryRecord, "id" | "name" | "path" | "kind"> | null
   onClose: () => void
 }) {
   const [name, setName] = useState("")

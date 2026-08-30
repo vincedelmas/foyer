@@ -35,7 +35,7 @@ const asProgress = (row: ProgressRow | undefined): MediaProgress | null => {
 };
 
 
-type SummaryPart = Pick<MediaPartRow, "id" | "fileName" | "seasonNumber" | "episodeNumber">;
+type SummaryPart = Pick<MediaPartRow, "id" | "fileName" | "title" | "seasonNumber" | "episodeNumber">;
 
 
 const asSummary = (item: MediaItemRow, parts: SummaryPart[], progressByPart: Map<string, ProgressRow>) => {
@@ -58,6 +58,9 @@ const asSummary = (item: MediaItemRow, parts: SummaryPart[], progressByPart: Map
         releaseDate: item.releaseDate,
         backdropPath: item.backdropPath,
         nextPartId: nextPart?.id ?? null,
+        nextPartTitle: nextPart?.title ?? null,
+        nextPartSeasonNumber: nextPart?.seasonNumber ?? null,
+        nextPartEpisodeNumber: nextPart?.episodeNumber ?? null,
         tmdbVoteCount: item.tmdbVoteCount,
         runtimeMinutes: item.runtimeMinutes,
         metadataStatus: item.metadataStatus,
@@ -305,6 +308,22 @@ export const listCurrentlyWatching = () => {
 };
 
 
+const deleteProgressForParts = (partIds: string[]) => {
+    if (!partIds.length) return 0;
+
+    const deleted = db.select({id: playbackProgress.mediaPartId})
+        .from(playbackProgress)
+        .where(inArray(playbackProgress.mediaPartId, partIds))
+        .all().length;
+
+    db.delete(playbackProgress)
+        .where(inArray(playbackProgress.mediaPartId, partIds))
+        .run();
+
+    return deleted;
+};
+
+
 export const deleteMediaProgress = (mediaId: string) => {
     ensureDatabase();
 
@@ -322,29 +341,26 @@ export const deleteMediaProgress = (mediaId: string) => {
         .where(eq(mediaParts.mediaItemId, mediaId))
         .all();
 
-    let deleted = 0;
-    db.transaction(() => {
-        for (const part of parts) {
-            const progress = db
-                .select({ id: playbackProgress.mediaPartId })
-                .from(playbackProgress)
-                .where(eq(playbackProgress.mediaPartId, part.id))
-                .get();
-
-            if (!progress) continue
-            db.delete(playbackProgress)
-                .where(eq(playbackProgress.mediaPartId, part.id))
-                .run();
-
-            deleted += 1;
-        }
-    });
-
-    return deleted;
+    return deleteProgressForParts(parts.map((part) => part.id));
 };
 
 
-export const setMediaWatched = (mediaId: string, watched: boolean) => {
+export const deleteMediaPartProgress = (partId: string) => {
+    ensureDatabase();
+
+    const part = db
+        .select({ id: mediaParts.id })
+        .from(mediaParts)
+        .where(eq(mediaParts.id, partId))
+        .get();
+
+    if (!part) throw new Error("Media part not found");
+
+    return deleteProgressForParts([partId]);
+};
+
+
+export const setMediaWatched = (mediaId: string, watched: boolean, seasonNumber?: number) => {
     ensureDatabase();
 
     const item = db
@@ -358,15 +374,22 @@ export const setMediaWatched = (mediaId: string, watched: boolean) => {
     const parts = db
         .select({ id: mediaParts.id })
         .from(mediaParts)
-        .where(eq(mediaParts.mediaItemId, mediaId))
+        .where(and(
+            eq(mediaParts.mediaItemId, mediaId),
+            seasonNumber === undefined
+                ? undefined
+                : sql`coalesce(${mediaParts.seasonNumber}, 1) = ${seasonNumber}`,
+        ))
         .all();
 
-    if (!parts.length) throw new Error("Media item has no files");
+    if (!parts.length) {
+        throw new Error(seasonNumber === undefined ? "Media item has no files" : "Season has no episodes");
+    }
 
     if (!watched) {
         return {
             watched,
-            updatedParts: deleteMediaProgress(mediaId),
+            updatedParts: deleteProgressForParts(parts.map((part) => part.id)),
         };
     }
 
@@ -469,6 +492,7 @@ export const getMediaDetail = (mediaId: string, input: { season?: number, page?:
     const summaryParts = db
         .select({
             id: mediaParts.id,
+            title: mediaParts.title,
             fileName: mediaParts.fileName,
             seasonNumber: mediaParts.seasonNumber,
             episodeNumber: mediaParts.episodeNumber,
@@ -487,7 +511,13 @@ export const getMediaDetail = (mediaId: string, input: { season?: number, page?:
             .all()
         : [];
 
+    const progressByPart = new Map(progressRows.map((row) => [row.mediaPartId, row]));
     const partSeasons = [...new Set(summaryParts.map((p) => p.seasonNumber ?? 1))].sort((l, r) => l - r);
+    const watchedSeasons = partSeasons.filter((season) =>
+        summaryParts
+            .filter((part) => (part.seasonNumber ?? 1) === season)
+            .every((part) => progressByPart.get(part.id)?.completed === true)
+    );
     const requestedSeason = input.season ?? partSeasons[0];
 
     const selectedPartSeason = input.pageSize
@@ -533,7 +563,6 @@ export const getMediaDetail = (mediaId: string, input: { season?: number, page?:
         : [];
 
     const subtitlesByPart = new Map<string, SubtitleRow[]>();
-    const progressByPart = new Map(progressRows.map((row) => [row.mediaPartId, row]));
 
     for (const subtitle of subtitleRows) {
         const bucket = subtitlesByPart.get(subtitle.mediaPartId) ?? [];
@@ -568,6 +597,7 @@ export const getMediaDetail = (mediaId: string, input: { season?: number, page?:
     return {
         ...summary,
         partSeasons,
+        watchedSeasons,
         selectedPartSeason,
         tmdbId: item.tmdbId,
         parts: hydratedParts,

@@ -18,6 +18,19 @@ export function MediaTile({
   hasTVPreferredFocus?: boolean
 }) {
   const poster = tmdbImage(item.posterPath, "w500")
+  const episodeProgress =
+    item.kind !== "movie" && item.progress?.positionSeconds && !item.progress.completed
+      ? [
+          item.nextPartSeasonNumber === null
+            ? null
+            : `S${item.nextPartSeasonNumber}`,
+          item.nextPartEpisodeNumber === null
+            ? item.nextPartTitle
+            : `E${item.nextPartEpisodeNumber}`,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : null
   const [focused, setFocused] = useState(false)
   const longPressed = useRef(false)
   return (
@@ -94,7 +107,9 @@ export function MediaTile({
           item.year ?? "Unknown year",
           item.kind === "movie" ? formatRuntime(item.runtimeMinutes) : null,
           item.kind === "movie" ? "Movie" : "TV show",
+          episodeProgress ? `${episodeProgress} · ${item.progress?.percentage}%` : null,
           item.kind !== "movie"
+            && !episodeProgress
             ? `${item.partCount} ${item.partCount === 1 ? "ep." : "eps."}`
             : null,
         ]
