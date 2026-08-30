@@ -1,6 +1,4 @@
-import {api} from "@/lib/api";
 import {cn} from "@/lib/utils";
-import {toast} from "@/components/ui/toast";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
@@ -8,14 +6,15 @@ import {mediaOptions} from "@/lib/query-options";
 import {AppHeader} from "@/components/app-header";
 import {Separator} from "@/components/ui/separator";
 import {ScrollArea} from "@/components/ui/scroll-area";
+import {useSuspenseQuery} from "@tanstack/react-query";
 import {IdentifyDialog} from "@/components/identify-dialog";
 import {createFileRoute, Link} from "@tanstack/react-router";
 import {formatRuntime, MediaPart, tmdbImage} from "@ploux/contracts";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
-import {useMutation, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
 import {CalendarIcon, CheckIcon, Clock3Icon, PlayIcon, RefreshCwIcon, StarIcon} from "lucide-react";
+import {useRefreshMediaMetadataMutation, useSetMediaPartWatchedMutation} from "@/lib/query-mutations";
 
 
 export const Route = createFileRoute("/media/$id")({
@@ -31,25 +30,10 @@ export const Route = createFileRoute("/media/$id")({
 
 function MediaDetailsPage() {
     const { id } = Route.useParams();
-    const queryClient = useQueryClient();
     const { mediaQueryOptions } = Route.useRouteContext();
-    const item = useSuspenseQuery(mediaQueryOptions).data;
 
-    const refresh = useMutation({
-        mutationFn: () => api.refreshMetadata(id),
-        onSuccess: async () => {
-            toast.add({ title: "Metadata refreshed", type: "success" });
-            await queryClient.invalidateQueries({ queryKey: ["library"] });
-            await queryClient.invalidateQueries({ queryKey: ["media", id] });
-        },
-        onError: (error) => {
-            toast.add({
-                title: "Refresh failed",
-                description: error.message,
-                type: "error",
-            });
-        },
-    });
+    const refresh = useRefreshMediaMetadataMutation(id);
+    const item = useSuspenseQuery(mediaQueryOptions).data;
 
     const poster = tmdbImage(item.posterPath, "w500");
     const backdrop = tmdbImage(item.backdropPath, "original");
@@ -191,7 +175,8 @@ function MediaDetailsPage() {
                                     />
                                     :
                                     <Tabs defaultValue={String([...seasons.keys()][0] ?? 1)}>
-                                        <div className="max-w-full overflow-x-auto overflow-y-hidden pb-1.5 scrollbar-none [&::-webkit-scrollbar]:hidden">
+                                        <div className="max-w-full overflow-x-auto overflow-y-hidden pb-1.5 scrollbar-none
+                                        [&::-webkit-scrollbar]:hidden">
                                             <TabsList variant="line">
                                                 {[...seasons.keys()].map((season) =>
                                                     <TabsTrigger key={season} value={String(season)}>
@@ -338,31 +323,9 @@ function EpisodeList({ mediaId, parts, fallbackLabel }: EpisodeListProps) {
 
 
 function EpisodeWatchToggle({ mediaId, part }: { mediaId: string, part: MediaPart }) {
-    const queryClient = useQueryClient();
     const watched = part.progress?.completed === true;
     const label = watched ? "Mark episode as unwatched" : "Mark episode as watched";
-
-    const watchState = useMutation({
-        mutationFn: () => api.setMediaPartWatched(part.id, !watched),
-        onSuccess: async (result) => {
-            await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["library"] }),
-                queryClient.invalidateQueries({ queryKey: ["media", mediaId] }),
-                queryClient.invalidateQueries({ queryKey: ["currently-watching"] }),
-            ]);
-            toast.add({
-                type: "success",
-                title: result.watched ? "Episode marked as watched" : "Episode marked as unwatched",
-            });
-        },
-        onError: (error) => {
-            toast.add({
-                type: "error",
-                description: error.message,
-                title: "Could not change episode watch status",
-            });
-        },
-    })
+    const watchState = useSetMediaPartWatchedMutation(mediaId, part.id, !watched);
 
     return (
         <Tooltip>

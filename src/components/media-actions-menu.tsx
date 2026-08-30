@@ -1,13 +1,11 @@
-import {api} from "@/lib/api";
 import {useState} from "react";
-import {toast} from "@/components/ui/toast";
 import {Button} from "@/components/ui/button";
 import {MediaSummary} from "@ploux/contracts";
 import {Spinner} from "@/components/ui/spinner";
 import {IdentifyDialog} from "@/components/identify-dialog";
 import {MediaInfoDialog} from "@/components/media-info-dialog";
-import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {CircleXIcon, EllipsisVerticalIcon, InfoIcon, RefreshCwIcon, SearchIcon, Trash2Icon} from "lucide-react";
+import {useClearMediaProgressMutation, useDeleteMediaMutation, useRefreshMediaMetadataMutation} from "@/lib/query-mutations";
 import {DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {
     AlertDialog,
@@ -22,82 +20,13 @@ import {
 
 
 export function MediaActionsMenu({ item }: { item: MediaSummary }) {
-    const queryClient = useQueryClient();
     const [infoOpen, setInfoOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [identifyOpen, setIdentifyOpen] = useState(false);
 
-    const invalidateMedia = async (includeFolders = false) => {
-        await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ["library"] }),
-            queryClient.invalidateQueries({ queryKey: ["media", item.id] }),
-            queryClient.invalidateQueries({ queryKey: ["currently-watching"] }),
-            ...(includeFolders ? [queryClient.invalidateQueries({ queryKey: ["media-folders"] })] : []),
-        ])
-    };
-
-    const clearProgress = useMutation({
-        mutationFn: () => api.deleteProgress(item.id),
-        onSuccess: async () => {
-            await invalidateMedia()
-            toast.add({ type: "success", title: "Watch progress removed" })
-        },
-        onError: (error) => {
-            toast.add({
-                type: "error",
-                description: error.message,
-                title: "Could not remove watch progress",
-            });
-        },
-    });
-
-    const refresh = useMutation({
-        mutationFn: () => api.refreshMetadata(item.id),
-        onSuccess: async () => {
-            await invalidateMedia(true)
-            toast.add({ type: "success", title: "Metadata refreshed" })
-        },
-        onError: (error) => {
-            toast.add({
-                type: "error",
-                description: error.message,
-                title: "Metadata refresh failed",
-            });
-        },
-    });
-
-    const remove = useMutation({
-        mutationFn: () => api.deleteMedia(item.id),
-        onSuccess: async (result) => {
-            await Promise.all([
-                invalidateMedia(true),
-                queryClient.invalidateQueries({ queryKey: ["settings"] }),
-            ]);
-
-            queryClient.removeQueries({ queryKey: ["media", item.id] });
-            queryClient.removeQueries({ queryKey: ["media-info", item.id] });
-
-            setDeleteOpen(false);
-
-            toast.add({
-                type: "success",
-                title: "Media deleted permanently",
-                description: [
-                    `${result.filesDeleted} ${result.filesDeleted === 1 ? "file" : "files"} deleted from the server.`,
-                    result.filesAlreadyMissing
-                        ? `${result.filesAlreadyMissing} already missing.`
-                        : null,
-                ].filter(Boolean).join(" "),
-            })
-        },
-        onError: (error) => {
-            toast.add({
-                type: "error",
-                title: "Could not delete media",
-                description: error.message,
-            });
-        },
-    });
+    const refresh = useRefreshMediaMetadataMutation(item.id);
+    const clearProgress = useClearMediaProgressMutation(item.id);
+    const remove = useDeleteMediaMutation(item.id, () => setDeleteOpen(false));
 
     const isPending = clearProgress.isPending || refresh.isPending || remove.isPending
 

@@ -1,11 +1,10 @@
 import {api} from "@/lib/api";
 import {useState} from "react";
-import {toast} from "@/components/ui/toast";
 import {useForm} from "@tanstack/react-form";
 import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
 import {SearchIcon, SparklesIcon} from "lucide-react";
-import {useMutation, useQueryClient} from "@tanstack/react-query";
+import {useIdentifyMediaMutation} from "@/lib/query-mutations";
 import {MediaSummary, TmdbCandidate, tmdbImage} from "@ploux/contracts";
 import {Field, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/input-group";
@@ -21,9 +20,10 @@ interface IdentifyDialogProps {
 
 
 export function IdentifyDialog({ media, open: controlledOpen, onOpenChange, showTrigger = true }: IdentifyDialogProps) {
-    const queryClient = useQueryClient();
     const [internalOpen, setInternalOpen] = useState(false);
     const [candidates, setCandidates] = useState<TmdbCandidate[]>([]);
+    const identify = useIdentifyMediaMutation(media.id, () => setOpen(false));
+
     const form = useForm({
         defaultValues: {
             query: media.title,
@@ -39,8 +39,6 @@ export function IdentifyDialog({ media, open: controlledOpen, onOpenChange, show
         },
     });
 
-    const open = controlledOpen ?? internalOpen;
-
     const setOpen = (nextOpen: boolean) => {
         if (controlledOpen === undefined) {
             setInternalOpen(nextOpen);
@@ -51,32 +49,9 @@ export function IdentifyDialog({ media, open: controlledOpen, onOpenChange, show
         if (!nextOpen) {
             setCandidates([]);
         }
-    }
+    };
 
-    const identify = useMutation({
-        mutationFn: (tmdbId: number) => api.identify(media.id, tmdbId),
-        onSuccess: async () => {
-            await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["library"] }),
-                queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
-                queryClient.invalidateQueries({ queryKey: ["media", media.id] }),
-                queryClient.invalidateQueries({ queryKey: ["currently-watching"] }),
-            ])
-            toast.add({
-                type: "success",
-                title: "Identity updated",
-                description: "TMDB metadata has been replaced.",
-            })
-            setOpen(false)
-        },
-        onError: (error) => {
-            toast.add({
-                type: "error",
-                description: error.message,
-                title: "Could not identify title",
-            });
-        },
-    });
+    const open = controlledOpen ?? internalOpen;
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>

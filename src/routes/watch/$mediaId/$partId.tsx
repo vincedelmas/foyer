@@ -1,15 +1,15 @@
-import {api} from "@/lib/api";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {useSelector} from "@tanstack/react-store";
 import {useEffect, useRef, useState} from "react";
+import {useSuspenseQuery} from "@tanstack/react-query";
 import {createFileRoute, Link} from "@tanstack/react-router";
 import {playerStore, updatePlayer} from "@/lib/player-store";
-import {mediaOptions, streamAvailabilityOptions} from "@/lib/query-options";
+import {useSaveProgressMutation} from "@/lib/query-mutations";
 import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
-import {useMutation, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
+import {mediaOptions, streamAvailabilityOptions} from "@/lib/query-options";
 import {ArrowLeftIcon, CaptionsIcon, ExpandIcon, FileWarningIcon, GaugeIcon} from "lucide-react";
-import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
+import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 
 
 export const Route = createFileRoute("/watch/$mediaId/$partId")({
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/watch/$mediaId/$partId")({
 function WatchPage() {
     const { mediaId, partId } = Route.useParams();
     const { mediaQueryOptions, streamAvailabilityQueryOptions } = Route.useRouteContext();
-    
+
     const media = useSuspenseQuery(mediaQueryOptions).data;
     const available = useSuspenseQuery(streamAvailabilityQueryOptions).data;
     const part = media.parts.find((candidate) => candidate.id === partId);
@@ -98,20 +98,11 @@ interface ReadyPlayerProps {
 
 
 function ReadyPlayer({ mediaTitle, mediaId, part }: ReadyPlayerProps) {
-    const queryClient = useQueryClient();
     const lastSavedAt = useRef(0);
+    const save = useSaveProgressMutation(mediaId, part.id);
     const videoRef = useRef<HTMLVideoElement>(null);
     const playing = useSelector(playerStore, (state) => state.playing);
     const [selectedSubtitle, setSelectedSubtitle] = useState<string | null>(part.subtitles.find((s) => s.isDefault)?.id ?? null);
-
-    const save = useMutation({
-        mutationFn: (value: { positionSeconds: number; durationSeconds: number }) => api.progress({ partId: part.id, ...value }),
-        onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: ["library"] });
-            void queryClient.invalidateQueries({ queryKey: ["media", mediaId] });
-            void queryClient.invalidateQueries({ queryKey: ["currently-watching"] });
-        },
-    })
 
     const saveCurrentProgress = () => {
         const video = videoRef.current;

@@ -1,18 +1,16 @@
-import {api} from "@/lib/api";
 import {useState} from "react";
 import {Badge} from "@/components/ui/badge";
 import {Input} from "@/components/ui/input";
-import {toast} from "@/components/ui/toast";
 import {useForm} from "@tanstack/react-form";
 import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
 import {LibraryKind, LibraryRecord} from "@ploux/contracts";
-import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {FolderSyncIcon, PencilIcon, Trash2Icon} from "lucide-react";
 import {MediaTypeToggle} from "@/components/settings/media-type-toggle";
 import {Field, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field";
 import {createColumnHelper, tableFeatures, useTable} from "@tanstack/react-table";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
+import {useDeleteLibraryMutation, useScanLibraryMutation, useUpdateLibraryMutation} from "@/lib/query-mutations";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";
 
 
@@ -48,55 +46,8 @@ interface LibraryActionsProps {
 
 
 const LibraryActions = ({ library }: LibraryActionsProps) => {
-    const queryClient = useQueryClient();
-
-    const scan = useMutation({
-        mutationFn: () => api.scan(library.id),
-        onSuccess: async (result) => {
-            const summary = result.scans[0]
-
-            await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["library"] }),
-                queryClient.invalidateQueries({ queryKey: ["settings"] }),
-                queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
-            ])
-
-            toast.add({
-                type: "success",
-                title: `${library.name} scanned`,
-                description: summary
-                    ? `${summary.filesSeen} files · ${summary.titlesAdded} new titles · ${summary.subtitlesFound} subtitles`
-                    : undefined,
-            })
-        },
-        onError: (error) => {
-            toast.add({ type: "error", title: "Scan failed", description: error.message });
-        },
-    });
-
-    const remove = useMutation({
-        mutationFn: () => api.deleteLibrary(library.id),
-        onSuccess: async () => {
-            await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["library"] }),
-                queryClient.invalidateQueries({ queryKey: ["settings"] }),
-                queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
-            ])
-
-            toast.add({
-                type: "success",
-                title: "Media folder removed",
-                description: "Your media files were not touched.",
-            })
-        },
-        onError: (error) => {
-            toast.add({
-                type: "error",
-                description: error.message,
-                title: "Could not remove media folder",
-            });
-        },
-    });
+    const scan = useScanLibraryMutation(library);
+    const remove = useDeleteLibraryMutation(library.id);
 
     return (
         <div className="flex justify-end gap-1">
@@ -123,8 +74,9 @@ const LibraryActions = ({ library }: LibraryActionsProps) => {
 
 
 function EditLibraryDialog({ library }: { library: LibraryRecord }) {
-    const queryClient = useQueryClient();
     const [open, setOpen] = useState(false);
+    const update = useUpdateLibraryMutation(() => setOpen(false));
+
     const form = useForm({
         defaultValues: {
             id: library.id,
@@ -134,31 +86,6 @@ function EditLibraryDialog({ library }: { library: LibraryRecord }) {
         },
         onSubmit: async ({ value }) => {
             await update.mutateAsync(value);
-        },
-    });
-
-    const update = useMutation({
-        mutationFn: api.updateLibrary,
-        onSuccess: async () => {
-            await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["library"] }),
-                queryClient.invalidateQueries({ queryKey: ["settings"] }),
-                queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
-            ])
-
-            setOpen(false);
-            toast.add({
-                type: "success",
-                title: "Media folder updated",
-                description: "Run a scan if you changed its path or media type.",
-            })
-        },
-        onError: (error) => {
-            toast.add({
-                type: "error",
-                description: error.message,
-                title: "Could not update media folder",
-            });
         },
     });
 
@@ -258,7 +185,7 @@ function EditLibraryDialog({ library }: { library: LibraryRecord }) {
             </DialogContent>
         </Dialog>
     );
-};
+}
 
 
 export const LibrariesTable = ({ libraries }: { libraries: LibraryRecord[] }) => {

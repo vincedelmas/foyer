@@ -1,18 +1,16 @@
-import {api} from "@/lib/api";
 import {Input} from "@/components/ui/input";
-import {toast} from "@/components/ui/toast";
 import {FolderPlusIcon} from "lucide-react";
 import {useForm} from "@tanstack/react-form";
+import {LibraryKind} from "@ploux/contracts";
 import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
-import type {LibraryKind} from "@ploux/contracts";
-import {useMutation, useQueryClient} from "@tanstack/react-query";
+import {useCreateLibraryMutation} from "@/lib/query-mutations";
 import {MediaTypeToggle} from "@/components/settings/media-type-toggle";
 import {Field, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field";
 
 
 export function LibraryForm() {
-    const queryClient = useQueryClient();
+    const create = useCreateLibraryMutation();
 
     const form = useForm({
         defaultValues: {
@@ -23,28 +21,6 @@ export function LibraryForm() {
         onSubmit: async ({ value, formApi }) => {
             await create.mutateAsync(value);
             formApi.reset();
-        },
-    })
-
-    const create = useMutation({
-        mutationFn: api.createLibrary,
-        onSuccess: async () => {
-            await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["settings"] }),
-                queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
-            ]);
-            toast.add({
-                type: "success",
-                title: "Media folder added",
-                description: "Run a scan to index its files.",
-            })
-        },
-        onError: (error) => {
-            toast.add({
-                type: "error",
-                description: error.message,
-                title: "Could not add media folder",
-            });
         },
     })
 
@@ -70,9 +46,9 @@ export function LibraryForm() {
                             </FieldLabel>
                             <Input
                                 id={field.name}
+                                placeholder="Fun movies"
                                 value={field.state.value}
                                 onBlur={field.handleBlur}
-                                placeholder="Fun movies"
                                 aria-invalid={!field.state.meta.isValid}
                                 onChange={(ev) => field.handleChange(ev.target.value)}
                             />

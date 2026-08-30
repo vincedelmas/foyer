@@ -1,16 +1,15 @@
 import React from "react";
-import {api} from "@/lib/api";
-import {toast} from "@/components/ui/toast";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
 import {AppHeader} from "@/components/app-header";
 import {createFileRoute} from "@tanstack/react-router";
+import {useSuspenseQuery} from "@tanstack/react-query";
 import {LibraryForm} from "@/components/settings/library-form";
+import {useScanAllLibrariesMutation} from "@/lib/query-mutations";
 import {LibrariesTable} from "@/components/settings/libraries-table";
 import {settingsLibraryOptions, settingsOptions} from "@/lib/query-options";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
-import {useMutation, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 import {DatabaseIcon, FilmIcon, FolderSyncIcon, LibraryIcon, SparklesIcon} from "lucide-react";
 
@@ -29,34 +28,11 @@ export const Route = createFileRoute("/settings")({
 
 
 function SettingsPage() {
-    const queryClient = useQueryClient();
     const { libraryQueryOptions, settingsQueryOptions } = Route.useRouteContext();
 
+    const scanAll = useScanAllLibrariesMutation();
     const library = useSuspenseQuery(libraryQueryOptions).data;
     const settings = useSuspenseQuery(settingsQueryOptions).data;
-
-    const scanAll = useMutation({
-        mutationFn: () => api.scan(),
-        onSuccess: async (result) => {
-            await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["library"] }),
-                queryClient.invalidateQueries({ queryKey: ["settings"] }),
-                queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
-            ]);
-            toast.add({
-                type: "success",
-                title: "All media folders scanned",
-                description: `${result.scans.length} folders completed.`,
-            });
-        },
-        onError: (error) => {
-            toast.add({
-                type: "error",
-                title: "Scan failed",
-                description: error.message,
-            });
-        },
-    });
 
     return (
         <div className="min-h-svh">

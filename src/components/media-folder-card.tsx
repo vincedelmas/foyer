@@ -1,17 +1,15 @@
-import {api} from "@/lib/api";
 import {cn} from "@/lib/utils";
 import {Link} from "@tanstack/react-router";
 import {Input} from "@/components/ui/input";
-import {toast} from "@/components/ui/toast";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {CSSProperties, useState} from "react";
 import {Spinner} from "@/components/ui/spinner";
 import {MediaFolderSummary, tmdbImage} from "@ploux/contracts";
-import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {Field, FieldDescription, FieldGroup, FieldLabel} from "@/components/ui/field";
 import {Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {useDeleteCollectionMutation, useEditCollectionMutation, useRefreshCollectionMetadataMutation, useScanLibraryMutation} from "@/lib/query-mutations";
 import {ArrowUpRightIcon, EllipsisVerticalIcon, FilmIcon, FolderInputIcon, FolderSyncIcon, PencilIcon, RefreshCwIcon, Trash2Icon, TvIcon} from "lucide-react";
 import {DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {
@@ -114,128 +112,16 @@ interface CollectionCardProps {
 
 
 export function CollectionActions({ folder, placement = "card", onDeleted }: CollectionCardProps) {
-    const queryClient = useQueryClient();
     const [editValue, setEditValue] = useState("");
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [editMode, setEditMode] = useState<EditMode | null>(null);
 
-    const invalidateCollectionQueries = async () => {
-        await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ["library"] }),
-            queryClient.invalidateQueries({ queryKey: ["settings"] }),
-            queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
-        ])
-    };
-
-    const update = useMutation({
-        mutationFn: ({ mode, value }: { mode: EditMode; value: string }) => api.updateLibrary({
-            id: folder.id,
-            kind: folder.kind,
-            path: mode === "path" ? value : folder.path,
-            name: mode === "rename" ? value : folder.name,
-        }),
-        onSuccess: async (_, variables) => {
-            await invalidateCollectionQueries();
-            setEditMode(null);
-
-            toast.add({
-                type: "success",
-                title: variables.mode === "rename" ? "Collection renamed" : "Server folder updated",
-                description: variables.mode === "path" ? "Rescan this collection to sync its files." : undefined,
-            });
-        },
-        onError: (error) => {
-            toast.add({
-                type: "error",
-                description: error.message,
-                title: "Could not update collection",
-            });
-        },
-    });
-
-    const refresh = useMutation({
-        mutationFn: () => api.refreshLibraryMetadata(folder.id),
-        onSuccess: async (summary) => {
-            await Promise.all([
-                invalidateCollectionQueries(),
-                queryClient.invalidateQueries({ queryKey: ["currently-watching"] }),
-                queryClient.invalidateQueries({ queryKey: ["media"] }),
-            ]);
-
-            const updated = summary.refreshed + summary.matched;
-
-            toast.add({
-                type: summary.failed ? "warning" : "success",
-                title: updated ? `${updated} ${updated === 1 ? "title" : "titles"} refreshed` : "Metadata is already up to date",
-                description: [
-                    summary.failed ? `${summary.failed} failed` : null,
-                    summary.skipped ? `${summary.skipped} unmatched` : null,
-                    summary.matched ? `${summary.matched} newly matched` : null,
-                ].filter(Boolean).join(" · ") || undefined,
-            });
-        },
-        onError: (error) => {
-            toast.add({
-                type: "error",
-                description: error.message,
-                title: "Metadata refresh failed",
-            });
-        },
-    });
-
-    const scan = useMutation({
-        mutationFn: () => api.scan(folder.id),
-        onSuccess: async (result) => {
-            await Promise.all([
-                invalidateCollectionQueries(),
-                queryClient.invalidateQueries({ queryKey: ["media"] }),
-                queryClient.invalidateQueries({ queryKey: ["currently-watching"] }),
-            ]);
-
-            const summary = result.scans[0];
-
-            toast.add({
-                type: "success",
-                title: `${folder.name} rescanned`,
-                description: summary
-                    ? `${summary.filesSeen} files · ${summary.titlesAdded} new titles · ${summary.subtitlesFound} subtitles`
-                    : undefined,
-            });
-        },
-        onError: (error) => {
-            toast.add({
-                type: "error",
-                description: error.message,
-                title: "Media folder scan failed",
-            });
-        },
-    });
-
-    const remove = useMutation({
-        mutationFn: () => api.deleteLibrary(folder.id),
-        onSuccess: async () => {
-            await Promise.all([
-                invalidateCollectionQueries(),
-                queryClient.invalidateQueries({ queryKey: ["currently-watching"] }),
-            ]);
-
-            setDeleteOpen(false);
-
-            toast.add({
-                type: "success",
-                title: "Collection deleted",
-                description: "Your media files were not touched.",
-            });
-
-            onDeleted?.();
-        },
-        onError: (error) => {
-            toast.add({
-                type: "error",
-                description: error.message,
-                title: "Could not delete collection",
-            });
-        },
+    const scan = useScanLibraryMutation(folder, "rescanned");
+    const refresh = useRefreshCollectionMetadataMutation(folder.id);
+    const update = useEditCollectionMutation(folder, () => setEditMode(null));
+    const remove = useDeleteCollectionMutation(folder.id, () => {
+        setDeleteOpen(false);
+        onDeleted?.();
     });
 
     const openEditor = (mode: EditMode) => {
