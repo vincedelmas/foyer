@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.4.0](https://github.com/vincedelmas/ploux/compare/v0.3.5...v0.4.0) (2026-08-30)
+
+
+### Features
+
+* harden LAN API and paginate media browsing ([8a6a6f8](https://github.com/vincedelmas/ploux/commit/8a6a6f812fc69ae40f5f97817b34471ffbac1793))
+
+
+### Bug Fixes
+
+* harden media scanning and inspection ([a60f76f](https://github.com/vincedelmas/ploux/commit/a60f76f31128bc5fdd0f1db7b9dc260279b51f15))
+* make scans resilient and probe media on demand ([2779bf6](https://github.com/vincedelmas/ploux/commit/2779bf62506b83d202926d7d162be04c80997390))
+* require JSON API bodies and remove Docker support ([c1adbf4](https://github.com/vincedelmas/ploux/commit/c1adbf43c08c3676aa27c054a8907e2f921e00b4))
+* **scanner:** remove stale subtitles on rescan ([da300bf](https://github.com/vincedelmas/ploux/commit/da300bfd432a78c02de50c72f9714eb76afbce19))
+
+
+### Refactors
+
+* add try catch abstraction for API ([dc27b9e](https://github.com/vincedelmas/ploux/commit/dc27b9eed40d3cefd2b3d5285e3d0aad5af0b5a8))
+* consolidate duplicated api and media utilities ([a3dbb2f](https://github.com/vincedelmas/ploux/commit/a3dbb2fa2f51a70339b17a7e44a2c538e50e1526))
+* share query options and mutations across clients ([1ed6138](https://github.com/vincedelmas/ploux/commit/1ed6138e3b5687fd76696ad4fe205880def23a72))
+* **web:** centralize query mutations ([5ff52c4](https://github.com/vincedelmas/ploux/commit/5ff52c43da60dcde2a824e682fe6ccafd855f086))
+* **web:** load route queries with suspense ([9a4bd46](https://github.com/vincedelmas/ploux/commit/9a4bd46b3dbc228dfc92a068454289c2802de274))
+
 ## [0.3.5](https://github.com/vincedelmas/ploux/compare/v0.3.4...v0.3.5) (2026-08-29)
 
 
