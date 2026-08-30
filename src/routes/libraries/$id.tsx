@@ -1,15 +1,14 @@
 import {z} from "zod";
-import {api} from "@/lib/api";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
-import {useQuery} from "@tanstack/react-query";
 import {AppHeader} from "@/components/app-header";
 import {MediaGrid} from "@/components/media-grid";
-import {Skeleton} from "@/components/ui/skeleton";
 import {Separator} from "@/components/ui/separator";
+import {useSuspenseQuery} from "@tanstack/react-query";
 import {MouseEvent, useEffect, useState} from "react";
 import {createFileRoute, Link} from "@tanstack/react-router";
 import {CollectionActions} from "@/components/media-folder-card";
+import {libraryOptions, mediaFoldersOptions} from "@/lib/query-options";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/input-group";
 import {ArrowLeftIcon, FilmIcon, FolderSearchIcon, SearchIcon, TvIcon} from "lucide-react";
 import {mediaSortSchema, MediaWatchFilter, mediaWatchFilterSchema} from "@ploux/contracts";
@@ -28,11 +27,18 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/libraries/$id")({
     validateSearch: searchSchema,
+    loaderDeps: ({ search }) => ({ search }),
+    context: ({ params: { id }, deps: { search } }) => ({
+        libraryQueryOptions: libraryOptions(id, search),
+        mediaFoldersQueryOptions: mediaFoldersOptions,
+    }),
+    loader: ({ context }) => Promise.all([
+        context.queryClient.query(context.libraryQueryOptions),
+        context.queryClient.query(context.mediaFoldersQueryOptions),
+    ]),
     component: MediaFolderPage,
 });
 
-
-const PAGE_SIZE = 28;
 
 const sortItems = [
     { label: "Recently added", value: "recent" },
@@ -75,22 +81,16 @@ const storeWatchFilter = (libraryId: string, watch: MediaWatchFilter) => {
 
 
 function MediaFolderPage() {
+    const { libraryQueryOptions, mediaFoldersQueryOptions } = Route.useRouteContext();
+
     const { id } = Route.useParams();
     const search = Route.useSearch();
     const navigate = Route.useNavigate();
+    const library = useSuspenseQuery(libraryQueryOptions).data;
+    const folders = useSuspenseQuery(mediaFoldersQueryOptions).data;
     const [searchInput, setSearchInput] = useState(search.search ?? "");
 
-    const folders = useQuery({
-        queryKey: ["media-folders"],
-        queryFn: api.mediaFolders,
-    });
-
-    const library = useQuery({
-        queryKey: ["library", id, search],
-        queryFn: () => api.library({ libraryId: id, ...search, pageSize: PAGE_SIZE }),
-    });
-
-    const folder = folders.data?.find((candidate) => candidate.id === id);
+    const folder = folders.find((candidate) => candidate.id === id);
     const TypeIcon = folder?.kind === "series" ? TvIcon : FilmIcon;
 
     useEffect(() => {
@@ -153,12 +153,13 @@ function MediaFolderPage() {
 
     const pageHref = (page: number) => {
         const query = new URLSearchParams();
-        const queryString = query.toString();
 
         if (search.search) query.set("search", search.search);
         if (search.sort && search.sort !== "recent") query.set("sort", search.sort);
         if (search.watch && search.watch !== "all") query.set("watch", search.watch);
         if (page > 1) query.set("page", String(page));
+
+        const queryString = query.toString();
 
         return `/libraries/${encodeURIComponent(id)}${queryString ? `?${queryString}` : ""}`;
     };
@@ -174,15 +175,7 @@ function MediaFolderPage() {
                     </Button>
                 </div>
 
-                {folders.isPending &&
-                    <div className="flex flex-col gap-3">
-                        <Skeleton className="h-5 w-28"/>
-                        <Skeleton className="h-16 w-72 max-w-full"/>
-                        <Skeleton className="h-5 w-44"/>
-                    </div>
-                }
-
-                {(!!folders.data && !folder) &&
+                {!folder &&
                     <Empty className="min-h-96 border border-border bg-card/30">
                         <EmptyHeader>
                             <EmptyMedia variant="icon">
@@ -201,18 +194,6 @@ function MediaFolderPage() {
                     </Empty>
                 }
 
-                {folders.isError &&
-                    <Empty className="min-h-96 border border-border bg-card/30">
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <FolderSearchIcon/>
-                            </EmptyMedia>
-                            <EmptyTitle>Could not open this media folder</EmptyTitle>
-                            <EmptyDescription>{folders.error.message}</EmptyDescription>
-                        </EmptyHeader>
-                    </Empty>
-                }
-
                 {!!folder &&
                     <>
                         <section className="flex flex-col gap-4" aria-labelledby="folder-heading">
@@ -223,8 +204,8 @@ function MediaFolderPage() {
                                         {folder.kind === "movies" ? "Movies" : "TV shows"}
                                     </Badge>
                                     <span className="text-xs text-muted-foreground">
-                                        {library.data?.stats.titles ?? folder.titleCount}{" "}
-                                        {(library.data?.stats.titles ?? folder.titleCount) === 1 ? "title" : "titles"}
+                                        {library.stats.titles}{" "}
+                                        {library.stats.titles === 1 ? "title" : "titles"}
                                     </span>
                                 </div>
                                 <CollectionActions
@@ -300,40 +281,21 @@ function MediaFolderPage() {
                                 </div>
                             </div>
 
-                            {library.isPending && <MediaGridSkeleton/>}
-
-                            {library.isError &&
-                                <Empty className="min-h-80 border border-border bg-card/30">
-                                    <EmptyHeader>
-                                        <EmptyMedia variant="icon">
-                                            <FolderSearchIcon/>
-                                        </EmptyMedia>
-                                        <EmptyTitle>Could not open this media folder</EmptyTitle>
-                                        <EmptyDescription>
-                                            {library.error.message}
-                                        </EmptyDescription>
-                                    </EmptyHeader>
-                                </Empty>
-                            }
-                            {!!library.data &&
-                                <>
-                                    <MediaGrid
-                                        items={library.data.items}
-                                        emptyTitle={search.search ? "No matching titles" : "This folder is empty"}
-                                        emptyDescription={
-                                            search.search
-                                                ? `Nothing in ${folder.name} matches “${search.search}”.`
-                                                : "Use Collection actions to rescan this folder and index its media."
-                                        }
-                                    />
-                                    {!!library.data.pagination.totalItems &&
-                                        <MediaPagination
-                                            hrefForPage={pageHref}
-                                            onPageChange={changePage}
-                                            pagination={library.data.pagination}
-                                        />
-                                    }
-                                </>
+                            <MediaGrid
+                                items={library.items}
+                                emptyTitle={search.search ? "No matching titles" : "This folder is empty"}
+                                emptyDescription={
+                                    search.search
+                                        ? `Nothing in ${folder.name} matches “${search.search}”.`
+                                        : "Use Collection actions to rescan this folder and index its media."
+                                }
+                            />
+                            {!!library.pagination.totalItems &&
+                                <MediaPagination
+                                    hrefForPage={pageHref}
+                                    onPageChange={changePage}
+                                    pagination={library.pagination}
+                                />
                             }
                         </section>
                     </>
@@ -428,21 +390,6 @@ function MediaPagination({ pagination, hrefForPage, onPageChange }: MediaPaginat
                     </Pagination>
                 }
             </div>
-        </div>
-    )
-}
-
-
-function MediaGridSkeleton() {
-    return (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
-            {Array.from({ length: 12 }, (_, idx) =>
-                <div key={idx} className="flex flex-col gap-3">
-                    <Skeleton className="aspect-2/3 w-full rounded-xl"/>
-                    <Skeleton className="h-4 w-4/5"/>
-                    <Skeleton className="h-3 w-2/5"/>
-                </div>
-            )}
         </div>
     );
 }

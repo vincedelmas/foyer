@@ -1,25 +1,32 @@
-import {api} from "@/lib/api";
+import {FolderPlusIcon} from "lucide-react";
 import {Button} from "@/components/ui/button";
-import {useQuery} from "@tanstack/react-query";
-import {Skeleton} from "@/components/ui/skeleton";
 import {AppHeader} from "@/components/app-header";
-import {FolderPlusIcon, FoldersIcon} from "lucide-react";
+import {useSuspenseQuery} from "@tanstack/react-query";
 import {createFileRoute, Link} from "@tanstack/react-router";
 import {MediaFolderCard} from "@/components/media-folder-card";
 import {CurrentlyWatchingSection} from "@/components/currently-watching-section";
+import {currentlyWatchingOptions, mediaFoldersOptions} from "@/lib/query-options";
 import {Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle} from "@/components/ui/empty";
 
 
 export const Route = createFileRoute("/")({
+    context: () => ({
+        mediaFoldersQueryOptions: mediaFoldersOptions,
+        currentlyWatchingQueryOptions: currentlyWatchingOptions,
+    }),
+    loader: ({ context }) => Promise.all([
+        context.queryClient.query(context.mediaFoldersQueryOptions),
+        context.queryClient.query(context.currentlyWatchingQueryOptions),
+    ]),
     component: HomePage,
-})
+});
 
 
 function HomePage() {
-    const folders = useQuery({
-        queryKey: ["media-folders"],
-        queryFn: api.mediaFolders,
-    });
+    const { currentlyWatchingQueryOptions, mediaFoldersQueryOptions } = Route.useRouteContext();
+    
+    const folders = useSuspenseQuery(mediaFoldersQueryOptions).data;
+    const currentlyWatching = useSuspenseQuery(currentlyWatchingQueryOptions).data;
 
     return (
         <div className="min-h-svh">
@@ -46,25 +53,9 @@ function HomePage() {
                         </Button>
                     </div>
 
-                    {folders.isPending && <FolderGridSkeleton/>}
-
-                    {folders.isError &&
-                        <Empty className="min-h-80 border border-border bg-card/30">
-                            <EmptyHeader>
-                                <EmptyMedia variant="icon">
-                                    <FoldersIcon/>
-                                </EmptyMedia>
-                                <EmptyTitle>Could not open your media folders</EmptyTitle>
-                                <EmptyDescription>
-                                    {folders.error.message}
-                                </EmptyDescription>
-                            </EmptyHeader>
-                        </Empty>
-                    }
-
-                    {folders.data?.length &&
+                    {!!folders.length &&
                         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                            {folders.data.map((folder, idx) =>
+                            {folders.map((folder, idx) =>
                                 <MediaFolderCard
                                     index={idx}
                                     key={folder.id}
@@ -74,7 +65,7 @@ function HomePage() {
                         </div>
                     }
 
-                    {folders.data && !folders.data.length &&
+                    {!folders.length &&
                         <Empty className="min-h-96 border border-border bg-card/30">
                             <EmptyHeader>
                                 <EmptyMedia variant="icon">
@@ -95,22 +86,8 @@ function HomePage() {
                         </Empty>
                     }
                 </section>
-                <CurrentlyWatchingSection/>
+                <CurrentlyWatchingSection items={currentlyWatching}/>
             </main>
-        </div>
-    );
-}
-
-
-function FolderGridSkeleton() {
-    return (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 3 }, (_, idx) => (
-                <Skeleton
-                    key={idx}
-                    className="aspect-16/10 rounded-xl"
-                />
-            ))}
         </div>
     );
 }

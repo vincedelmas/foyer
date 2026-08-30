@@ -4,7 +4,7 @@ import {toast} from "@/components/ui/toast";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
-import {Skeleton} from "@/components/ui/skeleton";
+import {mediaOptions} from "@/lib/query-options";
 import {AppHeader} from "@/components/app-header";
 import {Separator} from "@/components/ui/separator";
 import {ScrollArea} from "@/components/ui/scroll-area";
@@ -12,25 +12,28 @@ import {IdentifyDialog} from "@/components/identify-dialog";
 import {createFileRoute, Link} from "@tanstack/react-router";
 import {formatRuntime, MediaPart, tmdbImage} from "@ploux/contracts";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
+import {useMutation, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
 import {CalendarIcon, CheckIcon, Clock3Icon, PlayIcon, RefreshCwIcon, StarIcon} from "lucide-react";
 
 
 export const Route = createFileRoute("/media/$id")({
+    context: ({ params: { id } }) => ({
+        mediaQueryOptions: mediaOptions(id),
+    }),
+    loader: ({ context }) => {
+        return context.queryClient.query(context.mediaQueryOptions);
+    },
     component: MediaDetailsPage,
-})
+});
 
 
 function MediaDetailsPage() {
     const { id } = Route.useParams();
     const queryClient = useQueryClient();
-
-    const media = useQuery({
-        queryKey: ["media", id],
-        queryFn: () => api.media(id),
-    });
+    const { mediaQueryOptions } = Route.useRouteContext();
+    const item = useSuspenseQuery(mediaQueryOptions).data;
 
     const refresh = useMutation({
         mutationFn: () => api.refreshMetadata(id),
@@ -48,25 +51,6 @@ function MediaDetailsPage() {
         },
     });
 
-    if (media.isPending) return <DetailsSkeleton/>;
-
-    if (media.isError) {
-        return (
-            <div className="min-h-svh">
-                <AppHeader/>
-                <main className="mx-auto max-w-3xl px-6 py-24 text-center">
-                    <h1 className="font-heading text-4xl">
-                        Could not open this title
-                    </h1>
-                    <p className="mt-3 text-muted-foreground">
-                        {media.error.message}
-                    </p>
-                </main>
-            </div>
-        );
-    }
-
-    const item = media.data;
     const poster = tmdbImage(item.posterPath, "w500");
     const backdrop = tmdbImage(item.backdropPath, "original");
     const showPartList = item.kind !== "movie" || item.parts.length > 1;
@@ -440,23 +424,4 @@ function formatTmdbRating(voteAverage: number | null, voteCount: number | null) 
     if (voteCount === null) return rating;
 
     return `${rating} · ${new Intl.NumberFormat("en-US").format(voteCount)} votes`;
-}
-
-
-function DetailsSkeleton() {
-    return (
-        <div className="min-h-svh">
-            <AppHeader/>
-            <main className="mx-auto grid min-h-38rem max-w-[100rem] items-end gap-8 px-6 py-16 md:grid-cols-[13rem_1fr]">
-                <Skeleton className="hidden aspect-2/3 w-full rounded-xl md:block"/>
-                <div className="flex max-w-3xl flex-col gap-5">
-                    <Skeleton className="h-6 w-28"/>
-                    <Skeleton className="h-20 w-4/5"/>
-                    <Skeleton className="h-4 w-48"/>
-                    <Skeleton className="h-24 w-full"/>
-                    <Skeleton className="h-10 w-48"/>
-                </div>
-            </main>
-        </div>
-    );
 }

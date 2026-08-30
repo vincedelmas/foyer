@@ -1,46 +1,37 @@
 import {api} from "@/lib/api";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
-import {Spinner} from "@/components/ui/spinner";
 import {useSelector} from "@tanstack/react-store";
 import {useEffect, useRef, useState} from "react";
 import {createFileRoute, Link} from "@tanstack/react-router";
 import {playerStore, updatePlayer} from "@/lib/player-store";
+import {mediaOptions, streamAvailabilityOptions} from "@/lib/query-options";
 import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+import {useMutation, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
 import {ArrowLeftIcon, CaptionsIcon, ExpandIcon, FileWarningIcon, GaugeIcon} from "lucide-react";
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
 
 
 export const Route = createFileRoute("/watch/$mediaId/$partId")({
+    context: ({ params: { mediaId, partId } }) => ({
+        mediaQueryOptions: mediaOptions(mediaId),
+        streamAvailabilityQueryOptions: streamAvailabilityOptions(partId),
+    }),
+    loader: ({ context }) => Promise.all([
+        context.queryClient.query(context.mediaQueryOptions),
+        context.queryClient.query(context.streamAvailabilityQueryOptions),
+    ]),
     component: WatchPage,
-})
+});
 
 
 function WatchPage() {
     const { mediaId, partId } = Route.useParams();
-    const media = useQuery({
-        queryKey: ["media", mediaId],
-        queryFn: () => api.media(mediaId),
-    });
-
-    if (media.isPending) {
-        return (
-            <div className="grid min-h-svh place-items-center bg-black">
-                <Spinner className="size-8 text-white"/>
-            </div>
-        );
-    }
-
-    if (media.isError) {
-        return (
-            <div className="grid min-h-svh place-items-center bg-black p-6 text-white">
-                <p>{media.error.message}</p>
-            </div>
-        );
-    }
-
-    const part = media.data.parts.find((candidate) => candidate.id === partId);
+    const { mediaQueryOptions, streamAvailabilityQueryOptions } = Route.useRouteContext();
+    
+    const media = useSuspenseQuery(mediaQueryOptions).data;
+    const available = useSuspenseQuery(streamAvailabilityQueryOptions).data;
+    const part = media.parts.find((candidate) => candidate.id === partId);
 
     if (!part) {
         return (
@@ -52,66 +43,11 @@ function WatchPage() {
         );
     }
 
-    return (
-        <DirectPlayer
-            part={part}
-            mediaId={mediaId}
-            mediaTitle={media.data.title}
-        />
-    );
-}
-
-
-interface DirectPlayerProps {
-    mediaId: string;
-    mediaTitle: string;
-    part: import("@ploux/contracts").MediaPart;
-}
-
-
-function DirectPlayer({ mediaTitle, mediaId, part }: DirectPlayerProps) {
-    const availability = useQuery({
-        queryKey: ["stream-availability", part.id],
-        queryFn: async ({ signal }) => {
-            const response = await fetch(part.streamUrl, {
-                method: "HEAD",
-                signal,
-            });
-
-            if (response.status === 404) return false;
-
-            if (!response.ok) {
-                throw new Error(`The media server responded with status ${response.status}.`)
-            }
-
-            return true;
-        },
-        retry: false,
-    })
-
-    if (availability.isPending) {
-        return (
-            <div className="grid min-h-svh place-items-center bg-black">
-                <Spinner className="size-8 text-white"/>
-            </div>
-        );
-    }
-
-    if (availability.isError) {
+    if (!available) {
         return (
             <PlayerUnavailable
                 mediaId={mediaId}
-                description={availability.error.message}
-                title={`Could not check “${mediaTitle}”`}
-            />
-        );
-    }
-
-    if (!availability.data) {
-        return (
-            <PlayerUnavailable
-                mediaId={mediaId}
-                title={`“${mediaTitle}” is unavailable`}
+                title={`“${media.title}” is unavailable`}
                 description="Ploux can no longer find this file on the server. It may have been moved or deleted. Rescan its
                 collection to remove the stale entry."
             />
@@ -122,7 +58,7 @@ function DirectPlayer({ mediaTitle, mediaId, part }: DirectPlayerProps) {
         <ReadyPlayer
             part={part}
             mediaId={mediaId}
-            mediaTitle={mediaTitle}
+            mediaTitle={media.title}
         />
     );
 }

@@ -4,34 +4,36 @@ import {toast} from "@/components/ui/toast";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
-import {Skeleton} from "@/components/ui/skeleton";
 import {AppHeader} from "@/components/app-header";
 import {createFileRoute} from "@tanstack/react-router";
 import {LibraryForm} from "@/components/settings/library-form";
 import {LibrariesTable} from "@/components/settings/libraries-table";
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+import {settingsLibraryOptions, settingsOptions} from "@/lib/query-options";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
+import {useMutation, useQueryClient, useSuspenseQuery} from "@tanstack/react-query";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 import {DatabaseIcon, FilmIcon, FolderSyncIcon, LibraryIcon, SparklesIcon} from "lucide-react";
 
 
 export const Route = createFileRoute("/settings")({
+    context: () => ({
+        settingsQueryOptions: settingsOptions,
+        libraryQueryOptions: settingsLibraryOptions,
+    }),
+    loader: ({ context }) => Promise.all([
+        context.queryClient.query(context.libraryQueryOptions),
+        context.queryClient.query(context.settingsQueryOptions),
+    ]),
     component: SettingsPage,
 });
 
 
 function SettingsPage() {
     const queryClient = useQueryClient();
+    const { libraryQueryOptions, settingsQueryOptions } = Route.useRouteContext();
 
-    const settings = useQuery({
-        queryKey: ["settings"],
-        queryFn: api.settings,
-    });
-
-    const library = useQuery({
-        queryKey: ["library", "settings-stats"],
-        queryFn: () => api.library({}),
-    });
+    const library = useSuspenseQuery(libraryQueryOptions).data;
+    const settings = useSuspenseQuery(settingsQueryOptions).data;
 
     const scanAll = useMutation({
         mutationFn: () => api.scan(),
@@ -75,7 +77,7 @@ function SettingsPage() {
                             permanent-delete confirmation.
                         </p>
                     </div>
-                    <Button onClick={() => scanAll.mutate()} disabled={scanAll.isPending || !settings.data?.libraries.length}>
+                    <Button onClick={() => scanAll.mutate()} disabled={scanAll.isPending || !settings.libraries.length}>
                         {scanAll.isPending
                             ? <Spinner data-icon="inline-start"/>
                             : <FolderSyncIcon data-icon="inline-start"/>
@@ -88,22 +90,22 @@ function SettingsPage() {
                     <StatCard
                         title="Titles"
                         icon={FilmIcon}
-                        value={library.data?.stats.titles}
+                        value={library.stats.titles}
                     />
                     <StatCard
                         icon={LibraryIcon}
                         title="Media folders"
-                        value={settings.data?.libraries.length}
+                        value={settings.libraries.length}
                     />
                     <StatCard
                         title="Unmatched"
                         icon={SparklesIcon}
-                        value={library.data?.stats.unmatched}
+                        value={library.stats.unmatched}
                     />
                     <StatCard
                         icon={DatabaseIcon}
                         title="In progress"
-                        value={library.data?.stats.inProgress}
+                        value={library.stats.inProgress}
                     />
                 </div>
 
@@ -136,12 +138,9 @@ function SettingsPage() {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    {settings.isPending &&
-                                        <Skeleton className="h-40 w-full"/>
-                                    }
-                                    {settings.data?.libraries.length ?
+                                    {settings.libraries.length ?
                                         <LibrariesTable
-                                            libraries={settings.data.libraries}
+                                            libraries={settings.libraries}
                                         />
                                         :
                                         <p className="py-12 text-center text-sm text-muted-foreground">
@@ -163,7 +162,7 @@ function SettingsPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="flex flex-col gap-3">
-                                    {settings.data?.scans.map((scan) => (
+                                    {settings.scans.map((scan) => (
                                         <div key={scan.id} className="grid gap-2 rounded-xl border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
                                             <div>
                                                 <p className="text-sm font-medium">
@@ -189,7 +188,7 @@ function SettingsPage() {
                                             </Badge>
                                         </div>
                                     ))}
-                                    {!settings.data?.scans.length &&
+                                    {!settings.scans.length &&
                                         <p className="py-12 text-center text-sm text-muted-foreground">
                                             No scans have run yet.
                                         </p>

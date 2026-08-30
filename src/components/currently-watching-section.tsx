@@ -1,31 +1,10 @@
-import {api} from "@/lib/api";
+import {MediaSummary} from "@ploux/contracts";
 import {ClapperboardIcon} from "lucide-react";
-import {useQuery} from "@tanstack/react-query";
-import {Skeleton} from "@/components/ui/skeleton";
 import {MediaGrid} from "@/components/media-grid";
-import {Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle,} from "@/components/ui/empty";
+import {Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle} from "@/components/ui/empty";
 
 
-function CurrentlyWatchingSkeleton() {
-    return (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
-            {Array.from({ length: 7 }, (_, idx) =>
-                <div key={idx} className="flex flex-col gap-3">
-                    <Skeleton className="aspect-2/3 rounded-xl"/>
-                    <Skeleton className="h-4 w-3/4"/>
-                </div>
-            )}
-        </div>
-    );
-}
-
-
-export function CurrentlyWatchingSection() {
-    const watching = useQuery({
-        queryKey: ["currently-watching"],
-        queryFn: api.currentlyWatching,
-    })
-
+export function CurrentlyWatchingSection({ items }: { items: MediaSummary[] }) {
     return (
         <section className="flex flex-col gap-8" aria-labelledby="currently-watching-heading">
             <div className="max-w-2xl">
@@ -40,31 +19,9 @@ export function CurrentlyWatchingSection() {
                 </p>
             </div>
 
-            {watching.isPending &&
-                <CurrentlyWatchingSkeleton/>
-            }
+            {!!items.length && <MediaGrid items={items}/>}
 
-            {watching.isError &&
-                <Empty className="min-h-64 border border-border bg-card/30">
-                    <EmptyHeader>
-                        <EmptyMedia variant="icon">
-                            <ClapperboardIcon/>
-                        </EmptyMedia>
-                        <EmptyTitle>Could not load your watch progress</EmptyTitle>
-                        <EmptyDescription>
-                            {watching.error.message}
-                        </EmptyDescription>
-                    </EmptyHeader>
-                </Empty>
-            }
-
-            {watching.data?.length &&
-                <MediaGrid
-                    items={watching.data}
-                />
-            }
-
-            {(watching.data && !watching.data.length) &&
+            {!items.length &&
                 <Empty className="min-h-64 border border-dashed border-border bg-card/20">
                     <EmptyHeader>
                         <EmptyMedia variant="icon">
@@ -78,5 +35,5 @@ export function CurrentlyWatchingSection() {
                 </Empty>
             }
         </section>
-    )
+    );
 }

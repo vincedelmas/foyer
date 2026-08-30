@@ -1,14 +1,14 @@
-import React, {useState} from "react";
+import React from "react";
 import appCss from "../styles.css?url";
 import {Button} from "@/components/ui/button";
 import {Toaster} from "@/components/ui/toast";
+import {QueryClient} from "@tanstack/react-query";
 import {TooltipProvider} from "@/components/ui/tooltip";
 import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
-import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
-import {createRootRoute, HeadContent, Link, Scripts} from "@tanstack/react-router";
+import {createRootRouteWithContext, HeadContent, Link, Scripts} from "@tanstack/react-router";
 
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
     head: () => ({
         meta: [
             { charSet: "utf-8" },
@@ -21,39 +21,25 @@ export const Route = createRootRoute({
     }),
     notFoundComponent: NotFound,
     shellComponent: RootDocument,
-})
+});
 
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-    const [queryClient] = useState(() =>
-        new QueryClient({
-            defaultOptions: {
-                queries: {
-                    retry: 1,
-                    staleTime: 30_000,
-                    refetchOnWindowFocus: false,
-                },
-            },
-        })
-    );
-
     return (
         <html lang="en" className="dark">
         <head>
             <HeadContent/>
         </head>
         <body className="min-h-svh bg-background text-foreground antialiased">
-        <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-                <Toaster>{children}</Toaster>
-            </TooltipProvider>
+        <TooltipProvider>
+            <Toaster>{children}</Toaster>
+        </TooltipProvider>
 
-            {import.meta.env.DEV &&
-                <ReactQueryDevtools
-                    buttonPosition="bottom-left"
-                />
-            }
-        </QueryClientProvider>
+        {import.meta.env.DEV &&
+            <ReactQueryDevtools
+                buttonPosition="bottom-left"
+            />
+        }
         <Scripts/>
         </body>
         </html>
