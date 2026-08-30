@@ -9,12 +9,12 @@ export const Route = createFileRoute("/api/v1/libraries")({
             OPTIONS: emptyCors,
             GET: () => {
                 try {
-                    return json(listMediaFolders())
+                    return json(listMediaFolders());
                 }
                 catch (error) {
-                    return apiError(error)
+                    return apiError(error);
                 }
             },
         },
     },
-})
+});

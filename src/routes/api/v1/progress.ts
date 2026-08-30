@@ -1,7 +1,7 @@
-import {mediaIdInputSchema, mediaPartWatchStateInputSchema, progressInputSchema} from "@ploux/contracts";
 import {createFileRoute} from "@tanstack/react-router";
-import {deleteMediaProgress, listCurrentlyWatching, saveProgress, setMediaPartWatched} from "@/server/media/repository.server";
 import {apiError, emptyCors, json, parseBody} from "@/server/http.server";
+import {mediaIdInputSchema, mediaPartWatchStateInputSchema, progressInputSchema} from "@ploux/contracts";
+import {deleteMediaProgress, listCurrentlyWatching, saveProgress, setMediaPartWatched} from "@/server/media/repository.server";
 
 
 export const Route = createFileRoute("/api/v1/progress")({
@@ -10,10 +10,10 @@ export const Route = createFileRoute("/api/v1/progress")({
             OPTIONS: emptyCors,
             GET: () => {
                 try {
-                    return json(listCurrentlyWatching())
+                    return json(listCurrentlyWatching());
                 }
                 catch (error) {
-                    return apiError(error)
+                    return apiError(error);
                 }
             },
             POST: async ({ request }) => {
@@ -24,25 +24,22 @@ export const Route = createFileRoute("/api/v1/progress")({
                     return apiError(error);
                 }
             },
-            PUT: async ({request}) => {
+            PUT: async ({ request }) => {
                 try {
-                    const {partId, watched} = await parseBody(
-                        request,
-                        mediaPartWatchStateInputSchema
-                    )
-                    return json(setMediaPartWatched(partId, watched))
+                    const { partId, watched } = await parseBody(request, mediaPartWatchStateInputSchema);
+                    return json(setMediaPartWatched(partId, watched));
                 }
                 catch (error) {
-                    return apiError(error)
+                    return apiError(error);
                 }
             },
             DELETE: async ({ request }) => {
                 try {
-                    const {mediaId} = await parseBody(request, mediaIdInputSchema)
-                    return json({deleted: deleteMediaProgress(mediaId)})
+                    const { mediaId } = await parseBody(request, mediaIdInputSchema);
+                    return json({ deleted: deleteMediaProgress(mediaId) });
                 }
                 catch (error) {
-                    return apiError(error)
+                    return apiError(error);
                 }
             },
         },

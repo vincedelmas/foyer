@@ -10,4 +10,4 @@ export const Route = createFileRoute("/api/v1/subtitles/$id")({
             GET: ({ request, params }) => streamSubtitle(request, params.id),
         },
     },
-})
+});

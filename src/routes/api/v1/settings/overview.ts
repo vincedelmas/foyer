@@ -10,4 +10,4 @@ export const Route = createFileRoute("/api/v1/settings/overview")({
             GET: () => json(getSettingsOverview()),
         },
     },
-})
+});

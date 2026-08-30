@@ -1,6 +1,6 @@
 import {z} from "zod";
-import {libraryInputSchema, libraryUpdateSchema} from "@ploux/contracts";
 import {createFileRoute} from "@tanstack/react-router";
+import {libraryInputSchema, libraryUpdateSchema} from "@ploux/contracts";
 import {apiError, emptyCors, json, parseBody} from "@/server/http.server";
 import {createLibrary, deleteLibrary, listLibraries, updateLibrary} from "@/server/media/scanner.server";
 
@@ -40,4 +40,4 @@ export const Route = createFileRoute("/api/v1/settings/libraries")({
             },
         },
     },
-})
+});

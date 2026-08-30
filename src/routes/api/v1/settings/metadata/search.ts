@@ -12,9 +12,11 @@ export const Route = createFileRoute("/api/v1/settings/metadata/search")({
             POST: async ({ request }) => {
                 try {
                     const input = await parseBody(request, metadataSearchInputSchema);
-                    const media = getMediaDetail(input.mediaId);
 
-                    if (!media) return json({ error: "Media not found" }, { status: 404 });
+                    const media = getMediaDetail(input.mediaId);
+                    if (!media) {
+                        return json({ error: "Media not found" }, { status: 404 });
+                    }
 
                     return json({ candidates: await searchTmdb(media.kind, input.query, input.year) });
                 }

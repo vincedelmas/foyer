@@ -11,4 +11,4 @@ export const Route = createFileRoute("/api/v1/stream/$id")({
             HEAD: ({ request, params }) => streamPart(request, params.id, true),
         },
     },
-})
+});

@@ -1,8 +1,8 @@
-import {metadataRefreshInputSchema} from "@ploux/contracts";
 import {createFileRoute} from "@tanstack/react-router";
-import {refreshLibraryMetadata, refreshTmdbMetadata} from "@/server/media/tmdb.server";
+import {metadataRefreshInputSchema} from "@ploux/contracts";
 import {getMediaDetail} from "@/server/media/repository.server";
 import {apiError, emptyCors, json, parseBody} from "@/server/http.server";
+import {refreshLibraryMetadata, refreshTmdbMetadata} from "@/server/media/tmdb.server";
 
 
 export const Route = createFileRoute("/api/v1/settings/metadata/refresh")({
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/api/v1/settings/metadata/refresh")({
                 try {
                     const input = await parseBody(request, metadataRefreshInputSchema);
                     if ("libraryId" in input) {
-                        return json(await refreshLibraryMetadata(input.libraryId))
+                        return json(await refreshLibraryMetadata(input.libraryId));
                     }
 
                     await refreshTmdbMetadata(input.mediaId);
