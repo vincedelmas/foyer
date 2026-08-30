@@ -167,6 +167,7 @@ const saveDiscovery = (
     .all()
   const existingPartById = new Map(existingParts.map((part) => [part.id, part]))
   const seenPartIds: string[] = []
+  const seenSubtitleIds = new Set<string>()
   const newMediaIds: string[] = []
   const episodeSeasonsToRefresh = new Map<string, Set<number>>()
   const cachePartIdsToRemove = new Set<string>()
@@ -263,11 +264,13 @@ const saveDiscovery = (
           .run()
 
         for (const subtitlePath of video.subtitles) {
+          const subtitleId = stableId("subtitle", subtitlePath)
           const language = subtitleLanguage(subtitlePath, video.path)
+          seenSubtitleIds.add(subtitleId)
           subtitlesFound += 1
           db.insert(subtitleTracks)
             .values({
-              id: stableId("subtitle", subtitlePath),
+              id: subtitleId,
               mediaPartId: partId,
               filePath: subtitlePath,
               language: language.language,
@@ -300,6 +303,19 @@ const saveDiscovery = (
       if (!seenPartIds.includes(row.id)) {
         cachePartIdsToRemove.add(row.id)
         db.delete(mediaParts).where(eq(mediaParts.id, row.id)).run()
+      }
+    }
+
+    const librarySubtitleRows = db
+      .select({id: subtitleTracks.id})
+      .from(subtitleTracks)
+      .innerJoin(mediaParts, eq(subtitleTracks.mediaPartId, mediaParts.id))
+      .innerJoin(mediaItems, eq(mediaParts.mediaItemId, mediaItems.id))
+      .where(eq(mediaItems.libraryId, library.id))
+      .all()
+    for (const row of librarySubtitleRows) {
+      if (!seenSubtitleIds.has(row.id)) {
+        db.delete(subtitleTracks).where(eq(subtitleTracks.id, row.id)).run()
       }
     }
 
