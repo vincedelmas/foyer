@@ -1,11 +1,10 @@
 import type { MediaSummary, TmdbCandidate } from "@ploux/contracts"
 import { tmdbImage } from "@ploux/contracts"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { CheckIcon, SearchIcon } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { Image, Pressable, StyleSheet, Text, View } from "react-native"
 
-import { tvApi } from "../api"
+import { useIdentifyMediaMutation, useSearchMetadataMutation } from "../query-mutations"
 import { colors } from "../theme"
 import { FocusButton } from "./FocusButton"
 import { FocusTextInput } from "./FocusTextInput"
@@ -22,7 +21,6 @@ export function IdentifyDialog({
   visible: boolean
   onClose: () => void
 }) {
-  const queryClient = useQueryClient()
   const [query, setQuery] = useState("")
   const [year, setYear] = useState("")
   const [candidates, setCandidates] = useState<TmdbCandidate[]>([])
@@ -35,30 +33,18 @@ export function IdentifyDialog({
     setCandidates([])
   }, [media, visible])
 
-  const search = useMutation({
-    mutationFn: () =>
-      tvApi(server).searchMetadata({
-        mediaId: media!.id,
-        query: query.trim(),
-        year: year ? Number(year) : undefined,
-      }),
-    onSuccess: (result) => setCandidates(result.candidates),
+  const search = useSearchMetadataMutation(server, (result) => {
+    setCandidates(result.candidates)
   })
-  const identify = useMutation({
-    mutationFn: (tmdbId: number) =>
-      tvApi(server).identify(media!.id, tmdbId),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["tv-media", server, media!.id],
-        }),
-        queryClient.invalidateQueries({ queryKey: ["tv-library", server] }),
-        queryClient.invalidateQueries({ queryKey: ["tv-folders", server] }),
-        queryClient.invalidateQueries({ queryKey: ["tv-watching", server] }),
-      ])
-      onClose()
-    },
-  })
+  const identify = useIdentifyMediaMutation(server, media?.id ?? "", onClose)
+
+  const searchMedia = () => {
+    search.mutate({
+      mediaId: media!.id,
+      query: query.trim(),
+      year: year ? Number(year) : undefined,
+    })
+  }
 
   if (!media) return null
   const error = search.error ?? identify.error
@@ -95,7 +81,7 @@ export function IdentifyDialog({
         <FocusButton
           label={search.isPending ? "Searching…" : "Search"}
           icon={SearchIcon}
-          onPress={() => search.mutate()}
+          onPress={searchMedia}
           disabled={!query.trim() || search.isPending || identify.isPending}
           style={styles.searchButton}
         />

@@ -1,10 +1,9 @@
-import {api} from "@/lib/api";
 import {useState} from "react";
 import {useForm} from "@tanstack/react-form";
 import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
 import {SearchIcon, SparklesIcon} from "lucide-react";
-import {useIdentifyMediaMutation} from "@/lib/query-mutations";
+import {useIdentifyMediaMutation, useSearchMetadataMutation} from "@/lib/query-mutations";
 import {MediaSummary, TmdbCandidate, tmdbImage} from "@ploux/contracts";
 import {Field, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/input-group";
@@ -36,6 +35,7 @@ export function IdentifyDialog({ media, open: controlledOpen, onOpenChange, show
     };
 
     const identify = useIdentifyMediaMutation(media.id, () => setOpen(false));
+    const search = useSearchMetadataMutation();
 
     const form = useForm({
         defaultValues: {
@@ -43,7 +43,7 @@ export function IdentifyDialog({ media, open: controlledOpen, onOpenChange, show
             year: media.year?.toString() ?? "",
         },
         onSubmit: async ({ value }) => {
-            const result = await api.searchMetadata({
+            const result = await search.mutateAsync({
                 mediaId: media.id,
                 query: value.query,
                 year: value.year ? Number(value.year) : undefined,

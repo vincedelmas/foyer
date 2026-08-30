@@ -1,6 +1,6 @@
-import {api} from "@/lib/api";
 import {Badge} from "@/components/ui/badge";
 import {useQuery} from "@tanstack/react-query";
+import {plouxQueries} from "@/lib/queries";
 import {Skeleton} from "@/components/ui/skeleton";
 import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
 import {formatBitRate, formatBytes, formatDurationSeconds, MediaFileInfo, MediaInfo, MediaStreamInfo} from "@ploux/contracts";
@@ -20,8 +20,7 @@ interface MediaInfoDialogProps {
 
 export function MediaInfoDialog({ mediaId, title, open, onOpenChange }: MediaInfoDialogProps) {
     const info = useQuery({
-        queryKey: ["media-info", mediaId],
-        queryFn: () => api.mediaInfo(mediaId),
+        ...plouxQueries.options.mediaInfo(mediaId),
         enabled: open,
     });
 

@@ -1,4 +1,3 @@
-import {tvApi} from "../api";
 import {colors, spacing} from "../theme";
 import {useEffect, useMemo, useState} from "react";
 import {FocusButton} from "../components/FocusButton";
@@ -6,10 +5,12 @@ import {IdentifyDialog} from "../components/IdentifyDialog";
 import {MediaInfoDialog} from "../components/MediaInfoDialog";
 import {FocusIconButton} from "../components/FocusIconButton";
 import {MediaActionsDialog} from "../components/MediaActionsDialog";
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+import {useQuery} from "@tanstack/react-query";
 import {CheckIcon, MoreVerticalIcon, PlayIcon, StarIcon} from "lucide-react-native";
 import {formatBytes, formatRuntime, MediaPart, MediaSummary, tmdbImage} from "@ploux/contracts";
 import {ActivityIndicator, BackHandler, Image, ImageBackground, ScrollView, StyleSheet, Text, View} from "react-native";
+import {mediaOptions} from "../query-options";
+import {useSetMediaPartWatchedMutation, useSetMediaWatchedMutation} from "../query-mutations";
 
 
 interface DetailScreenProps {
@@ -21,16 +22,12 @@ interface DetailScreenProps {
 
 
 export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenProps) {
-    const queryClient = useQueryClient();
     const [infoOpen, setInfoOpen] = useState(false);
     const [actionsOpen, setActionsOpen] = useState(false);
     const [identifyOpen, setIdentifyOpen] = useState(false);
     const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
 
-    const media = useQuery({
-        queryKey: ["tv-media", server, summary.id],
-        queryFn: () => tvApi(server).media(summary.id),
-    });
+    const media = useQuery(mediaOptions(server, summary.id));
 
     useEffect(() => {
         const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -41,25 +38,8 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
         return () => subscription.remove();
     }, [onBack]);
 
-    const invalidate = async () => {
-        await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ["tv-library", server] }),
-            queryClient.invalidateQueries({ queryKey: ["tv-watching", server] }),
-            queryClient.invalidateQueries({ queryKey: ["tv-media", server, summary.id] }),
-        ]);
-    };
-
-    const watchMedia = useMutation({
-        mutationFn: (watched: boolean) => tvApi(server)
-            .setMediaWatched(summary.id, watched),
-        onSuccess: invalidate,
-    });
-
-    const watchPart = useMutation({
-        mutationFn: (input: { partId: string; watched: boolean }) => tvApi(server)
-            .setMediaPartWatched(input.partId, input.watched),
-        onSuccess: invalidate,
-    });
+    const watchMedia = useSetMediaWatchedMutation(server, summary.id);
+    const watchPart = useSetMediaPartWatchedMutation(server, summary.id);
 
     const seasons = useMemo(() => {
         const grouped = new Map<number, MediaPart[]>();

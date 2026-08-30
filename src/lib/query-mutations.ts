@@ -1,44 +1,29 @@
-import {api} from "@/lib/api";
+import {plouxQueries} from "@/lib/queries";
 import {toast} from "@/components/ui/toast";
+import {LibraryRecord, MediaFolderSummary} from "@ploux/contracts";
 import {QueryClient, useMutation, useQueryClient} from "@tanstack/react-query";
-import {LibraryRecord, MediaFolderSummary, MediaSummary} from "@ploux/contracts";
 
 
 type AfterSuccess = () => void | Promise<void>;
 
 
-export type CollectionEdit = {
-    value: string;
-    mode: "rename" | "path";
-};
-
-
 const invalidateLibraryQueries = async (queryClient: QueryClient) => {
-    await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["library"] }),
-        queryClient.invalidateQueries({ queryKey: ["settings"] }),
-        queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
-    ]);
+    await plouxQueries.invalidate.libraries(queryClient);
 };
 
 
 const invalidateMediaQueries = async (queryClient: QueryClient, mediaId: string, includeFolders = false) => {
-    await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["library"] }),
-        queryClient.invalidateQueries({ queryKey: ["media", mediaId] }),
-        queryClient.invalidateQueries({ queryKey: ["currently-watching"] }),
-        ...(includeFolders ? [queryClient.invalidateQueries({ queryKey: ["media-folders"] })] : []),
-    ]);
+    await plouxQueries.invalidate.media(queryClient, mediaId, includeFolders);
 };
 
 
-export const useSetMediaWatchedMutation = (item: Pick<MediaSummary, "id" | "watched">) => {
+export const useSetMediaWatchedMutation = (mediaId: string) => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: () => api.setMediaWatched(item.id, !item.watched),
+        ...plouxQueries.mutations.setMediaWatched(mediaId),
         onSuccess: async (result) => {
-            await invalidateMediaQueries(queryClient, item.id);
+            await invalidateMediaQueries(queryClient, mediaId);
             toast.add({
                 type: "success",
                 title: result.watched ? "Marked as watched" : "Marked as unwatched",
@@ -55,11 +40,11 @@ export const useSetMediaWatchedMutation = (item: Pick<MediaSummary, "id" | "watc
 };
 
 
-export const useSetMediaPartWatchedMutation = (mediaId: string, partId: string, watched: boolean) => {
+export const useSetMediaPartWatchedMutation = (mediaId: string) => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: () => api.setMediaPartWatched(partId, watched),
+        ...plouxQueries.mutations.setMediaPartWatched(),
         onSuccess: async (result) => {
             await invalidateMediaQueries(queryClient, mediaId);
             toast.add({
@@ -82,7 +67,7 @@ export const useClearMediaProgressMutation = (mediaId: string) => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: () => api.deleteProgress(mediaId),
+        ...plouxQueries.mutations.deleteProgress(mediaId),
         onSuccess: async () => {
             await invalidateMediaQueries(queryClient, mediaId);
             toast.add({ type: "success", title: "Watch progress removed" });
@@ -102,7 +87,7 @@ export const useRefreshMediaMetadataMutation = (mediaId: string) => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: () => api.refreshMetadata(mediaId),
+        ...plouxQueries.mutations.refreshMediaMetadata(mediaId),
         onSuccess: async () => {
             await invalidateMediaQueries(queryClient, mediaId, true);
             toast.add({ type: "success", title: "Metadata refreshed" });
@@ -122,15 +107,14 @@ export const useDeleteMediaMutation = (mediaId: string, afterSuccess?: AfterSucc
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: () => api.deleteMedia(mediaId),
+        ...plouxQueries.mutations.deleteMedia(mediaId),
         onSuccess: async (result) => {
+            plouxQueries.remove.media(queryClient, mediaId);
+
             await Promise.all([
                 invalidateMediaQueries(queryClient, mediaId, true),
-                queryClient.invalidateQueries({ queryKey: ["settings"] }),
+                queryClient.invalidateQueries({ queryKey: plouxQueries.keys.settings }),
             ]);
-
-            queryClient.removeQueries({ queryKey: ["media", mediaId] });
-            queryClient.removeQueries({ queryKey: ["media-info", mediaId] });
 
             toast.add({
                 type: "success",
@@ -160,12 +144,7 @@ export const useEditCollectionMutation = (folder: MediaFolderSummary, afterSucce
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ mode, value }: CollectionEdit) => api.updateLibrary({
-            id: folder.id,
-            kind: folder.kind,
-            path: mode === "path" ? value : folder.path,
-            name: mode === "rename" ? value : folder.name,
-        }),
+        ...plouxQueries.mutations.editCollection(folder),
         onSuccess: async (_, variables) => {
             await invalidateLibraryQueries(queryClient);
             toast.add({
@@ -190,13 +169,9 @@ export const useRefreshCollectionMetadataMutation = (libraryId: string) => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: () => api.refreshLibraryMetadata(libraryId),
+        ...plouxQueries.mutations.refreshLibraryMetadata(libraryId),
         onSuccess: async (summary) => {
-            await Promise.all([
-                invalidateLibraryQueries(queryClient),
-                queryClient.invalidateQueries({ queryKey: ["currently-watching"] }),
-                queryClient.invalidateQueries({ queryKey: ["media"] }),
-            ]);
+            await plouxQueries.invalidate.catalog(queryClient);
 
             const updated = summary.refreshed + summary.matched;
 
@@ -225,13 +200,9 @@ export const useScanLibraryMutation = (library: Pick<LibraryRecord, "id" | "name
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: () => api.scan(library.id),
+        ...plouxQueries.mutations.scanLibrary(library.id),
         onSuccess: async (result) => {
-            await Promise.all([
-                invalidateLibraryQueries(queryClient),
-                queryClient.invalidateQueries({ queryKey: ["media"] }),
-                queryClient.invalidateQueries({ queryKey: ["currently-watching"] }),
-            ]);
+            await plouxQueries.invalidate.catalog(queryClient);
 
             const summary = result.scans[0];
 
@@ -254,12 +225,9 @@ export const useDeleteLibraryMutation = (libraryId: string, afterSuccess?: After
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: () => api.deleteLibrary(libraryId),
+        ...plouxQueries.mutations.deleteLibrary(libraryId),
         onSuccess: async () => {
-            await Promise.all([
-                invalidateLibraryQueries(queryClient),
-                queryClient.invalidateQueries({ queryKey: ["currently-watching"] }),
-            ]);
+            await plouxQueries.invalidate.catalog(queryClient);
 
             toast.add({
                 type: "success",
@@ -283,12 +251,9 @@ export const useCreateLibraryMutation = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: api.createLibrary,
+        ...plouxQueries.mutations.createLibrary(),
         onSuccess: async () => {
-            await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["settings"] }),
-                queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
-            ]);
+            await invalidateLibraryQueries(queryClient);
             toast.add({
                 type: "success",
                 title: "Media folder added",
@@ -310,9 +275,9 @@ export const useUpdateLibraryMutation = (afterSuccess?: AfterSuccess) => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: api.updateLibrary,
+        ...plouxQueries.mutations.updateLibrary(),
         onSuccess: async () => {
-            await invalidateLibraryQueries(queryClient);
+            await plouxQueries.invalidate.catalog(queryClient);
             toast.add({
                 type: "success",
                 title: "Media folder updated",
@@ -335,14 +300,9 @@ export const useIdentifyMediaMutation = (mediaId: string, afterSuccess?: AfterSu
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (tmdbId: number) => api.identify(mediaId, tmdbId),
+        ...plouxQueries.mutations.identifyMedia(mediaId),
         onSuccess: async () => {
-            await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["library"] }),
-                queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
-                queryClient.invalidateQueries({ queryKey: ["media", mediaId] }),
-                queryClient.invalidateQueries({ queryKey: ["currently-watching"] }),
-            ]);
+            await plouxQueries.invalidate.identification(queryClient, mediaId);
             toast.add({
                 type: "success",
                 title: "Identity updated",
@@ -361,13 +321,18 @@ export const useIdentifyMediaMutation = (mediaId: string, afterSuccess?: AfterSu
 };
 
 
+export const useSearchMetadataMutation = () => {
+    return useMutation(plouxQueries.mutations.searchMetadata());
+};
+
+
 export const useScanAllLibrariesMutation = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: () => api.scan(),
+        ...plouxQueries.mutations.scanLibrary(),
         onSuccess: async (result) => {
-            await invalidateLibraryQueries(queryClient);
+            await plouxQueries.invalidate.catalog(queryClient);
             toast.add({
                 type: "success",
                 title: "All media folders scanned",
@@ -389,9 +354,7 @@ export const useSaveProgressMutation = (mediaId: string, partId: string) => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (value: { positionSeconds: number; durationSeconds: number }) => {
-            return api.progress({ partId, ...value });
-        },
+        ...plouxQueries.mutations.saveProgress(partId),
         onSuccess: () => {
             void invalidateMediaQueries(queryClient, mediaId);
         },

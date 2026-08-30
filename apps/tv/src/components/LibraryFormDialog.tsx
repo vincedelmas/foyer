@@ -1,9 +1,8 @@
 import type { LibraryKind, LibraryRecord } from "@ploux/contracts"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { StyleSheet, Text, View } from "react-native"
 
-import { tvApi } from "../api"
+import { useSaveLibraryMutation } from "../query-mutations"
 import { colors } from "../theme"
 import { FocusButton } from "./FocusButton"
 import { FocusTextInput } from "./FocusTextInput"
@@ -20,7 +19,6 @@ export function LibraryFormDialog({
   library?: LibraryRecord | null
   onClose: () => void
 }) {
-  const queryClient = useQueryClient()
   const [name, setName] = useState("")
   const [path, setPath] = useState("")
   const [kind, setKind] = useState<LibraryKind>("movies")
@@ -32,29 +30,17 @@ export function LibraryFormDialog({
     setKind(library?.kind ?? "movies")
   }, [library, visible])
 
-  const save = useMutation({
-    mutationFn: () =>
-      library
-        ? tvApi(server).updateLibrary({
-            id: library.id,
-            name: name.trim(),
-            path: path.trim(),
-            kind,
-          })
-        : tvApi(server).createLibrary({
-            name: name.trim(),
-            path: path.trim(),
-            kind,
-          }),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["tv-settings", server] }),
-        queryClient.invalidateQueries({ queryKey: ["tv-folders", server] }),
-        queryClient.invalidateQueries({ queryKey: ["tv-library", server] }),
-      ])
-      onClose()
-    },
-  })
+  const save = useSaveLibraryMutation(server, onClose)
+
+  const saveLibrary = () => {
+    const input = {
+      name: name.trim(),
+      path: path.trim(),
+      kind,
+    }
+
+    save.mutate(library ? { ...input, id: library.id } : input)
+  }
 
   return (
     <TvModal
@@ -106,7 +92,7 @@ export function LibraryFormDialog({
           />
           <FocusButton
             label={save.isPending ? "Saving…" : library ? "Save changes" : "Create collection"}
-            onPress={() => save.mutate()}
+            onPress={saveLibrary}
             disabled={!name.trim() || !path.trim() || save.isPending}
           />
         </View>

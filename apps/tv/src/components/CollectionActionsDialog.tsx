@@ -1,4 +1,3 @@
-import {tvApi} from "../api";
 import {useState} from "react";
 import {TvModal} from "./TvModal";
 import {ActionMenu} from "./ActionMenu";
@@ -6,9 +5,9 @@ import {FocusButton} from "./FocusButton";
 import {ConfirmDialog} from "./ConfirmDialog";
 import {StyleSheet, View} from "react-native";
 import {FocusTextInput} from "./FocusTextInput";
-import type {MediaFolderSummary} from "@ploux/contracts";
-import {useMutation, useQueryClient} from "@tanstack/react-query";
+import {MediaFolderSummary} from "@ploux/contracts";
 import {FolderInputIcon, FolderSyncIcon, PencilIcon, RefreshCwIcon, Trash2Icon,} from "lucide-react-native";
+import {useDeleteLibraryMutation, useRefreshLibraryMetadataMutation, useScanLibraryMutation, useUpdateLibraryMutation} from "../query-mutations";
 
 
 type Mode = "menu" | "rename" | "path" | "delete";
@@ -24,7 +23,6 @@ interface CollectionActionsDialogProps {
 
 
 export function CollectionActionsDialog({ server, folder, visible, onClose, onDeleted }: CollectionActionsDialogProps) {
-    const queryClient = useQueryClient();
     const [value, setValue] = useState("");
     const [mode, setMode] = useState<Mode>("menu");
 
@@ -33,54 +31,13 @@ export function CollectionActionsDialog({ server, folder, visible, onClose, onDe
         onClose();
     };
 
-    const invalidate = async () => {
-        await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ["tv-media", server] }),
-            queryClient.invalidateQueries({ queryKey: ["tv-library", server] }),
-            queryClient.invalidateQueries({ queryKey: ["tv-folders", server] }),
-            queryClient.invalidateQueries({ queryKey: ["tv-settings", server] }),
-            queryClient.invalidateQueries({ queryKey: ["tv-watching", server] }),
-        ])
-    };
-
-    const update = useMutation({
-        mutationFn: (editMode: "rename" | "path") => tvApi(server)
-            .updateLibrary({
-                id: folder!.id,
-                name: editMode === "rename" ? value.trim() : folder!.name,
-                path: editMode === "path" ? value.trim() : folder!.path,
-                kind: folder!.kind,
-            }),
-        onSuccess: async () => {
-            await invalidate();
-            close();
-        },
-    });
-
-    const scan = useMutation({
-        mutationFn: () => tvApi(server).scan(folder!.id),
-        onSuccess: async () => {
-            await invalidate();
-            close();
-        },
-    });
-
-    const refresh = useMutation({
-        mutationFn: () => tvApi(server).refreshLibraryMetadata(folder!.id),
-        onSuccess: async () => {
-            await invalidate();
-            close();
-        },
-    });
-
-    const remove = useMutation({
-        mutationFn: () => tvApi(server).deleteLibrary(folder!.id),
-        onSuccess: async () => {
-            const removed = folder!;
-            await invalidate();
-            close();
-            onDeleted?.(removed);
-        },
+    const update = useUpdateLibraryMutation(server, close);
+    const scan = useScanLibraryMutation(server, folder?.id, close);
+    const refresh = useRefreshLibraryMetadataMutation(server, folder?.id ?? "", close);
+    const remove = useDeleteLibraryMutation(server, folder?.id ?? "", () => {
+        const removed = folder;
+        close();
+        if (removed) onDeleted?.(removed);
     });
 
     if (!folder) return null;
@@ -91,6 +48,15 @@ export function CollectionActionsDialog({ server, folder, visible, onClose, onDe
     const openEditor = (nextMode: "rename" | "path") => {
         setValue(nextMode === "rename" ? folder.name : folder.path)
         setMode(nextMode)
+    };
+
+    const saveEdit = () => {
+        update.mutate({
+            id: folder.id,
+            name: mode === "rename" ? value.trim() : folder.name,
+            path: mode === "path" ? value.trim() : folder.path,
+            kind: folder.kind,
+        });
     };
 
     return (
@@ -175,7 +141,7 @@ export function CollectionActionsDialog({ server, folder, visible, onClose, onDe
                     <FocusButton
                         disabled={!value.trim() || update.isPending}
                         label={update.isPending ? "Saving…" : "Save changes"}
-                        onPress={() => update.mutate(mode as "rename" | "path")}
+                        onPress={saveEdit}
                     />
                 </View>
             </TvModal>

@@ -1,4 +1,4 @@
-import {tvApi} from "../api";
+import {libraryOptions, mediaFoldersOptions} from "../query-options";
 import {colors, spacing} from "../theme";
 import {useEffect, useState} from "react";
 import {useQuery} from "@tanstack/react-query";
@@ -56,10 +56,7 @@ export function CollectionScreen({ server, initialFolder, onHome, onOpenMedia, o
     const [watch, setWatch] = useState<MediaWatchFilter>("all");
     const [picker, setPicker] = useState<"watch" | "sort" | null>(null);
 
-    const folders = useQuery({
-        queryKey: ["tv-folders", server],
-        queryFn: () => tvApi(server).mediaFolders(),
-    });
+    const folders = useQuery(mediaFoldersOptions(server));
 
     const folder = folders.data?.find((candidate) => candidate.id === initialFolder.id) ?? initialFolder;
 
@@ -89,17 +86,14 @@ export function CollectionScreen({ server, initialFolder, onHome, onOpenMedia, o
         return () => clearTimeout(timeout);
     }, [searchInput]);
 
-    const library = useQuery({
-        queryKey: ["tv-library", server, folder.id, search, watch, sort, page],
-        queryFn: () => tvApi(server).library({
+    const library = useQuery(libraryOptions(server, {
             page,
             sort,
             watch,
             pageSize: PAGE_SIZE,
             libraryId: folder.id,
             search: search || undefined,
-        }),
-    });
+    }));
 
     const changeWatch = (value: MediaWatchFilter) => {
         setWatch(value);

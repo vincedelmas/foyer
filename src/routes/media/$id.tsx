@@ -324,13 +324,13 @@ function EpisodeList({ mediaId, parts, fallbackLabel }: EpisodeListProps) {
 
 function EpisodeWatchToggle({ mediaId, part }: { mediaId: string, part: MediaPart }) {
     const watched = part.progress?.completed === true;
-    const watchState = useSetMediaPartWatchedMutation(mediaId, part.id, !watched);
+    const watchState = useSetMediaPartWatchedMutation(mediaId);
 
     return (
         <WatchToggleButton
             watched={watched}
             pending={watchState.isPending}
-            onToggle={() => watchState.mutate()}
+            onToggle={() => watchState.mutate({ partId: part.id, watched: !watched })}
             label={watched ? "Mark episode as unwatched" : "Mark episode as watched"}
         />
     );

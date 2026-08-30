@@ -4,7 +4,7 @@ import { FoldersIcon, PlayIcon } from "lucide-react-native"
 import { useState } from "react"
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native"
 
-import { tvApi } from "../api"
+import { currentlyWatchingOptions, mediaFoldersOptions } from "../query-options"
 import { AppHeader } from "../components/AppHeader"
 import { CollectionActionsDialog } from "../components/CollectionActionsDialog"
 import { CollectionTile } from "../components/CollectionTile"
@@ -27,14 +27,8 @@ export function HomeScreen({
     useState<MediaFolderSummary | null>(null)
   const mediaDialogs = useMediaDialogs()
 
-  const folders = useQuery({
-    queryKey: ["tv-folders", server],
-    queryFn: () => tvApi(server).mediaFolders(),
-  })
-  const watching = useQuery({
-    queryKey: ["tv-watching", server],
-    queryFn: () => tvApi(server).currentlyWatching(),
-  })
+  const folders = useQuery(mediaFoldersOptions(server))
+  const watching = useQuery(currentlyWatchingOptions(server))
   return (
     <View style={styles.screen}>
       <AppHeader

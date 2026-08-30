@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native"
 
-import { tvApi } from "../api"
+import { mediaInfoOptions } from "../query-options"
 import { colors } from "../theme"
 import { TvModal } from "./TvModal"
 
@@ -33,8 +33,7 @@ export function MediaInfoDialog({
   onClose: () => void
 }) {
   const info = useQuery({
-    queryKey: ["tv-media-info", server, mediaId],
-    queryFn: () => tvApi(server).mediaInfo(mediaId!),
+    ...mediaInfoOptions(server, mediaId ?? ""),
     enabled: visible && Boolean(mediaId),
   })
 

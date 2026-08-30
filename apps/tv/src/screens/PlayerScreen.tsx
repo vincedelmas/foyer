@@ -9,6 +9,8 @@ import {
 } from "../../modules/ploux-player"
 import { tvApi } from "../api"
 import { FocusButton } from "../components/FocusButton"
+import { useSaveProgressMutation } from "../query-mutations"
+import { tvQueries } from "../queries"
 import { colors } from "../theme"
 
 export function PlayerScreen({
@@ -30,6 +32,8 @@ export function PlayerScreen({
   const onBackRef = useRef(onBack)
   const [launchError, setLaunchError] = useState<string | null>(null)
   const queryClient = useQueryClient()
+  const queries = tvQueries(server)
+  const { mutateAsync: saveProgress } = useSaveProgressMutation(server)
   onBackRef.current = onBack
 
   useEffect(() => {
@@ -81,21 +85,14 @@ export function PlayerScreen({
           result.durationSeconds !== undefined &&
           result.durationSeconds > 0
         ) {
-          await tvApi(server)
-            .progress({
+          await saveProgress({
               partId: result.partId,
               positionSeconds: result.positionSeconds,
               durationSeconds: result.durationSeconds,
             })
             .catch(() => undefined)
         }
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: ["tv-media", server, mediaId],
-          }),
-          queryClient.invalidateQueries({ queryKey: ["tv-library", server] }),
-          queryClient.invalidateQueries({ queryKey: ["tv-watching", server] }),
-        ])
+        await queries.invalidate.media(queryClient, mediaId)
         onBackRef.current()
       })
       .catch((error: unknown) => {
@@ -105,7 +102,7 @@ export function PlayerScreen({
             : "The native Android TV player could not be opened."
         )
       })
-  }, [mediaId, mediaTitle, part.id, parts, queryClient, server])
+  }, [mediaId, mediaTitle, part.id, parts, queries, queryClient, saveProgress, server])
 
   return (
     <View style={styles.screen}>

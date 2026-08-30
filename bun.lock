@@ -8,6 +8,7 @@
         "@base-ui/react": "^1.7.0",
         "@fontsource-variable/manrope": "^5.3.0",
         "@ploux/contracts": "workspace:*",
+        "@ploux/query": "workspace:*",
         "@tailwindcss/vite": "^4",
         "@tanstack/react-form": "^1.33.5",
         "@tanstack/react-query": "^5.102.8",
@@ -49,9 +50,10 @@
     },
     "apps/tv": {
       "name": "@ploux/tv",
-      "version": "0.2.2",
+      "version": "0.3.5",
       "dependencies": {
         "@ploux/contracts": "workspace:*",
+        "@ploux/query": "workspace:*",
         "@react-native-async-storage/async-storage": "2.2.0",
         "@react-native-tvos/config-tv": "^0.1.6",
         "@tanstack/react-query": "^5.102.8",
@@ -79,6 +81,16 @@
       "version": "0.1.0",
       "dependencies": {
         "zod": "^4.4.3",
+      },
+    },
+    "packages/query": {
+      "name": "@ploux/query",
+      "version": "0.1.0",
+      "dependencies": {
+        "@ploux/contracts": "workspace:*",
+      },
+      "peerDependencies": {
+        "@tanstack/react-query": "^5.102.8",
       },
     },
   },
@@ -620,6 +632,8 @@
     "@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.80.0", "", { "os": "win32", "cpu": "x64" }, "sha512-yAnO7lwBYQnz2pcfBPIGQQZWIX5zd5R/1aAKIF3oE+TVj7IhoHcROjOkz3sRDngzqhfPKfFaXqug5j5rE5dn6Q=="],
 
     "@ploux/contracts": ["@ploux/contracts@workspace:packages/contracts"],
+
+    "@ploux/query": ["@ploux/query@workspace:packages/query"],
 
     "@ploux/tv": ["@ploux/tv@workspace:apps/tv"],
 

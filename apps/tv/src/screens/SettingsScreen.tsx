@@ -1,5 +1,5 @@
 import type { LibraryRecord, MediaFolderSummary } from "@ploux/contracts"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import {
   ArrowLeftIcon,
   CheckCircleIcon,
@@ -20,7 +20,8 @@ import {
   View,
 } from "react-native"
 
-import { tvApi } from "../api"
+import { libraryOptions, mediaFoldersOptions, settingsOptions } from "../query-options"
+import { useScanLibraryMutation, useTestConnectionMutation } from "../query-mutations"
 import { AppHeader } from "../components/AppHeader"
 import { CollectionActionsDialog } from "../components/CollectionActionsDialog"
 import { FocusButton } from "../components/FocusButton"
@@ -41,7 +42,7 @@ export function SettingsScreen({
   firstRun?: boolean
 }) {
   const [server, setServer] = useState(initialServer)
-  const test = useMutation({ mutationFn: () => tvApi(server).health() })
+  const test = useTestConnectionMutation(server)
   const [saving, setSaving] = useState(false)
 
   const save = async () => {
@@ -103,38 +104,19 @@ function SettingsDashboard({
   server: string
   editedServer: string
   setEditedServer: (value: string) => void
-  test: ReturnType<typeof useMutation<{ status: string }, Error, void>>
+  test: ReturnType<typeof useTestConnectionMutation>
   saving: boolean
   save: () => Promise<void>
   onBack: () => void
 }) {
-  const queryClient = useQueryClient()
   const updater = useTvUpdater()
   const [editLibrary, setEditLibrary] = useState<LibraryRecord | null>(null)
   const [collectionActions, setCollectionActions] =
     useState<MediaFolderSummary | null>(null)
-  const settings = useQuery({
-    queryKey: ["tv-settings", server],
-    queryFn: () => tvApi(server).settings(),
-  })
-  const folders = useQuery({
-    queryKey: ["tv-folders", server],
-    queryFn: () => tvApi(server).mediaFolders(),
-  })
-  const library = useQuery({
-    queryKey: ["tv-library", server, "settings-stats"],
-    queryFn: () => tvApi(server).library({ page: 1, pageSize: 1 }),
-  })
-  const scanAll = useMutation({
-    mutationFn: () => tvApi(server).scan(),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["tv-settings", server] }),
-        queryClient.invalidateQueries({ queryKey: ["tv-library", server] }),
-        queryClient.invalidateQueries({ queryKey: ["tv-folders", server] }),
-      ])
-    },
-  })
+  const settings = useQuery(settingsOptions(server))
+  const folders = useQuery(mediaFoldersOptions(server))
+  const library = useQuery(libraryOptions(server, { page: 1, pageSize: 1 }))
+  const scanAll = useScanLibraryMutation(server)
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener(
@@ -358,7 +340,7 @@ function ConnectionForm({
 }: {
   server: string
   setServer: (value: string) => void
-  test: ReturnType<typeof useMutation<{ status: string }, Error, void>>
+  test: ReturnType<typeof useTestConnectionMutation>
   saving: boolean
   save: () => Promise<void>
   preferredFocus?: boolean

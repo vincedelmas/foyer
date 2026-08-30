@@ -1,5 +1,4 @@
 import type { MediaSummary } from "@ploux/contracts"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   CheckIcon,
   CircleXIcon,
@@ -10,7 +9,12 @@ import {
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
 
-import { tvApi } from "../api"
+import {
+  useClearMediaProgressMutation,
+  useDeleteMediaMutation,
+  useRefreshMediaMetadataMutation,
+  useSetMediaWatchedMutation,
+} from "../query-mutations"
 import { ActionMenu } from "./ActionMenu"
 import { ConfirmDialog } from "./ConfirmDialog"
 
@@ -31,67 +35,21 @@ export function MediaActionsDialog({
   onInfo: (item: MediaSummary) => void
   onDeleted?: (item: MediaSummary) => void
 }) {
-  const queryClient = useQueryClient()
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   useEffect(() => {
     if (!visible) setConfirmDelete(false)
   }, [item?.id, visible])
 
-  const invalidate = async (mediaId: string, includeFolders = false) => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["tv-library", server] }),
-      queryClient.invalidateQueries({ queryKey: ["tv-watching", server] }),
-      queryClient.invalidateQueries({
-        queryKey: ["tv-media", server, mediaId],
-      }),
-      ...(includeFolders
-        ? [
-            queryClient.invalidateQueries({
-              queryKey: ["tv-folders", server],
-            }),
-          ]
-        : []),
-    ])
-  }
-
-  const clearProgress = useMutation({
-    mutationFn: () => tvApi(server).deleteProgress(item!.id),
-    onSuccess: async () => {
-      await invalidate(item!.id)
-      onClose()
-    },
-  })
-  const watchState = useMutation({
-    mutationFn: () => tvApi(server).setMediaWatched(item!.id, !item!.watched),
-    onSuccess: async () => {
-      await invalidate(item!.id)
-      onClose()
-    },
-  })
-  const refresh = useMutation({
-    mutationFn: () => tvApi(server).refreshMetadata(item!.id),
-    onSuccess: async () => {
-      await invalidate(item!.id, true)
-      onClose()
-    },
-  })
-  const remove = useMutation({
-    mutationFn: () => tvApi(server).deleteMedia(item!.id),
-    onSuccess: async () => {
-      const removed = item!
-      await Promise.all([
-        invalidate(removed.id, true),
-        queryClient.invalidateQueries({ queryKey: ["tv-settings", server] }),
-      ])
-      queryClient.removeQueries({ queryKey: ["tv-media", server, removed.id] })
-      queryClient.removeQueries({
-        queryKey: ["tv-media-info", server, removed.id],
-      })
+  const mediaId = item?.id ?? ""
+  const clearProgress = useClearMediaProgressMutation(server, mediaId, onClose)
+  const watchState = useSetMediaWatchedMutation(server, mediaId, onClose)
+  const refresh = useRefreshMediaMetadataMutation(server, mediaId, onClose)
+  const remove = useDeleteMediaMutation(server, mediaId, () => {
+      const removed = item
       setConfirmDelete(false)
       onClose()
-      onDeleted?.(removed)
-    },
+      if (removed) onDeleted?.(removed)
   })
 
   if (!item) return null
@@ -122,7 +80,7 @@ export function MediaActionsDialog({
             selected: item.watched,
             disabled: pending,
             pending: watchState.isPending,
-            onPress: () => watchState.mutate(),
+            onPress: () => watchState.mutate(!item.watched),
           },
           ...(item.hasProgress
             ? [
