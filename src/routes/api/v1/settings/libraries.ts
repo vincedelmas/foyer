@@ -1,7 +1,7 @@
 import {z} from "zod";
 import {createFileRoute} from "@tanstack/react-router";
 import {libraryInputSchema, libraryUpdateSchema} from "@ploux/contracts";
-import {apiError, emptyCors, json, parseBody} from "@/server/http.server";
+import {emptyCors, handleApi, json, parseBody} from "@/server/http.server";
 import {createLibrary, deleteLibrary, listLibraries, updateLibrary} from "@/server/media/scanner.server";
 
 
@@ -12,32 +12,17 @@ export const Route = createFileRoute("/api/v1/settings/libraries")({
     server: {
         handlers: {
             OPTIONS: emptyCors,
-            GET: () => json(listLibraries()),
-            POST: async ({ request }) => {
-                try {
-                    return json(createLibrary(await parseBody(request, libraryInputSchema)), { status: 201 });
-                }
-                catch (error) {
-                    return apiError(error);
-                }
-            },
-            PUT: async ({ request }) => {
-                try {
-                    return json(updateLibrary(await parseBody(request, libraryUpdateSchema)));
-                }
-                catch (error) {
-                    return apiError(error);
-                }
-            },
-            DELETE: async ({ request }) => {
-                try {
-                    const { id } = await parseBody(request, deleteSchema);
-                    return json({ deleted: await deleteLibrary(id) });
-                }
-                catch (error) {
-                    return apiError(error);
-                }
-            },
+            GET: () => handleApi(() => json(listLibraries())),
+            POST: ({ request }) => handleApi(async () => {
+                return json(createLibrary(await parseBody(request, libraryInputSchema)), { status: 201 });
+            }),
+            PUT: ({ request }) => handleApi(async () => {
+                return json(updateLibrary(await parseBody(request, libraryUpdateSchema)));
+            }),
+            DELETE: ({ request }) => handleApi(async () => {
+                const { id } = await parseBody(request, deleteSchema);
+                return json({ deleted: await deleteLibrary(id) });
+            }),
         },
     },
 });

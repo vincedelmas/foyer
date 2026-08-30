@@ -1,22 +1,17 @@
 import {scanInputSchema} from "@ploux/contracts";
 import {createFileRoute} from "@tanstack/react-router";
 import {scanLibraries} from "@/server/media/scanner.server";
-import {apiError, emptyCors, json, parseBody} from "@/server/http.server";
+import {emptyCors, handleApi, json, parseBody} from "@/server/http.server";
 
 
 export const Route = createFileRoute("/api/v1/settings/scan")({
     server: {
         handlers: {
             OPTIONS: emptyCors,
-            POST: async ({ request }) => {
-                try {
-                    const input = await parseBody(request, scanInputSchema);
-                    return json({ scans: await scanLibraries(input.libraryId) });
-                }
-                catch (error) {
-                    return apiError(error);
-                }
-            },
+            POST: ({ request }) => handleApi(async () => {
+                const input = await parseBody(request, scanInputSchema);
+                return json({ scans: await scanLibraries(input.libraryId) });
+            }),
         },
     },
 });

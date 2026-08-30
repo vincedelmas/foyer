@@ -22,6 +22,19 @@ interface IdentifyDialogProps {
 export function IdentifyDialog({ media, open: controlledOpen, onOpenChange, showTrigger = true }: IdentifyDialogProps) {
     const [internalOpen, setInternalOpen] = useState(false);
     const [candidates, setCandidates] = useState<TmdbCandidate[]>([]);
+
+    const setOpen = (nextOpen: boolean) => {
+        if (controlledOpen === undefined) {
+            setInternalOpen(nextOpen);
+        }
+
+        onOpenChange?.(nextOpen);
+
+        if (!nextOpen) {
+            setCandidates([]);
+        }
+    };
+
     const identify = useIdentifyMediaMutation(media.id, () => setOpen(false));
 
     const form = useForm({
@@ -38,18 +51,6 @@ export function IdentifyDialog({ media, open: controlledOpen, onOpenChange, show
             setCandidates(result.candidates);
         },
     });
-
-    const setOpen = (nextOpen: boolean) => {
-        if (controlledOpen === undefined) {
-            setInternalOpen(nextOpen);
-        }
-
-        onOpenChange?.(nextOpen);
-
-        if (!nextOpen) {
-            setCandidates([]);
-        }
-    };
 
     const open = controlledOpen ?? internalOpen;
 

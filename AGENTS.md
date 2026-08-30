@@ -1,0 +1,10 @@
+# Repository Guidelines
+
+- Create tests only when they are necessary.
+- Utility functions live in `/src/lib/utils.ts`.
+- Do not build the web UI part unless explicitly asked.
+- Do not use overly defensive programming. Add checks where necessary; otherwise, trust the types.
+- After creating the feature, fix, refactor, etc. give me the name of the commit using a conventional commit message.
+- Prefer the smallest change that fixes the root cause. Do not add fallback logic when an enforced data invariant is enough.
+- Avoid creating functions that are used only once when possible. First look for an existing function that already works or can be lightly
+  modified to support the use case.

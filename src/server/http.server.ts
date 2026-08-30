@@ -31,7 +31,7 @@ export const parseBody = async <T>(request: Request, schema: ZodType<T>) => {
 };
 
 
-export const apiError = (error: unknown) => {
+const apiError = (error: unknown) => {
     const message = error instanceof Error ? error.message : "Unexpected server error";
 
     const status = error instanceof SyntaxError || (typeof error === "object" && error !== null && "issues" in error)
@@ -47,4 +47,14 @@ export const apiError = (error: unknown) => {
     }
 
     return json({ error: message }, { status });
-}
+};
+
+
+export const handleApi = async (handler: () => Response | Promise<Response>) => {
+    try {
+        return await handler();
+    }
+    catch (error) {
+        return apiError(error);
+    }
+};

@@ -3,12 +3,8 @@
     "workspaces": {
         ".": {
             "entry": [
-                "src/router.tsx",
-                "src/start.ts",
                 "src/routes/**/*.{ts,tsx}",
-                "server.ts",
-                "vite.config.ts",
-                "drizzle.config.ts"
+                "server.ts"
             ],
             "project": [
                 "src/**/*.{ts,tsx}"
@@ -17,7 +13,6 @@
         "apps/tv": {
             "entry": [
                 "App.tsx",
-                "index.ts",
                 "plugins/with-tv-runtime.cjs",
                 "plugins/with-release-signing.cjs"
             ],
@@ -25,20 +20,12 @@
                 "**/*.{ts,tsx,cjs}"
             ],
             "ignoreDependencies": [
-                "expo-updates",
-                "expo-system-ui"
-            ]
-        },
-        "packages/contracts": {
-            "entry": [
-                "src/index.ts"
+                "expo-updates"
             ]
         }
     },
     "ignore": [
-        "src/components/ui/**",
-        "src/routeTree.gen.ts",
-        "drizzle/**"
+        "src/components/ui/**"
     ],
     "ignoreDependencies": [
         "@fontsource-variable/manrope",

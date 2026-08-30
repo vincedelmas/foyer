@@ -1,5 +1,5 @@
 import {createFileRoute} from "@tanstack/react-router";
-import {emptyCors, json} from "@/server/http.server";
+import {emptyCors, handleApi, json} from "@/server/http.server";
 import {getSettingsOverview} from "@/server/media/settings.server";
 
 
@@ -7,7 +7,7 @@ export const Route = createFileRoute("/api/v1/settings/overview")({
     server: {
         handlers: {
             OPTIONS: emptyCors,
-            GET: () => json(getSettingsOverview()),
+            GET: () => handleApi(() => json(getSettingsOverview())),
         },
     },
 });
