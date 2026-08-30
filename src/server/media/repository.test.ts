@@ -11,7 +11,7 @@ const execFileAsync = promisify(execFile);
 
 
 beforeAll(async () => {
-    temporaryDirectory = await mkdtemp(join(tmpdir(), "ploux-repository-"));
+    temporaryDirectory = await mkdtemp(join(tmpdir(), "foyer-repository-"));
 });
 
 
@@ -76,7 +76,7 @@ describe("media repository", () => {
             cwd: process.cwd(),
             env: {
                 ...process.env,
-                PLOUX_DATABASE_PATH: join(temporaryDirectory, "ploux.sqlite"),
+                FOYER_DATABASE_PATH: join(temporaryDirectory, "foyer.sqlite"),
             },
         });
 

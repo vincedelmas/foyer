@@ -6,7 +6,7 @@ import {FocusButton} from "../components/FocusButton";
 import {useTvUpdater} from "../components/TvUpdateProvider";
 import {FocusTextInput} from "../components/FocusTextInput";
 import {LibraryFormDialog} from "../components/LibraryFormDialog";
-import {LibraryRecord, MediaFolderSummary} from "@ploux/contracts";
+import {LibraryRecord, MediaFolderSummary} from "@foyer/contracts";
 import {CollectionActionsDialog} from "../components/CollectionActionsDialog";
 import {useScanLibraryMutation, useTestConnectionMutation} from "../query-mutations";
 import {libraryOptions, mediaFoldersOptions, settingsOptions} from "../query-options";
@@ -43,10 +43,10 @@ export function SettingsScreen({ initialServer, onSave, onBack, firstRun = false
                 <View style={styles.connectionPanel}>
                     <ServerIcon color={colors.primary} size={42}/>
                     <View style={styles.copy}>
-                        <Text style={styles.eyebrow}>WELCOME TO PLOUX TV</Text>
+                        <Text style={styles.eyebrow}>WELCOME TO FOYER TV</Text>
                         <Text style={styles.connectionTitle}>Find your home server</Text>
                         <Text style={styles.description}>
-                            Enter the LAN address of the computer running Ploux. A physical TV cannot use localhost.
+                            Enter the LAN address of the computer running Foyer. A physical TV cannot use localhost.
                         </Text>
                     </View>
                     <ConnectionForm
@@ -133,7 +133,7 @@ function SettingsDashboard({ server, editedServer, setEditedServer, test, saving
                 />
                 <View style={styles.settingsTitleRow}>
                     <View style={styles.copy}>
-                        <Text style={styles.eyebrow}>PLOUX SERVER</Text>
+                        <Text style={styles.eyebrow}>FOYER SERVER</Text>
                         <Text style={styles.heading}>Settings</Text>
                         <Text style={styles.description}>
                             Manage the server connection, collections, scans, and recent activity.
@@ -168,7 +168,7 @@ function SettingsDashboard({ server, editedServer, setEditedServer, test, saving
                         <View style={styles.copy}>
                             <Text style={styles.sectionTitle}>App updates</Text>
                             <Text style={styles.description}>
-                                Ploux TV {updater.currentVersion} · build {updater.currentVersionCode || "development"}
+                                Foyer TV {updater.currentVersion} · build {updater.currentVersionCode || "development"}
                             </Text>
                             <Text
                                 style={[
@@ -240,7 +240,7 @@ function SettingsDashboard({ server, editedServer, setEditedServer, test, saving
                     <View style={styles.copy}>
                         <Text style={styles.sectionTitle}>Server connection</Text>
                         <Text style={styles.description}>
-                            Change the Ploux server used by this TV.
+                            Change the Foyer server used by this TV.
                         </Text>
                     </View>
                     <View style={styles.connectionInline}>
@@ -309,7 +309,7 @@ function updateStatus(updater: ReturnType<typeof useTvUpdater>) {
     if (updater.status === "installing") return "Waiting for Android’s installer…"
     if (updater.status === "up-to-date") return "This TV is up to date."
     if (updater.status === "error") return updater.error ?? "The update check failed."
-    return "Checks automatically once a day when Ploux starts."
+    return "Checks automatically once a day when Foyer starts."
 }
 
 
@@ -333,7 +333,7 @@ function ConnectionForm({ server, setServer, test, saving, save, preferredFocus 
                 placeholder="http://192.168.1.10:3000"
                 hasTVPreferredFocus={preferredFocus}
             />
-            {test.isSuccess ? <Text style={styles.success}>Connected to Ploux.</Text> : null}
+            {test.isSuccess ? <Text style={styles.success}>Connected to Foyer.</Text> : null}
             {test.isError ? <Text style={styles.error}>{test.error.message}</Text> : null}
             <View style={styles.actions}>
                 <FocusButton

@@ -11,7 +11,7 @@ import {CollectionActions} from "@/components/media-folder-card";
 import {libraryOptions, mediaFoldersOptions} from "@/lib/query-options";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/input-group";
 import {ArrowLeftIcon, FilmIcon, FolderSearchIcon, SearchIcon, TvIcon} from "lucide-react";
-import {mediaSortSchema, MediaWatchFilter, mediaWatchFilterSchema} from "@ploux/contracts";
+import {mediaSortSchema, MediaWatchFilter, mediaWatchFilterSchema} from "@foyer/contracts";
 import {Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle} from "@/components/ui/empty";
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 
@@ -57,7 +57,7 @@ const watchItems = [
 ] as const;
 
 const watchFilterStorageKey = (libraryId: string) => {
-    return `ploux.media.watch-filter.${libraryId}`;
+    return `foyer.media.watch-filter.${libraryId}`;
 };
 
 const readStoredWatchFilter = (libraryId: string) => {

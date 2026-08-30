@@ -1,5 +1,5 @@
-import type { MediaSummary } from "@ploux/contracts"
-import { formatRuntime, tmdbImage } from "@ploux/contracts"
+import type { MediaSummary } from "@foyer/contracts"
+import { formatRuntime, tmdbImage } from "@foyer/contracts"
 import { CheckIcon, FilmIcon } from "lucide-react-native"
 import { Image, Pressable, StyleSheet, Text, View } from "react-native"
 import { useRef, useState } from "react"

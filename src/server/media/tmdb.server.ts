@@ -3,7 +3,7 @@ import {normalizeTitle} from "./file-utils.server";
 import {createRequestRateLimiter} from "./request-rate-limiter";
 import {libraries, mediaItems, mediaParts} from "@/server/db/schema";
 import {db, ensureDatabase} from "@/server/db/index.server";
-import {MediaKind, MetadataRefreshSummary, PersonCredit, SeasonMetadata, TmdbCandidate} from "@ploux/contracts";
+import {MediaKind, MetadataRefreshSummary, PersonCredit, SeasonMetadata, TmdbCandidate} from "@foyer/contracts";
 import {matchLocalEpisodeTitles} from "./episode-metadata";
 
 

@@ -1,4 +1,4 @@
-import {MediaSummary} from "@ploux/contracts";
+import {MediaSummary} from "@foyer/contracts";
 import {FolderSearchIcon} from "lucide-react";
 import {MediaCard} from "@/components/media-card";
 import {Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle} from "@/components/ui/empty";

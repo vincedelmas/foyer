@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "Ploux TV",
-    "slug": "ploux-tv",
+    "name": "Foyer TV",
+    "slug": "foyer-tv",
     "version": "0.4.0",
     "orientation": "landscape",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#12110f",
     "icon": "./assets/icon.png",
     "android": {
-      "package": "com.ploux.tv",
+      "package": "com.foyer.tv",
       "versionCode": 1,
       "backgroundColor": "#12110f",
       "permissions": [

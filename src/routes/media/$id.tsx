@@ -14,7 +14,7 @@ import {MediaPagination} from "@/components/media-pagination";
 import {WatchToggleButton} from "@/components/watch-toggle-button";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
-import {formatBytes, formatRuntime, MediaPart, tmdbImage} from "@ploux/contracts";
+import {formatBytes, formatRuntime, MediaPart, tmdbImage} from "@foyer/contracts";
 import {CalendarIcon, Clock3Icon, PlayIcon, RefreshCwIcon, StarIcon} from "lucide-react";
 import {useRefreshMediaMetadataMutation, useSetMediaPartWatchedMutation} from "@/lib/query-mutations";
 

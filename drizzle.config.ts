@@ -8,6 +8,6 @@ export default defineConfig({
     dialect: "sqlite",
     schema: "./src/server/db/schema.ts",
     dbCredentials: {
-        url: process.env.PLOUX_DATABASE_PATH ?? "./data/ploux.sqlite",
+        url: process.env.FOYER_DATABASE_PATH ?? "./data/foyer.sqlite",
     },
 });

@@ -95,13 +95,13 @@ async function startServer() {
             },
         },
         error(error) {
-            console.error(`[ploux] Unhandled server error:\n${errorMessage(error)}`);
+            console.error(`[foyer] Unhandled server error:\n${errorMessage(error)}`);
             return new Response("Internal Server Error", {status: 500});
         },
     });
 
-    console.info(`[ploux] Serving ${Object.keys(staticRoutes).length} static assets`);
-    console.info(`[ploux] Listening on ${server.url}`);
+    console.info(`[foyer] Serving ${Object.keys(staticRoutes).length} static assets`);
+    console.info(`[foyer] Listening on ${server.url}`);
 }
 
 
@@ -109,10 +109,10 @@ async function shutdown(signal: string) {
     if (isShuttingDown) return;
     isShuttingDown = true;
 
-    console.info(`[ploux] Received ${signal}; shutting down`);
+    console.info(`[foyer] Received ${signal}; shutting down`);
 
     const forceShutdown = setTimeout(() => {
-        console.warn("[ploux] Graceful shutdown timed out; closing active connections");
+        console.warn("[foyer] Graceful shutdown timed out; closing active connections");
         void server?.stop(true);
     }, SHUTDOWN_TIMEOUT_MS);
     forceShutdown.unref();
@@ -128,6 +128,6 @@ process.on("SIGTERM", () => void shutdown("SIGTERM"));
 
 
 startServer().catch((error: unknown) => {
-    console.error(`[ploux] Failed to start:\n${errorMessage(error)}`);
+    console.error(`[foyer] Failed to start:\n${errorMessage(error)}`);
     process.exit(1);
 });

@@ -1,4 +1,4 @@
-import type {MediaDeleteResult, TmdbCandidate} from "@ploux/contracts";
+import type {MediaDeleteResult, TmdbCandidate} from "@foyer/contracts";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
 
 import {tvQueries} from "./queries";

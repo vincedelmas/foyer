@@ -1,12 +1,12 @@
-import type { MediaPart } from "@ploux/contracts"
+import type { MediaPart } from "@foyer/contracts"
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native"
 
 import {
   playNativeMedia,
-  type PlouxPlayerPart,
-} from "../../modules/ploux-player"
+  type FoyerPlayerPart,
+} from "../../modules/foyer-player"
 import { tvApi } from "../api"
 import { FocusButton } from "../components/FocusButton"
 import { useSaveProgressMutation } from "../query-mutations"
@@ -40,7 +40,7 @@ export function PlayerScreen({
     if (launched.current) return
     launched.current = true
 
-    const nativeParts: PlouxPlayerPart[] = parts.map((candidate) => {
+    const nativeParts: FoyerPlayerPart[] = parts.map((candidate) => {
       const streamUrl = new URL(
         tvApi(server).absoluteUrl(candidate.streamUrl)
       )

@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {MediaSummary} from "@ploux/contracts";
+import {MediaSummary} from "@foyer/contracts";
 import {IdentifyDialog} from "./IdentifyDialog";
 import {MediaInfoDialog} from "./MediaInfoDialog";
 import {MediaActionsDialog} from "./MediaActionsDialog";

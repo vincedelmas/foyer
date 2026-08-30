@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {plouxQueries} from "@/lib/queries";
+import {foyerQueries} from "@/lib/queries";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {useQuery} from "@tanstack/react-query";
@@ -10,7 +10,7 @@ import {AudioLinesIcon, CaptionsIcon, FileVideoIcon, InfoIcon} from "lucide-reac
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
-import {formatBitRate, formatBytes, formatDurationSeconds, type MediaFileInfo, type MediaInfo, type MediaStreamInfo} from "@ploux/contracts";
+import {formatBitRate, formatBytes, formatDurationSeconds, type MediaFileInfo, type MediaInfo, type MediaStreamInfo} from "@foyer/contracts";
 
 
 interface MediaInfoDialogProps {
@@ -23,7 +23,7 @@ interface MediaInfoDialogProps {
 
 export function MediaInfoDialog({ mediaId, title, open, onOpenChange }: MediaInfoDialogProps) {
     const info = useQuery({
-        ...plouxQueries.options.mediaInfo(mediaId),
+        ...foyerQueries.options.mediaInfo(mediaId),
         enabled: open,
     });
 
@@ -83,7 +83,7 @@ function MediaFileCard({ mediaId, file }: { mediaId: string, file: MediaFileInfo
     const [requested, setRequested] = useState(false);
 
     const probe = useQuery({
-        ...plouxQueries.options.mediaFileInfo(mediaId, file),
+        ...foyerQueries.options.mediaFileInfo(mediaId, file),
         enabled: requested,
     });
 

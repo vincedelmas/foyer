@@ -11,7 +11,7 @@ const execFileAsync = promisify(execFile)
 
 
 beforeAll(async () => {
-    temporaryDirectory = await mkdtemp(join(tmpdir(), "ploux-scanner-"))
+    temporaryDirectory = await mkdtemp(join(tmpdir(), "foyer-scanner-"))
 })
 
 
@@ -47,7 +47,7 @@ describe("library scanning", () => {
                 ...process.env,
                 REVIEW_MOVED_PATH: join(temporaryDirectory, "moved-library"),
                 REVIEW_ORIGINAL_PATH: join(temporaryDirectory, "original-library"),
-                PLOUX_DATABASE_PATH: join(temporaryDirectory, "library-identity.sqlite"),
+                FOYER_DATABASE_PATH: join(temporaryDirectory, "library-identity.sqlite"),
             },
         })
 
@@ -83,7 +83,7 @@ describe("library scanning", () => {
                 ...process.env,
                 TMDB_READ_ACCESS_TOKEN: "",
                 REVIEW_MEDIA_PATH: mediaDirectory,
-                PLOUX_DATABASE_PATH: join(temporaryDirectory, "flat-series.sqlite"),
+                FOYER_DATABASE_PATH: join(temporaryDirectory, "flat-series.sqlite"),
             },
         })
 
@@ -127,7 +127,7 @@ describe("library scanning", () => {
                 TMDB_READ_ACCESS_TOKEN: "",
                 REVIEW_MEDIA_PATH: mediaDirectory,
                 REVIEW_SUBTITLE_PATH: subtitlePath,
-                PLOUX_DATABASE_PATH: join(temporaryDirectory, "ploux.sqlite"),
+                FOYER_DATABASE_PATH: join(temporaryDirectory, "foyer.sqlite"),
             },
         })
 
@@ -180,7 +180,7 @@ describe("library scanning", () => {
                 TMDB_READ_ACCESS_TOKEN: "",
                 REVIEW_MEDIA_PATH: mediaDirectory,
                 REVIEW_MISSING_PATH: join(temporaryDirectory, "does-not-exist"),
-                PLOUX_DATABASE_PATH: join(temporaryDirectory, "scan-all.sqlite"),
+                FOYER_DATABASE_PATH: join(temporaryDirectory, "scan-all.sqlite"),
             },
         })
 

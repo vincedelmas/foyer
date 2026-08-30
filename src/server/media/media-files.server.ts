@@ -6,7 +6,7 @@ import {compareMediaParts} from "@/server/media/media-part-sort";
 import {isPathInsideRoot} from "@/server/media/file-utils.server";
 import {removeTvCompatibilityCache} from "@/server/media/tv-cache.server";
 import {libraries, mediaItems, type MediaPartRow, mediaParts, type SubtitleRow, subtitleTracks} from "@/server/db/schema";
-import type {MediaDeleteResult, MediaExternalSubtitleInfo, MediaFileInfo, MediaInfo, MediaStreamInfo, MediaStreamType} from "@ploux/contracts";
+import type {MediaDeleteResult, MediaExternalSubtitleInfo, MediaFileInfo, MediaInfo, MediaStreamInfo, MediaStreamType} from "@foyer/contracts";
 
 
 interface FfprobeStream {

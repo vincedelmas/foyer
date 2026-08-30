@@ -4,7 +4,7 @@ import {Input} from "@/components/ui/input";
 import {useForm} from "@tanstack/react-form";
 import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
-import {LibraryKind, LibraryRecord} from "@ploux/contracts";
+import {LibraryKind, LibraryRecord} from "@foyer/contracts";
 import {FolderSyncIcon, PencilIcon, Trash2Icon} from "lucide-react";
 import {MediaTypeToggle} from "@/components/settings/media-type-toggle";
 import {Field, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field";

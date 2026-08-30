@@ -1,4 +1,4 @@
-package com.ploux.player
+package com.foyer.player
 
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit
 internal class PlaybackProgressReporter(serverUrl: String) {
   private val endpoint = URL("${serverUrl.trimEnd('/')}/api/v1/progress")
   private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
-    Thread(runnable, "ploux-playback-progress").apply { isDaemon = true }
+    Thread(runnable, "foyer-playback-progress").apply { isDaemon = true }
   }
 
   fun save(partId: String, positionMs: Long, durationMs: Long) {
@@ -32,7 +32,7 @@ internal class PlaybackProgressReporter(serverUrl: String) {
         connection.doOutput = true
         connection.setRequestProperty("Content-Type", "application/json")
         connection.setRequestProperty("Accept", "application/json")
-        connection.setRequestProperty("User-Agent", "Ploux-TV/Media3")
+        connection.setRequestProperty("User-Agent", "Foyer-TV/Media3")
         connection.outputStream.use { stream ->
           stream.write(payload.toByteArray(Charsets.UTF_8))
         }

@@ -1,11 +1,11 @@
 const { withAppBuildGradle } = require("expo/config-plugins")
 
-const marker = "PLOUX_TV_KEYSTORE_PATH"
+const marker = "FOYER_TV_KEYSTORE_PATH"
 
 module.exports = function withReleaseSigning(config) {
   return withAppBuildGradle(config, (gradleConfig) => {
     if (gradleConfig.modResults.language !== "groovy") {
-      throw new Error("Ploux TV release signing expects a Groovy app/build.gradle")
+      throw new Error("Foyer TV release signing expects a Groovy app/build.gradle")
     }
 
     let contents = gradleConfig.modResults.contents
@@ -20,13 +20,13 @@ module.exports = function withReleaseSigning(config) {
       debugSigningConfig,
       `    signingConfigs {
         release {
-            def releaseStorePath = System.getenv("PLOUX_TV_KEYSTORE_PATH")
+            def releaseStorePath = System.getenv("FOYER_TV_KEYSTORE_PATH")
             if (releaseStorePath) {
                 storeFile file(releaseStorePath)
-                storePassword System.getenv("PLOUX_TV_KEYSTORE_PASSWORD")
-                keyAlias System.getenv("PLOUX_TV_KEY_ALIAS")
-                keyPassword System.getenv("PLOUX_TV_KEY_PASSWORD")
-                storeType System.getenv("PLOUX_TV_KEYSTORE_TYPE") ?: "PKCS12"
+                storePassword System.getenv("FOYER_TV_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("FOYER_TV_KEY_ALIAS")
+                keyPassword System.getenv("FOYER_TV_KEY_PASSWORD")
+                storeType System.getenv("FOYER_TV_KEYSTORE_TYPE") ?: "PKCS12"
             }
         }
         debug {`

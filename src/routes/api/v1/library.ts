@@ -2,7 +2,7 @@ import {z} from "zod";
 import {createFileRoute} from "@tanstack/react-router";
 import {listMedia} from "@/server/media/repository.server";
 import {emptyCors, handleApi, json} from "@/server/http.server";
-import {mediaKindSchema, mediaSortSchema, mediaWatchFilterSchema} from "@ploux/contracts";
+import {mediaKindSchema, mediaSortSchema, mediaWatchFilterSchema} from "@foyer/contracts";
 
 
 export const Route = createFileRoute("/api/v1/library")({

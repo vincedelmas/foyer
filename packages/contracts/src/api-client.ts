@@ -22,7 +22,7 @@ export const healthResponseSchema = z.object({
     directPlay: z.boolean(),
     transcoding: z.boolean(),
     status: z.literal("ok"),
-    name: z.literal("Ploux"),
+    name: z.literal("Foyer"),
     version: z.string().min(1),
 });
 export type HealthResponse = z.infer<typeof healthResponseSchema>;
@@ -79,7 +79,7 @@ const mediaQuery = (input: MediaQueryInput) => {
 };
 
 
-export const createPlouxApi = (baseUrl = "") => {
+export const createFoyerApi = (baseUrl = "") => {
     const trimmedBaseUrl = baseUrl.trim().replace(/\/+$/, "");
 
     const absoluteUrl = (path: string) => {
@@ -117,7 +117,7 @@ export const createPlouxApi = (baseUrl = "") => {
         health: async () => {
             const result = healthResponseSchema.safeParse(await request<unknown>("/api/v1/"));
             if (!result.success) {
-                throw new Error("This address does not appear to be a Ploux server.");
+                throw new Error("This address does not appear to be a Foyer server.");
             }
             return result.data;
         },
@@ -199,4 +199,4 @@ export const createPlouxApi = (baseUrl = "") => {
 };
 
 
-export type PlouxApi = ReturnType<typeof createPlouxApi>;
+export type FoyerApi = ReturnType<typeof createFoyerApi>;

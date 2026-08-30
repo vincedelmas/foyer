@@ -1,5 +1,5 @@
 import {tvQueries} from "./queries";
-import type {LibraryQueryInput, MediaFileInfo} from "@ploux/contracts";
+import type {LibraryQueryInput, MediaFileInfo} from "@foyer/contracts";
 
 
 export const mediaFoldersOptions = (server: string) => {

@@ -1,4 +1,4 @@
-import type {MediaSort, MediaSummary} from "@ploux/contracts"
+import type {MediaSort, MediaSummary} from "@foyer/contracts"
 
 
 type SortDirection = "asc" | "desc"

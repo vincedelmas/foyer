@@ -1,5 +1,5 @@
-import type { MediaFolderSummary } from "@ploux/contracts"
-import { tmdbImage } from "@ploux/contracts"
+import type { MediaFolderSummary } from "@foyer/contracts"
+import { tmdbImage } from "@foyer/contracts"
 import { FilmIcon, TvIcon } from "lucide-react-native"
 import { Image, Pressable, StyleSheet, Text, View } from "react-native"
 import { useRef, useState } from "react"

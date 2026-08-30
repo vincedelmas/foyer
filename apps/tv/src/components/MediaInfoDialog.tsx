@@ -4,7 +4,7 @@ import {TvModal} from "./TvModal";
 import {useQuery} from "@tanstack/react-query";
 import {mediaFileInfoOptions, mediaInfoOptions} from "../query-options";
 import {ActivityIndicator, Pressable, StyleSheet, Text, View} from "react-native";
-import {formatBitRate, formatBytes, formatDurationSeconds, type MediaFileInfo, type MediaStreamInfo} from "@ploux/contracts";
+import {formatBitRate, formatBytes, formatDurationSeconds, type MediaFileInfo, type MediaStreamInfo} from "@foyer/contracts";
 
 
 interface MediaInfoDialogProps {

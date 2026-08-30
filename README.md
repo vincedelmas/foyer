@@ -1,6 +1,8 @@
-# Ploux
+# Foyer
 
-Ploux is the home media server I wanted for myself: point it at a few folders, let it find the artwork, and watch the original files from a browser or Android TV.
+**Your media, at home.**
+
+Foyer is the home media server I wanted for myself: point it at a few folders, let it find the artwork, and watch the original files from a browser or Android TV.
 
 It is intentionally small and opinionated. There are no accounts, plugins, live TV, sharing features, or server-side transcoding. If you need a full Plex or Jellyfin replacement, this probably is not it. If you want a simple direct-play library for a trusted home network, it may be useful to you too.
 
@@ -17,17 +19,17 @@ It is intentionally small and opinionated. There are no accounts, plugins, live 
 
 ## Getting started
 
-You need [Bun 1.4 or newer](https://bun.sh/). A [TMDB v4 read access token](https://www.themoviedb.org/settings/api) is optional, but without one Ploux cannot download titles, posters, or other metadata.
+You need [Bun 1.4 or newer](https://bun.sh/). A [TMDB v4 read access token](https://www.themoviedb.org/settings/api) is optional, but without one Foyer cannot download titles, posters, or other metadata.
 
 ```bash
-git clone https://github.com/vincedelmas/ploux.git
-cd ploux
+git clone https://github.com/vincedelmas/foyer.git
+cd foyer
 cp .env.example .env
 bun install
 bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), go to **Settings**, add an absolute path from the machine running Ploux, and scan it. SQLite data is stored in `./data/ploux.sqlite` by default, and migrations run automatically.
+Open [http://localhost:3000](http://localhost:3000), go to **Settings**, add an absolute path from the machine running Foyer, and scan it. SQLite data is stored in `./data/foyer.sqlite` by default, and migrations run automatically.
 
 For optional stream inspection and Android TV compatibility remuxing, install FFmpeg so that both `ffmpeg` and `ffprobe` are on your `PATH`.
 
@@ -38,9 +40,9 @@ The defaults in `.env.example` are enough for a local setup.
 | Variable | What it changes |
 | --- | --- |
 | `TMDB_READ_ACCESS_TOKEN` | Enables automatic and manual TMDB matching |
-| `PLOUX_DATABASE_PATH` | SQLite database path; defaults to `./data/ploux.sqlite` |
-| `PLOUX_CACHE_PATH` | Cache used for Android TV AVI remuxes; defaults to `./data/cache` |
-| `PLOUX_CORS_ORIGIN` | Allows one separate browser origin; the built-in web app and TV app do not need it |
+| `FOYER_DATABASE_PATH` | SQLite database path; defaults to `./data/foyer.sqlite` |
+| `FOYER_CACHE_PATH` | Cache used for Android TV AVI remuxes; defaults to `./data/cache` |
+| `FOYER_CORS_ORIGIN` | Allows one separate browser origin; the built-in web app and TV app do not need it |
 | `HOST` | Production bind address; defaults to `0.0.0.0` |
 | `PORT` | Production port; defaults to `3000` |
 
@@ -70,7 +72,7 @@ Flat series folders work too, as long as the show name and episode marker are pr
   The.Bear.S03E02.Next.mkv
 ```
 
-Ploux recognizes `S01E02`, `1x02`, and common anime names ending in ` - 02`.
+Foyer recognizes `S01E02`, `1x02`, and common anime names ending in ` - 02`.
 
 External subtitles belong beside the video and must start with the same filename stem:
 
@@ -84,7 +86,7 @@ SRT, VTT, ASS, and SSA files are supported. Browser playback receives WebVTT; th
 
 ## Direct play and format support
 
-Ploux does not transcode video or audio. That keeps the server simple, but the device doing the playback must understand the file.
+Foyer does not transcode video or audio. That keeps the server simple, but the device doing the playback must understand the file.
 
 - Browsers are most reliable with MP4 containing H.264 and AAC. HEVC support depends on the browser and operating system, and MKV support varies considerably.
 - The Android TV player uses AndroidX Media3 (ExoPlayer), hardware video decoding, a local FFmpeg audio decoder fallback for formats such as AC3, E-AC3, and DTS, and libass for styled subtitles.
@@ -93,7 +95,7 @@ Ploux does not transcode video or audio. That keeps the server simple, but the d
 
 ## Android TV
 
-The TV app lives in `apps/tv` and targets Android TV only. On first launch it asks for the Ploux server's LAN address, for example `http://192.168.1.10:3000`. Remember that `localhost` on the TV means the TV itself; an Android emulator can reach the host at `http://10.0.2.2:3000`.
+The TV app lives in `apps/tv` and targets Android TV only. On first launch it asks for the Foyer server's LAN address, for example `http://192.168.1.10:3000`. Remember that `localhost` on the TV means the TV itself; an Android emulator can reach the host at `http://10.0.2.2:3000`.
 
 To build and install it locally:
 
@@ -125,7 +127,7 @@ The build produces browser assets in `dist/client`, the TanStack Start handler i
 For example, with PM2:
 
 ```bash
-pm2 start dist/server.js --name ploux --interpreter bun
+pm2 start dist/server.js --name foyer --interpreter bun
 ```
 
 ## Development
@@ -154,8 +156,8 @@ The versioned JSON API is under `/api/v1`. Its schemas and the client shared by 
 
 ## Security
 
-Ploux has no authentication and assumes it is running on a trusted home network. Do not expose it directly to the public internet. Use an authenticated reverse proxy or a VPN if you need remote access.
+Foyer has no authentication and assumes it is running on a trusted home network. Do not expose it directly to the public internet. Use an authenticated reverse proxy or a VPN if you need remote access.
 
-`PLOUX_CORS_ORIGIN` accepts one exact browser origin. Wildcard origins are deliberately ignored.
+`FOYER_CORS_ORIGIN` accepts one exact browser origin. Wildcard origins are deliberately ignored.
 
-Ploux uses the TMDB API but is not endorsed or certified by TMDB.
+Foyer uses the TMDB API but is not endorsed or certified by TMDB.

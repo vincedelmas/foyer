@@ -11,13 +11,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {MediaDialogs, useMediaDialogs} from "../components/MediaDialogs";
 import {ActivityIndicator, BackHandler, ScrollView, StyleSheet, Text, View} from "react-native";
 import {ArrowUpDownIcon, CheckIcon, FilmIcon, FilterIcon, SearchIcon, TvIcon} from "lucide-react-native";
-import {type MediaFolderSummary, type MediaSort, type MediaSummary, type MediaWatchFilter} from "@ploux/contracts";
+import {type MediaFolderSummary, type MediaSort, type MediaSummary, type MediaWatchFilter} from "@foyer/contracts";
 
 
 const PAGE_SIZE = 24;
 
 const watchStorageKey = (libraryId: string) => {
-    return `ploux.tv.watch-filter.${libraryId}`;
+    return `foyer.tv.watch-filter.${libraryId}`;
 }
 
 const watchOptions: Array<{ label: string; value: MediaWatchFilter }> = [

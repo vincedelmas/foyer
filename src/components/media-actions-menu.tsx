@@ -1,6 +1,6 @@
 import {useState} from "react";
 import {Button} from "@/components/ui/button";
-import {MediaSummary} from "@ploux/contracts";
+import {MediaSummary} from "@foyer/contracts";
 import {Spinner} from "@/components/ui/spinner";
 import {IdentifyDialog} from "@/components/identify-dialog";
 import {MediaInfoDialog} from "@/components/media-info-dialog";
@@ -100,7 +100,7 @@ export function MediaActionsMenu({ item }: { item: MediaSummary }) {
                             This permanently deletes {item.partCount}{" "}
                             {item.partCount === 1 ? "media file" : "media files"} and any
                             indexed external subtitles from the server, then removes the title
-                            from Ploux. This cannot be undone.
+                            from Foyer. This cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

@@ -6,7 +6,7 @@ import {drizzle} from "drizzle-orm/bun-sqlite";
 import {migrate} from "drizzle-orm/bun-sqlite/migrator";
 
 
-const databasePath = resolve(process.env.PLOUX_DATABASE_PATH ?? "./data/ploux.sqlite");
+const databasePath = resolve(process.env.FOYER_DATABASE_PATH ?? "./data/foyer.sqlite");
 
 
 mkdirSync(dirname(databasePath), { recursive: true });

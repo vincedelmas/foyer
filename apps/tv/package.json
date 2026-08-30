@@ -1,5 +1,5 @@
 {
-  "name": "@ploux/tv",
+  "name": "@foyer/tv",
   "version": "0.4.0",
   "private": true,
   "main": "index.ts",
@@ -9,8 +9,8 @@
     "prebuild": "expo prebuild --clean --platform android"
   },
   "dependencies": {
-    "@ploux/contracts": "workspace:*",
-    "@ploux/query": "workspace:*",
+    "@foyer/contracts": "workspace:*",
+    "@foyer/query": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-tvos/config-tv": "^0.1.6",
     "@tanstack/react-query": "^5.102.8",

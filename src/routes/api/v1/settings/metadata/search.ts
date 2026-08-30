@@ -1,6 +1,6 @@
 import {searchTmdb} from "@/server/media/tmdb.server";
 import {createFileRoute} from "@tanstack/react-router";
-import {metadataSearchInputSchema} from "@ploux/contracts";
+import {metadataSearchInputSchema} from "@foyer/contracts";
 import {getMediaDetail} from "@/server/media/repository.server";
 import {emptyCors, handleApi, json, parseBody} from "@/server/http.server";
 

@@ -42,7 +42,7 @@ function SettingsPage() {
                 <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
                     <div>
                         <p className="mb-2 text-xs font-semibold tracking-[0.18em] text-primary uppercase">
-                            Ploux settings
+                            Foyer settings
                         </p>
                         <h1 className="font-heading text-5xl font-medium tracking-tight sm:text-6xl">
                             Settings

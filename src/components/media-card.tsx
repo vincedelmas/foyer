@@ -5,7 +5,7 @@ import {FilmIcon, PlayIcon} from "lucide-react";
 import {Progress} from "@/components/ui/progress";
 import {MediaActionsMenu} from "@/components/media-actions-menu";
 import {MediaWatchToggle} from "@/components/media-watch-toggle";
-import {formatRuntime, MediaSummary, tmdbImage} from "@ploux/contracts";
+import {formatRuntime, MediaSummary, tmdbImage} from "@foyer/contracts";
 
 
 interface MediaCardProps {

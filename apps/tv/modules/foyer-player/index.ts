@@ -1,6 +1,6 @@
 import { requireNativeModule } from "expo"
 
-interface PlouxPlayerSubtitle {
+interface FoyerPlayerSubtitle {
   id: string
   label: string
   language: string
@@ -9,23 +9,23 @@ interface PlouxPlayerSubtitle {
   isDefault: boolean
 }
 
-export interface PlouxPlayerPart {
+export interface FoyerPlayerPart {
   id: string
   title: string
   fileName: string
   streamUrl: string
   resumePositionSeconds: number
-  subtitles: PlouxPlayerSubtitle[]
+  subtitles: FoyerPlayerSubtitle[]
 }
 
-export interface PlouxPlayerOptions {
+export interface FoyerPlayerOptions {
   serverUrl: string
   mediaTitle: string
   startPartId: string
-  parts: PlouxPlayerPart[]
+  parts: FoyerPlayerPart[]
 }
 
-interface PlouxPlayerResult {
+interface FoyerPlayerResult {
   reason: "back" | "ended" | "error"
   partId?: string
   positionSeconds?: number
@@ -33,11 +33,11 @@ interface PlouxPlayerResult {
   error?: string
 }
 
-interface PlouxPlayerNativeModule {
-  play(optionsJson: string): Promise<PlouxPlayerResult>
+interface FoyerPlayerNativeModule {
+  play(optionsJson: string): Promise<FoyerPlayerResult>
 }
 
-const nativeModule = requireNativeModule<PlouxPlayerNativeModule>("PlouxPlayer")
+const nativeModule = requireNativeModule<FoyerPlayerNativeModule>("FoyerPlayer")
 
-export const playNativeMedia = (options: PlouxPlayerOptions) =>
+export const playNativeMedia = (options: FoyerPlayerOptions) =>
   nativeModule.play(JSON.stringify(options))

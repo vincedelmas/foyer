@@ -3,7 +3,7 @@ import {createFileRoute} from "@tanstack/react-router";
 import {emptyCors, handleApi, json, parseBody} from "@/server/http.server";
 import {getMediaDetail, setMediaWatched} from "@/server/media/repository.server";
 import {deleteMediaFiles, getMediaFileInfo, getMediaInfo} from "@/server/media/media-files.server";
-import {mediaDeleteInputSchema, mediaWatchStateInputSchema} from "@ploux/contracts";
+import {mediaDeleteInputSchema, mediaWatchStateInputSchema} from "@foyer/contracts";
 
 
 export const Route = createFileRoute("/api/v1/media/$id")({

@@ -1,5 +1,5 @@
 import {createFileRoute} from "@tanstack/react-router";
-import {metadataRefreshInputSchema} from "@ploux/contracts";
+import {metadataRefreshInputSchema} from "@foyer/contracts";
 import {getMediaDetail} from "@/server/media/repository.server";
 import {emptyCors, handleApi, json, parseBody} from "@/server/http.server";
 import {refreshLibraryMetadata, refreshTmdbMetadata} from "@/server/media/tmdb.server";

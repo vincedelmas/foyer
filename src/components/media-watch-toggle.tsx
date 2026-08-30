@@ -1,4 +1,4 @@
-import {MediaSummary} from "@ploux/contracts";
+import {MediaSummary} from "@foyer/contracts";
 import {WatchToggleButton} from "@/components/watch-toggle-button";
 import {useSetMediaWatchedMutation} from "@/lib/query-mutations";
 

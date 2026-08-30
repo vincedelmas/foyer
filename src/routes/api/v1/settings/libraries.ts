@@ -1,6 +1,6 @@
 import {z} from "zod";
 import {createFileRoute} from "@tanstack/react-router";
-import {libraryInputSchema, libraryUpdateSchema} from "@ploux/contracts";
+import {libraryInputSchema, libraryUpdateSchema} from "@foyer/contracts";
 import {emptyCors, handleApi, json, parseBody} from "@/server/http.server";
 import {createLibrary, deleteLibrary, listLibraries, updateLibrary} from "@/server/media/scanner.server";
 

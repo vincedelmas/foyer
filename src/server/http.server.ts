@@ -9,7 +9,7 @@ class HttpError extends Error {
 
 
 export const corsHeaders = (): Record<string, string> => {
-    const origin = process.env.PLOUX_CORS_ORIGIN?.trim();
+    const origin = process.env.FOYER_CORS_ORIGIN?.trim();
     if (!origin || origin === "*") return {};
 
     return {

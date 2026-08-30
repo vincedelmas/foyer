@@ -1,20 +1,20 @@
-import {plouxQueries} from "@/lib/queries";
-import type {MediaQueryInput, MediaSort, MediaWatchFilter} from "@ploux/contracts";
+import {foyerQueries} from "@/lib/queries";
+import type {MediaQueryInput, MediaSort, MediaWatchFilter} from "@foyer/contracts";
 
 
-export const settingsOptions = plouxQueries.options.settings();
+export const settingsOptions = foyerQueries.options.settings();
 
 
-export const mediaFoldersOptions = plouxQueries.options.mediaFolders();
+export const mediaFoldersOptions = foyerQueries.options.mediaFolders();
 
 
-export const currentlyWatchingOptions = plouxQueries.options.currentlyWatching();
+export const currentlyWatchingOptions = foyerQueries.options.currentlyWatching();
 
 
-export const settingsLibraryOptions = plouxQueries.options.library({ page: 1, pageSize: 1 });
+export const settingsLibraryOptions = foyerQueries.options.library({ page: 1, pageSize: 1 });
 
 
-export const mediaOptions = (id: string, input?: MediaQueryInput) => plouxQueries.options.media(id, input);
+export const mediaOptions = (id: string, input?: MediaQueryInput) => foyerQueries.options.media(id, input);
 
 
 interface LibraryOptionsInput {
@@ -26,10 +26,10 @@ interface LibraryOptionsInput {
 
 
 export const libraryOptions = (libraryId: string, search: LibraryOptionsInput) => {
-    return plouxQueries.options.library({ libraryId, ...search, pageSize: 28 });
+    return foyerQueries.options.library({ libraryId, ...search, pageSize: 28 });
 };
 
 
 export const streamAvailabilityOptions = (partId: string) => {
-    return plouxQueries.options.streamAvailability(partId);
+    return foyerQueries.options.streamAvailability(partId);
 };

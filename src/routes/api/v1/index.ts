@@ -10,7 +10,7 @@ export const Route = createFileRoute("/api/v1/")({
             GET: () =>
                 json({
                     status: "ok",
-                    name: "Ploux",
+                    name: "Foyer",
                     directPlay: true,
                     transcoding: false,
                     version: version.trim(),

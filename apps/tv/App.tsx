@@ -2,7 +2,7 @@ import type {
   MediaFolderSummary,
   MediaPart,
   MediaSummary,
-} from "@ploux/contracts"
+} from "@foyer/contracts"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { NavigationBar } from "expo-navigation-bar"
@@ -18,7 +18,7 @@ import { PlayerScreen } from "./src/screens/PlayerScreen"
 import { SettingsScreen } from "./src/screens/SettingsScreen"
 import { colors } from "./src/theme"
 
-const SERVER_KEY = "ploux.server-url"
+const SERVER_KEY = "foyer.server-url"
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false },
@@ -47,7 +47,7 @@ export default function App() {
 
   useEffect(() => {
     void AsyncStorage.getItem(SERVER_KEY).then((saved) => {
-      setServer(saved ?? process.env.EXPO_PUBLIC_PLOUX_URL ?? null)
+      setServer(saved ?? process.env.EXPO_PUBLIC_FOYER_URL ?? null)
     })
   }, [])
 

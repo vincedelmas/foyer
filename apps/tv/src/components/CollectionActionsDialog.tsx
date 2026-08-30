@@ -5,7 +5,7 @@ import {FocusButton} from "./FocusButton";
 import {ConfirmDialog} from "./ConfirmDialog";
 import {StyleSheet, View} from "react-native";
 import {FocusTextInput} from "./FocusTextInput";
-import {MediaFolderSummary} from "@ploux/contracts";
+import {MediaFolderSummary} from "@foyer/contracts";
 import {FolderInputIcon, FolderSyncIcon, PencilIcon, RefreshCwIcon, Trash2Icon,} from "lucide-react-native";
 import {useDeleteLibraryMutation, useRefreshLibraryMetadataMutation, useScanLibraryMutation, useUpdateLibraryMutation} from "../query-mutations";
 
@@ -106,7 +106,7 @@ export function CollectionActionsDialog({ server, folder, visible, onClose, onDe
                         disabled: pending,
                         label: "Delete collection",
                         onPress: () => setMode("delete"),
-                        description: "Removes only the Ploux collection, never server files.",
+                        description: "Removes only the Foyer collection, never server files.",
                     },
                 ]}
             />
@@ -116,7 +116,7 @@ export function CollectionActionsDialog({ server, folder, visible, onClose, onDe
                 title={mode === "rename" ? "Rename collection" : "Change server folder"}
                 description={
                     mode === "rename"
-                        ? "Choose the name shown on the Ploux home screen."
+                        ? "Choose the name shown on the Foyer home screen."
                         : "Point this collection at another absolute path on the server. Files are not moved."
                 }
                 onClose={() => {
@@ -154,7 +154,7 @@ export function CollectionActionsDialog({ server, folder, visible, onClose, onDe
                 onClose={() => {
                     if (!remove.isPending) setMode("menu")
                 }}
-                description="This removes the collection, its metadata, and watch progress from Ploux.
+                description="This removes the collection, its metadata, and watch progress from Foyer.
                 The media files on the server will not be changed."
             />
         </>

@@ -7,7 +7,7 @@ import {FocusIconButton} from "../components/FocusIconButton";
 import {MediaActionsDialog} from "../components/MediaActionsDialog";
 import {useQuery} from "@tanstack/react-query";
 import {CheckIcon, MoreVerticalIcon, PlayIcon, StarIcon} from "lucide-react-native";
-import {formatBytes, formatRuntime, MediaPart, MediaSummary, tmdbImage} from "@ploux/contracts";
+import {formatBytes, formatRuntime, MediaPart, MediaSummary, tmdbImage} from "@foyer/contracts";
 import {ActivityIndicator, BackHandler, Image, ImageBackground, ScrollView, StyleSheet, Text, View} from "react-native";
 import {mediaOptions} from "../query-options";
 import {useSetMediaPartWatchedMutation, useSetMediaWatchedMutation} from "../query-mutations";

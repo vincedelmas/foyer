@@ -1,5 +1,5 @@
-import type { MediaSummary, TmdbCandidate } from "@ploux/contracts"
-import { tmdbImage } from "@ploux/contracts"
+import type { MediaSummary, TmdbCandidate } from "@foyer/contracts"
+import { tmdbImage } from "@foyer/contracts"
 import { CheckIcon, SearchIcon } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { Image, Pressable, StyleSheet, Text, View } from "react-native"

@@ -1,4 +1,4 @@
-import type {MediaSummary, MediaWatchFilter} from "@ploux/contracts"
+import type {MediaSummary, MediaWatchFilter} from "@foyer/contracts"
 
 
 interface ResumablePart {

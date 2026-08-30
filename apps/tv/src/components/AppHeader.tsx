@@ -17,7 +17,7 @@ export function AppHeader({
     <View style={styles.header}>
       <View style={styles.brand}>
         <Image source={require("../../assets/icon.png")} style={styles.logo} />
-        <Text style={styles.brandText}>Ploux</Text>
+        <Text style={styles.brandText}>Foyer</Text>
       </View>
       <View style={styles.navigation}>
         <FocusButton

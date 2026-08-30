@@ -2,7 +2,7 @@ import {eq} from "drizzle-orm";
 import {readdir, stat} from "node:fs/promises";
 import {db, ensureDatabase} from "@/server/db/index.server";
 import {removeTvCompatibilityCache} from "./tv-cache.server";
-import type {LibraryKind, ScanRecord} from "@ploux/contracts";
+import type {LibraryKind, ScanRecord} from "@foyer/contracts";
 import {basename, dirname, extname, relative, resolve, sep} from "node:path";
 import {autoMatchMetadata, isTmdbConfigured, refreshTmdbEpisodeTitles} from "./tmdb.server";
 import {libraries, type LibraryRow, mediaItems, mediaParts, scans, subtitleTracks} from "@/server/db/schema";

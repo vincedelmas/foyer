@@ -1,4 +1,4 @@
-import type {MediaSummary} from "@ploux/contracts"
+import type {MediaSummary} from "@foyer/contracts"
 import {describe, expect, it} from "vitest"
 import {
     filterByWatchStatus,

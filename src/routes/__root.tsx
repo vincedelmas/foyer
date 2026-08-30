@@ -12,7 +12,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     head: () => ({
         meta: [
             { charSet: "utf-8" },
-            { title: "Ploux — Your cinema, at home" },
+            { title: "Foyer — Your media, at home" },
             { name: "theme-color", content: "#11100e" },
             { name: "viewport", content: "width=device-width, initial-scale=1" },
             { name: "description", content: "A small, direct-play home media library." },

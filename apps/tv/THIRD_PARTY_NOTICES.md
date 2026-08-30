@@ -1,8 +1,8 @@
 # Android TV third-party notices
 
-Ploux TV embeds the following native components in its APK. The Ploux TV
+Foyer TV embeds the following native components in its APK. The Foyer TV
 client itself is distributed under the GNU GPL version 3; see `LICENSE` in
-this directory. The Ploux server and web application are separate programs.
+this directory. The Foyer server and web application are separate programs.
 
 ## react-native-blob-util
 
@@ -11,7 +11,7 @@ this directory. The Ploux server and web application are separate programs.
 - License: MIT
 - License text: https://github.com/RonRadtke/react-native-blob-util/blob/v0.24.10/LICENSE
 
-Ploux uses its native file hashing API to verify large update APKs without loading them into the JavaScript or Java heap.
+Foyer uses its native file hashing API to verify large update APKs without loading them into the JavaScript or Java heap.
 
 ## AndroidX Media3
 
@@ -32,7 +32,7 @@ extractors, hardware-video integration, and player views.
 - License text: https://github.com/jellyfin/jellyfin-androidx-media/blob/master/LICENSE
 
 The decoder is used as a local software-audio fallback for formats such as
-AC3, E-AC3, and DTS. Ploux does not use it to transcode video on the server.
+AC3, E-AC3, and DTS. Foyer does not use it to transcode video on the server.
 
 ## libass-android / ass-media
 

@@ -5,12 +5,11 @@ import * as IntentLauncher from "expo-intent-launcher"
 import ReactNativeBlobUtil from "react-native-blob-util"
 
 const repository =
-  process.env.EXPO_PUBLIC_PLOUX_TV_REPOSITORY ?? "vincedelmas/ploux"
+  process.env.EXPO_PUBLIC_FOYER_TV_REPOSITORY ?? "vincedelmas/foyer"
 const releasesUrl = `https://api.github.com/repos/${repository}/releases?per_page=20`
 const apkMimeType = "application/vnd.android.package-archive"
 const installerFlags = 0x10000001
 const canonicalReleaseTagPattern = /^v\d+\.\d+\.\d+$/
-const legacyReleaseTagPattern = /^tv-v\d+\.\d+\.\d+$/
 
 type GithubAsset = {
   name: string
@@ -85,17 +84,14 @@ function isTvUpdate(value: unknown): value is TvUpdate {
     return false
   }
 
-  const expectedApkPaths = [
-    `/${repository}/releases/download/tv-v${value.version}/ploux-tv.apk`,
-    `/${repository}/releases/download/v${value.version}/ploux-tv.apk`,
-  ]
   return (
     value.versionCode > 0 &&
     value.size > 0 &&
     /^[a-f\d]{64}$/i.test(value.sha256) &&
     apkUrl.protocol === "https:" &&
     apkUrl.hostname === "github.com" &&
-    expectedApkPaths.includes(apkUrl.pathname)
+    apkUrl.pathname ===
+      `/${repository}/releases/download/v${value.version}/foyer-tv.apk`
   )
 }
 
@@ -125,14 +121,10 @@ export async function findLatestTvUpdate(): Promise<TvUpdate | null> {
     (candidate) =>
       !candidate.draft &&
       !candidate.prerelease &&
-      (canonicalReleaseTagPattern.test(candidate.tag_name) ||
-        legacyReleaseTagPattern.test(candidate.tag_name)) &&
+      canonicalReleaseTagPattern.test(candidate.tag_name) &&
       candidate.assets.some((asset) => asset.name === "update.json")
   )
-  const release =
-    releases.find((candidate) =>
-      canonicalReleaseTagPattern.test(candidate.tag_name)
-    ) ?? releases[0]
+  const release = releases[0]
   if (!release) return null
 
   const manifestAsset = release.assets.find(
@@ -149,16 +141,13 @@ export async function findLatestTvUpdate(): Promise<TvUpdate | null> {
   if (!isTvUpdate(manifest)) {
     throw new Error("The update manifest is invalid")
   }
-  if (
-    release.tag_name !== `tv-v${manifest.version}` &&
-    release.tag_name !== `v${manifest.version}`
-  ) {
+  if (release.tag_name !== `v${manifest.version}`) {
     throw new Error("The update manifest version does not match its release")
   }
   const apkUrl = new URL(manifest.apkUrl)
   if (
     apkUrl.pathname !==
-    `/${repository}/releases/download/${release.tag_name}/ploux-tv.apk`
+    `/${repository}/releases/download/${release.tag_name}/foyer-tv.apk`
   ) {
     throw new Error("The update APK does not belong to its release")
   }
@@ -171,7 +160,7 @@ export async function downloadTvUpdate(
   onProgress: (progress: number) => void,
   onVerifying: () => void
 ) {
-  const destination = new File(Paths.cache, "ploux-tv-update.apk")
+  const destination = new File(Paths.cache, "foyer-tv-update.apk")
   if (destination.exists) destination.delete()
 
   const downloaded = await File.downloadFileAsync(update.apkUrl, destination, {
@@ -208,7 +197,7 @@ export async function launchTvUpdateInstaller(apk: File) {
 }
 
 export async function openUnknownSourcesSettings() {
-  const applicationId = Application.applicationId ?? "com.ploux.tv"
+  const applicationId = Application.applicationId ?? "com.foyer.tv"
   await IntentLauncher.startActivityAsync(
     IntentLauncher.ActivityAction.MANAGE_UNKNOWN_APP_SOURCES,
     { data: `package:${applicationId}` }

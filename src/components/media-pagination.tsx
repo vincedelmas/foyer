@@ -1,6 +1,6 @@
 import {MouseEvent} from "react";
 import {Separator} from "@/components/ui/separator";
-import {Pagination as PaginationState} from "@ploux/contracts";
+import {Pagination as PaginationState} from "@foyer/contracts";
 import {Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious} from "@/components/ui/pagination";
 
 

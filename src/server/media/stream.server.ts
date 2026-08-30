@@ -44,7 +44,7 @@ const streamSource = async (
         if (!fileStat.isFile()) {
             return unavailableFileResponse(
                 404,
-                "Media file is no longer available. Rescan the collection to update Ploux."
+                "Media file is no longer available. Rescan the collection to update Foyer."
             )
         }
 
@@ -63,7 +63,7 @@ const streamSource = async (
         ) {
             return unavailableFileResponse(
                 404,
-                "Media file is no longer available. Rescan the collection to update Ploux."
+                "Media file is no longer available. Rescan the collection to update Foyer."
             )
         }
 
@@ -242,7 +242,7 @@ export const streamSubtitle = async (request: Request, subtitleId: string) => {
         ) {
             return unavailableFileResponse(
                 404,
-                "Subtitle file is no longer available. Rescan the collection to update Ploux."
+                "Subtitle file is no longer available. Rescan the collection to update Foyer."
             )
         }
 

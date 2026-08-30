@@ -48,7 +48,7 @@ function WatchPage() {
             <PlayerUnavailable
                 mediaId={mediaId}
                 title={`“${media.title}” is unavailable`}
-                description="Ploux can no longer find this file on the server. It may have been moved or deleted. Rescan its
+                description="Foyer can no longer find this file on the server. It may have been moved or deleted. Rescan its
                 collection to remove the stale entry."
             />
         );
@@ -93,7 +93,7 @@ function PlayerUnavailable({ mediaId, title, description }: PlayerUnavailablePro
 interface ReadyPlayerProps {
     mediaId: string;
     mediaTitle: string;
-    part: import("@ploux/contracts").MediaPart;
+    part: import("@foyer/contracts").MediaPart;
 }
 
 
@@ -226,7 +226,7 @@ function ReadyPlayer({ mediaTitle, mediaId, part }: ReadyPlayerProps) {
                 <Alert className="absolute top-24 left-1/2 z-10 max-w-xl -translate-x-1/2 bg-black/75 text-white backdrop-blur">
                     <AlertTitle>This container may not play in your browser</AlertTitle>
                     <AlertDescription className="text-white/70">
-                        Ploux will not transcode it. Try the Android TV app or a browser
+                        Foyer will not transcode it. Try the Android TV app or a browser
                         that supports {part.mimeType}.
                     </AlertDescription>
                 </Alert>

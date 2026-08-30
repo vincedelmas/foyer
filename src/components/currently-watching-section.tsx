@@ -1,4 +1,4 @@
-import {MediaSummary} from "@ploux/contracts";
+import {MediaSummary} from "@foyer/contracts";
 import {ClapperboardIcon} from "lucide-react";
 import {MediaGrid} from "@/components/media-grid";
 import {Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle} from "@/components/ui/empty";

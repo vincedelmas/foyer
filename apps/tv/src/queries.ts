@@ -1,9 +1,9 @@
-import {createPlouxQueries, type PlouxQueries} from "@ploux/query";
+import {createFoyerQueries, type FoyerQueries} from "@foyer/query";
 
 import {trimServerName, tvApi} from "./api";
 
 
-const queries = new Map<string, PlouxQueries>();
+const queries = new Map<string, FoyerQueries>();
 
 
 export const tvQueries = (server: string) => {
@@ -12,7 +12,7 @@ export const tvQueries = (server: string) => {
 
     if (existing) return existing;
 
-    const client = createPlouxQueries(tvApi(normalizedServer), normalizedServer);
+    const client = createFoyerQueries(tvApi(normalizedServer), normalizedServer);
     queries.set(normalizedServer, client);
 
     return client;

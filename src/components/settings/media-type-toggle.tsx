@@ -1,4 +1,4 @@
-import {LibraryKind} from "@ploux/contracts";
+import {LibraryKind} from "@foyer/contracts";
 import {FilmIcon, TvIcon} from "lucide-react";
 import {ToggleGroup, ToggleGroupItem} from "@/components/ui/toggle-group";
 

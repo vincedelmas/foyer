@@ -1,4 +1,4 @@
-import type { MediaFolderSummary, MediaSummary } from "@ploux/contracts"
+import type { MediaFolderSummary, MediaSummary } from "@foyer/contracts"
 import { useQuery } from "@tanstack/react-query"
 import { FoldersIcon, PlayIcon } from "lucide-react-native"
 import { useState } from "react"
@@ -70,7 +70,7 @@ export function HomeScreen({
             <EmptyState
               icon={FoldersIcon}
               title="No collections yet"
-              description="Create and scan your first collection from the Ploux web app."
+              description="Create and scan your first collection from the Foyer web app."
             />
           ) : null}
         </View>

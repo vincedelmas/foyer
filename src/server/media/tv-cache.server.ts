@@ -2,7 +2,7 @@ import {readdir, rm} from "node:fs/promises"
 import {resolve} from "node:path"
 
 export const tvCompatibilityCacheDirectory = resolve(
-    process.env.PLOUX_CACHE_PATH ?? "./data/cache",
+    process.env.FOYER_CACHE_PATH ?? "./data/cache",
     "android-tv"
 )
 

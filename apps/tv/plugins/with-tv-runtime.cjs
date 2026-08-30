@@ -24,7 +24,7 @@ module.exports = function withTvRuntime(config) {
     }
 
     // A singleTask launcher clears the native player activity when the user
-    // opens Ploux again from the TV home screen. singleTop brings the existing
+    // opens Foyer again from the TV home screen. singleTop brings the existing
     // task back with the player still on top.
     mainActivity.$["android:launchMode"] = "singleTop"
     return manifestConfig

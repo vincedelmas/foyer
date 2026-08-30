@@ -1,4 +1,4 @@
-import {identifyInputSchema} from "@ploux/contracts";
+import {identifyInputSchema} from "@foyer/contracts";
 import {createFileRoute} from "@tanstack/react-router";
 import {applyTmdbMetadata} from "@/server/media/tmdb.server";
 import {getMediaDetail} from "@/server/media/repository.server";

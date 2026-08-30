@@ -1,7 +1,7 @@
 import {z} from "zod";
 
-export {createPlouxApi, ApiError, healthResponseSchema} from "./api-client";
-export type {HealthResponse, LibraryQueryInput, MediaQueryInput, PlouxApi} from "./api-client";
+export {createFoyerApi, ApiError, healthResponseSchema} from "./api-client";
+export type {HealthResponse, LibraryQueryInput, MediaQueryInput, FoyerApi} from "./api-client";
 
 
 export const mediaKindSchema = z.enum(["movie", "series", "anime"]);

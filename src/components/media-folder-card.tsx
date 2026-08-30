@@ -5,7 +5,7 @@ import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {CSSProperties, useState} from "react";
 import {Spinner} from "@/components/ui/spinner";
-import {MediaFolderSummary, tmdbImage} from "@ploux/contracts";
+import {MediaFolderSummary, tmdbImage} from "@foyer/contracts";
 import {Field, FieldDescription, FieldGroup, FieldLabel} from "@/components/ui/field";
 import {Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
@@ -215,7 +215,7 @@ export function CollectionActions({ folder, placement = "card", onDeleted }: Col
                             </DialogTitle>
                             <DialogDescription>
                                 {editMode === "rename"
-                                    ? "Choose the name shown on your Ploux home page."
+                                    ? "Choose the name shown on your Foyer home page."
                                     : "Point this collection at a different folder on your server."
                                 }
                             </DialogDescription>
@@ -266,7 +266,7 @@ export function CollectionActions({ folder, placement = "card", onDeleted }: Col
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                             This removes the collection, its metadata, and its watch progress
-                            from Ploux. The media files on your server will not be changed.
+                            from Foyer. The media files on your server will not be changed.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

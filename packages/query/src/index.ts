@@ -1,9 +1,9 @@
 import {mutationOptions, type QueryClient, queryOptions} from "@tanstack/react-query";
-import {LibraryQueryInput, MediaFileInfo, MediaFolderSummary, MediaQueryInput, PlouxApi} from "@ploux/contracts";
+import {LibraryQueryInput, MediaFileInfo, MediaFolderSummary, MediaQueryInput, FoyerApi} from "@foyer/contracts";
 
 
-type CreateLibraryInput = Parameters<PlouxApi["createLibrary"]>[0];
-type UpdateLibraryInput = Parameters<PlouxApi["updateLibrary"]>[0];
+type CreateLibraryInput = Parameters<FoyerApi["createLibrary"]>[0];
+type UpdateLibraryInput = Parameters<FoyerApi["updateLibrary"]>[0];
 
 
 export type SaveLibraryInput = CreateLibraryInput | UpdateLibraryInput;
@@ -27,8 +27,8 @@ export interface CollectionEdit {
 }
 
 
-export const createPlouxQueries = (api: PlouxApi, cacheScope: string) => {
-    const rootKey = ["ploux", cacheScope] as const;
+export const createFoyerQueries = (api: FoyerApi, cacheScope: string) => {
+    const rootKey = ["foyer", cacheScope] as const;
 
     const keys = {
         all: rootKey,
@@ -237,4 +237,4 @@ export const createPlouxQueries = (api: PlouxApi, cacheScope: string) => {
 };
 
 
-export type PlouxQueries = ReturnType<typeof createPlouxQueries>;
+export type FoyerQueries = ReturnType<typeof createFoyerQueries>;

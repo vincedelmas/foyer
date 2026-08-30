@@ -11,7 +11,7 @@ const execFileAsync = promisify(execFile);
 
 
 beforeAll(async () => {
-    temporaryDirectory = await mkdtemp(join(tmpdir(), "ploux-media-files-"));
+    temporaryDirectory = await mkdtemp(join(tmpdir(), "foyer-media-files-"));
 })
 
 
@@ -87,7 +87,7 @@ printf '%s' '{"streams":[{"index":0,"codec_name":"h264","codec_type":"video","wi
                 ...process.env,
                 PATH: `${binDirectory}${delimiter}${process.env.PATH ?? ""}`,
                 REVIEW_PROBE_COUNT: probeCountPath,
-                PLOUX_DATABASE_PATH: join(temporaryDirectory, "media-files.sqlite"),
+                FOYER_DATABASE_PATH: join(temporaryDirectory, "media-files.sqlite"),
             },
         })
 
@@ -166,7 +166,7 @@ printf '%s' '{"streams":[{"index":0,"codec_name":"h264","codec_type":"video"}],"
                 PATH: `${binDirectory}${delimiter}${process.env.PATH ?? ""}`,
                 REVIEW_PROBE_COUNT: probeCountPath,
                 REVIEW_PROBE_RECOVERED: recoveredPath,
-                PLOUX_DATABASE_PATH: join(temporaryDirectory, "retry-media-files.sqlite"),
+                FOYER_DATABASE_PATH: join(temporaryDirectory, "retry-media-files.sqlite"),
             },
         })
 

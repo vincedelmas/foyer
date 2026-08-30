@@ -1,4 +1,4 @@
-package com.ploux.player
+package com.foyer.player
 
 import android.app.Activity
 import android.app.AlertDialog
@@ -61,7 +61,7 @@ import io.github.peerless2012.ass.media.widget.AssSubtitleView
 import java.util.Locale
 
 @OptIn(UnstableApi::class)
-class PlouxPlayerActivity : Activity(), Player.Listener {
+class FoyerPlayerActivity : Activity(), Player.Listener {
   private lateinit var options: PlaybackOptions
   private lateinit var player: ExoPlayer
   private lateinit var mediaSession: MediaSession
@@ -145,7 +145,7 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
       .setAllowCrossProtocolRedirects(true)
       .setConnectTimeoutMs(10_000)
       .setReadTimeoutMs(20_000)
-      .setUserAgent("Ploux-TV/Media3")
+      .setUserAgent("Foyer-TV/Media3")
     val dataSourceFactory = DefaultDataSource.Factory(this, httpFactory)
     val extractorsFactory = DefaultExtractorsFactory()
       .setConstantBitrateSeekingEnabled(true)
@@ -741,7 +741,7 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     var cause: Throwable? = error
     while (cause != null) {
       if (cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode == 404) {
-        return "This media file is no longer available. Rescan its collection in Ploux."
+        return "This media file is no longer available. Rescan its collection in Foyer."
       }
       cause = cause.cause
     }
@@ -751,10 +751,10 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
       PlaybackException.ERROR_CODE_DECODING_FAILED,
       PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED,
       PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES ->
-        "The Shield could not decode this video stream. Ploux tried hardware video decoding with decoder fallback and FFmpeg audio decoding."
+        "The Shield could not decode this video stream. Foyer tried hardware video decoding with decoder fallback and FFmpeg audio decoding."
       PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
       PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ->
-        "The connection to the Ploux server was interrupted."
+        "The connection to the Foyer server was interrupted."
       else -> "Media3 could not play this file without video transcoding."
     }
   }
@@ -1028,22 +1028,22 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
   }
 
   companion object {
-    const val EXTRA_OPTIONS = "com.ploux.player.OPTIONS"
-    const val RESULT_REASON = "com.ploux.player.RESULT_REASON"
-    const val RESULT_PART_ID = "com.ploux.player.RESULT_PART_ID"
-    const val RESULT_POSITION = "com.ploux.player.RESULT_POSITION"
-    const val RESULT_DURATION = "com.ploux.player.RESULT_DURATION"
-    const val RESULT_ERROR = "com.ploux.player.RESULT_ERROR"
+    const val EXTRA_OPTIONS = "com.foyer.player.OPTIONS"
+    const val RESULT_REASON = "com.foyer.player.RESULT_REASON"
+    const val RESULT_PART_ID = "com.foyer.player.RESULT_PART_ID"
+    const val RESULT_POSITION = "com.foyer.player.RESULT_POSITION"
+    const val RESULT_DURATION = "com.foyer.player.RESULT_DURATION"
+    const val RESULT_ERROR = "com.foyer.player.RESULT_ERROR"
 
     private const val SEEK_INTERVAL_MS = 10_000L
     private const val CONTROLS_TIMEOUT_MS = 6_000L
     private const val PROGRESS_SAVE_INTERVAL_MS = 10_000L
     private const val TIMELINE_UPDATE_INTERVAL_MS = 500L
     private const val TIMELINE_MAX = 1_000
-    private const val STATE_PART_ID = "ploux.player.part-id"
-    private const val STATE_POSITION_MS = "ploux.player.position-ms"
-    private const val STATE_DURATION_MS = "ploux.player.duration-ms"
-    private const val STATE_PLAY_WHEN_READY = "ploux.player.play-when-ready"
+    private const val STATE_PART_ID = "foyer.player.part-id"
+    private const val STATE_POSITION_MS = "foyer.player.position-ms"
+    private const val STATE_DURATION_MS = "foyer.player.duration-ms"
+    private const val STATE_PLAY_WHEN_READY = "foyer.player.play-when-ready"
     private val GENERIC_TRACK_LABEL = Regex(
       "^(?:audio|subtitles?|track)(?:[\\s._-]*\\d+)?$",
       RegexOption.IGNORE_CASE,

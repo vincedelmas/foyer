@@ -1,4 +1,4 @@
-import {scanInputSchema} from "@ploux/contracts";
+import {scanInputSchema} from "@foyer/contracts";
 import {createFileRoute} from "@tanstack/react-router";
 import {scanLibraries} from "@/server/media/scanner.server";
 import {emptyCors, handleApi, json, parseBody} from "@/server/http.server";

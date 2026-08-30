@@ -1,6 +1,6 @@
 import {createFileRoute} from "@tanstack/react-router";
 import {emptyCors, handleApi, json, parseBody} from "@/server/http.server";
-import {mediaIdInputSchema, mediaPartWatchStateInputSchema, progressInputSchema} from "@ploux/contracts";
+import {mediaIdInputSchema, mediaPartWatchStateInputSchema, progressInputSchema} from "@foyer/contracts";
 import {deleteMediaProgress, listCurrentlyWatching, saveProgress, setMediaPartWatched} from "@/server/media/repository.server";
 
 

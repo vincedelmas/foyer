@@ -1,5 +1,5 @@
 {
-    "name": "@ploux/web",
+    "name": "@foyer/web",
     "version": "0.4.0",
     "private": true,
     "type": "module",
@@ -31,8 +31,8 @@
     "dependencies": {
         "@base-ui/react": "^1.7.0",
         "@fontsource-variable/manrope": "^5.3.0",
-        "@ploux/contracts": "workspace:*",
-        "@ploux/query": "workspace:*",
+        "@foyer/contracts": "workspace:*",
+        "@foyer/query": "workspace:*",
         "@tailwindcss/vite": "^4",
         "@tanstack/react-form": "^1.33.5",
         "@tanstack/react-query": "^5.102.8",

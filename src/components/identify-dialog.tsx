@@ -4,7 +4,7 @@ import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
 import {SearchIcon, SparklesIcon} from "lucide-react";
 import {useIdentifyMediaMutation, useSearchMetadataMutation} from "@/lib/query-mutations";
-import {MediaSummary, TmdbCandidate, tmdbImage} from "@ploux/contracts";
+import {MediaSummary, TmdbCandidate, tmdbImage} from "@foyer/contracts";
 import {Field, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/input-group";
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";

@@ -3,7 +3,7 @@ plugins {
   id 'expo-module-gradle-plugin'
 }
 
-group = 'com.ploux.player'
+group = 'com.foyer.player'
 version = '0.1.0'
 
 expoModule {
@@ -11,7 +11,7 @@ expoModule {
 }
 
 android {
-  namespace 'com.ploux.player'
+  namespace 'com.foyer.player'
 
   defaultConfig {
     minSdkVersion 24

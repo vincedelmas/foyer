@@ -1,5 +1,5 @@
 import {api} from "@/lib/api";
-import {createPlouxQueries} from "@ploux/query";
+import {createFoyerQueries} from "@foyer/query";
 
 
-export const plouxQueries = createPlouxQueries(api, "web");
+export const foyerQueries = createFoyerQueries(api, "web");

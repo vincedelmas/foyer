@@ -12,13 +12,13 @@ on:
         required: true
         type: string
     secrets:
-      PLOUX_TV_KEYSTORE_BASE64:
+      FOYER_TV_KEYSTORE_BASE64:
         required: true
-      PLOUX_TV_KEYSTORE_PASSWORD:
+      FOYER_TV_KEYSTORE_PASSWORD:
         required: true
-      PLOUX_TV_KEY_ALIAS:
+      FOYER_TV_KEY_ALIAS:
         required: true
-      PLOUX_TV_KEY_PASSWORD:
+      FOYER_TV_KEY_PASSWORD:
         required: true
   workflow_dispatch:
     inputs:
@@ -45,13 +45,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      PLOUX_TV_VERSION: ${{ inputs.version }}
-      PLOUX_TV_RELEASE_TAG_INPUT: ${{ inputs.tag_name }}
-      EXPO_PUBLIC_PLOUX_TV_REPOSITORY: ${{ github.repository }}
-      PLOUX_TV_KEYSTORE_PASSWORD: ${{ secrets.PLOUX_TV_KEYSTORE_PASSWORD }}
-      PLOUX_TV_KEY_ALIAS: ${{ secrets.PLOUX_TV_KEY_ALIAS }}
-      PLOUX_TV_KEY_PASSWORD: ${{ secrets.PLOUX_TV_KEY_PASSWORD }}
-      PLOUX_TV_KEYSTORE_TYPE: PKCS12
+      FOYER_TV_VERSION: ${{ inputs.version }}
+      FOYER_TV_RELEASE_TAG_INPUT: ${{ inputs.tag_name }}
+      EXPO_PUBLIC_FOYER_TV_REPOSITORY: ${{ github.repository }}
+      FOYER_TV_KEYSTORE_PASSWORD: ${{ secrets.FOYER_TV_KEYSTORE_PASSWORD }}
+      FOYER_TV_KEY_ALIAS: ${{ secrets.FOYER_TV_KEY_ALIAS }}
+      FOYER_TV_KEY_PASSWORD: ${{ secrets.FOYER_TV_KEY_PASSWORD }}
+      FOYER_TV_KEYSTORE_TYPE: PKCS12
 
     steps:
       - name: Check out repository
@@ -71,62 +71,62 @@ jobs:
           java-version: 17
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile --filter @ploux/tv
+        run: bun install --frozen-lockfile --filter @foyer/tv
 
       - name: Validate release inputs
         env:
-          PLOUX_TV_KEYSTORE_BASE64: ${{ secrets.PLOUX_TV_KEYSTORE_BASE64 }}
+          FOYER_TV_KEYSTORE_BASE64: ${{ secrets.FOYER_TV_KEYSTORE_BASE64 }}
         run: |
-          PLOUX_TV_KEYSTORE_PATH="$RUNNER_TEMP/ploux-tv-release.p12"
-          export PLOUX_TV_KEYSTORE_PATH
-          echo "PLOUX_TV_KEYSTORE_PATH=$PLOUX_TV_KEYSTORE_PATH" >> "$GITHUB_ENV"
+          FOYER_TV_KEYSTORE_PATH="$RUNNER_TEMP/foyer-tv-release.p12"
+          export FOYER_TV_KEYSTORE_PATH
+          echo "FOYER_TV_KEYSTORE_PATH=$FOYER_TV_KEYSTORE_PATH" >> "$GITHUB_ENV"
 
-          if [[ ! "$PLOUX_TV_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ ! "$FOYER_TV_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::Version must look like 0.2.0"
             exit 1
           fi
 
-          expected_tag="v$PLOUX_TV_VERSION"
-          PLOUX_TV_RELEASE_TAG="${PLOUX_TV_RELEASE_TAG_INPUT:-$expected_tag}"
-          if [ "$PLOUX_TV_RELEASE_TAG" != "$expected_tag" ]; then
+          expected_tag="v$FOYER_TV_VERSION"
+          FOYER_TV_RELEASE_TAG="${FOYER_TV_RELEASE_TAG_INPUT:-$expected_tag}"
+          if [ "$FOYER_TV_RELEASE_TAG" != "$expected_tag" ]; then
             echo "::error::Release tag must be $expected_tag"
             exit 1
           fi
 
-          IFS=. read -r major minor patch <<< "$PLOUX_TV_VERSION"
+          IFS=. read -r major minor patch <<< "$FOYER_TV_VERSION"
           if [ "$minor" -gt 999 ] || [ "$patch" -gt 999 ]; then
             echo "::error::Android releases require minor and patch versions below 1000"
             exit 1
           fi
-          PLOUX_TV_VERSION_CODE=$((10#$major * 1000000 + 10#$minor * 1000 + 10#$patch))
-          if [ "$PLOUX_TV_VERSION_CODE" -lt 1 ] || [ "$PLOUX_TV_VERSION_CODE" -gt 2100000000 ]; then
+          FOYER_TV_VERSION_CODE=$((10#$major * 1000000 + 10#$minor * 1000 + 10#$patch))
+          if [ "$FOYER_TV_VERSION_CODE" -lt 1 ] || [ "$FOYER_TV_VERSION_CODE" -gt 2100000000 ]; then
             echo "::error::Version produces an invalid Android versionCode"
             exit 1
           fi
-          export PLOUX_TV_RELEASE_TAG PLOUX_TV_VERSION_CODE
-          echo "PLOUX_TV_RELEASE_TAG=$PLOUX_TV_RELEASE_TAG" >> "$GITHUB_ENV"
-          echo "PLOUX_TV_VERSION_CODE=$PLOUX_TV_VERSION_CODE" >> "$GITHUB_ENV"
+          export FOYER_TV_RELEASE_TAG FOYER_TV_VERSION_CODE
+          echo "FOYER_TV_RELEASE_TAG=$FOYER_TV_RELEASE_TAG" >> "$GITHUB_ENV"
+          echo "FOYER_TV_VERSION_CODE=$FOYER_TV_VERSION_CODE" >> "$GITHUB_ENV"
 
-          for value in PLOUX_TV_KEYSTORE_BASE64 PLOUX_TV_KEYSTORE_PASSWORD PLOUX_TV_KEY_ALIAS PLOUX_TV_KEY_PASSWORD; do
+          for value in FOYER_TV_KEYSTORE_BASE64 FOYER_TV_KEYSTORE_PASSWORD FOYER_TV_KEY_ALIAS FOYER_TV_KEY_PASSWORD; do
             if [ -z "${!value}" ]; then
               echo "::error::Missing GitHub Actions secret: $value"
               exit 1
             fi
           done
-          printf '%s' "$PLOUX_TV_KEYSTORE_BASE64" | base64 --decode > "$PLOUX_TV_KEYSTORE_PATH"
+          printf '%s' "$FOYER_TV_KEYSTORE_BASE64" | base64 --decode > "$FOYER_TV_KEYSTORE_PATH"
           keytool -list \
-            -keystore "$PLOUX_TV_KEYSTORE_PATH" \
+            -keystore "$FOYER_TV_KEYSTORE_PATH" \
             -storetype PKCS12 \
-            -storepass "$PLOUX_TV_KEYSTORE_PASSWORD" \
-            -alias "$PLOUX_TV_KEY_ALIAS" \
+            -storepass "$FOYER_TV_KEYSTORE_PASSWORD" \
+            -alias "$FOYER_TV_KEY_ALIAS" \
             >/dev/null
 
       - name: Validate target release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if ! gh release view "$PLOUX_TV_RELEASE_TAG" >/dev/null 2>&1; then
-            echo "::error::Release $PLOUX_TV_RELEASE_TAG does not exist. Merge the Release Please PR first."
+          if ! gh release view "$FOYER_TV_RELEASE_TAG" >/dev/null 2>&1; then
+            echo "::error::Release $FOYER_TV_RELEASE_TAG does not exist. Merge the Release Please PR first."
             exit 1
           fi
 
@@ -146,52 +146,22 @@ jobs:
         run: ./gradlew assembleRelease --no-daemon --build-cache -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
 
       - name: Give the APK a stable name
-        run: cp apps/tv/android/app/build/outputs/apk/release/app-release.apk ploux-tv.apk
+        run: cp apps/tv/android/app/build/outputs/apk/release/app-release.apk foyer-tv.apk
 
       - name: Create update manifest and checksum
-        run: bun scripts/create-tv-update-manifest.ts ploux-tv.apk update.json
-
-      - name: Create the 0.2.1 legacy update manifest
-        if: ${{ env.PLOUX_TV_VERSION == '0.2.1' }}
-        run: |
-          mkdir -p legacy-release
-          PLOUX_TV_RELEASE_TAG="tv-v$PLOUX_TV_VERSION" \
-            bun scripts/create-tv-update-manifest.ts ploux-tv.apk legacy-release/update.json
+        run: bun scripts/create-tv-update-manifest.ts foyer-tv.apk update.json
 
       - name: Attach APK to GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload "$PLOUX_TV_RELEASE_TAG" \
-            ploux-tv.apk \
-            ploux-tv.apk.sha256 \
+          gh release upload "$FOYER_TV_RELEASE_TAG" \
+            foyer-tv.apk \
+            foyer-tv.apk.sha256 \
             update.json \
             --clobber
-
-      - name: Publish the 0.2.1 compatibility release
-        if: ${{ env.PLOUX_TV_VERSION == '0.2.1' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          legacy_tag="tv-v$PLOUX_TV_VERSION"
-          if gh release view "$legacy_tag" >/dev/null 2>&1; then
-            gh release upload "$legacy_tag" \
-              ploux-tv.apk \
-              ploux-tv.apk.sha256 \
-              legacy-release/update.json \
-              --clobber
-          else
-            gh release create "$legacy_tag" \
-              ploux-tv.apk \
-              ploux-tv.apk.sha256 \
-              legacy-release/update.json \
-              --target "$GITHUB_SHA" \
-              --title "Ploux TV $PLOUX_TV_VERSION compatibility update" \
-              --notes "Compatibility release for Ploux TV 0.2.0 installations. Future updates use the canonical v-prefixed releases."
-          fi
-          gh release edit "$legacy_tag" --draft=false
 
       - name: Publish completed GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release edit "$PLOUX_TV_RELEASE_TAG" --draft=false
+        run: gh release edit "$FOYER_TV_RELEASE_TAG" --draft=false

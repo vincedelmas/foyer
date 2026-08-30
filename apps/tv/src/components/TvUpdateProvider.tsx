@@ -30,8 +30,8 @@ import { colors } from "../theme"
 import { FocusButton } from "./FocusButton"
 import { TvModal } from "./TvModal"
 
-const lastCheckKey = "ploux.tv-updates.last-check"
-const dismissedVersionKey = "ploux.tv-updates.dismissed-version"
+const lastCheckKey = "foyer.tv-updates.last-check"
+const dismissedVersionKey = "foyer.tv-updates.dismissed-version"
 const automaticCheckInterval = 24 * 60 * 60 * 1000
 
 type UpdateStatus =
@@ -181,7 +181,7 @@ export function TvUpdateProvider({
       setCanOpenInstallSettings(true)
       setStatus("error")
       setError(
-        `${errorMessage(caught)}. Allow Ploux TV to install unknown apps, then try again.`
+        `${errorMessage(caught)}. Allow Foyer TV to install unknown apps, then try again.`
       )
     }
   }
@@ -208,7 +208,7 @@ export function TvUpdateProvider({
       {children}
       <TvModal
         visible={dialogVisible && update !== null}
-        title="Ploux TV update"
+        title="Foyer TV update"
         description={
           update
             ? `${currentTvVersion} → ${update.version} · ${(update.size / 1_000_000).toFixed(1)} MB`

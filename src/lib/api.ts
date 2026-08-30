@@ -1,4 +1,4 @@
-import {createPlouxApi} from "@ploux/contracts";
+import {createFoyerApi} from "@foyer/contracts";
 
 
-export const api = createPlouxApi();
+export const api = createFoyerApi();

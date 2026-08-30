@@ -4,7 +4,7 @@ import {isPlaybackCompleted} from "@/server/media/playback-completion";
 import {selectCurrentlyWatching, selectNextPart} from "@/server/media/progress-utils";
 import {and, asc, count, desc, eq, inArray, like, or, sql, type SQL} from "drizzle-orm";
 import {libraries, MediaItemRow, mediaItems, MediaPartRow, mediaParts, playbackProgress, ProgressRow, SubtitleRow, subtitleTracks} from "@/server/db/schema";
-import {LibraryStats, MediaKind, MediaPart, MediaProgress, MediaSort, MediaWatchFilter, PersonCredit, SeasonMetadata, SubtitleTrack} from "@ploux/contracts";
+import {LibraryStats, MediaKind, MediaPart, MediaProgress, MediaSort, MediaWatchFilter, PersonCredit, SeasonMetadata, SubtitleTrack} from "@foyer/contracts";
 
 
 const parseJson = <T>(value: string, fallback: T): T => {

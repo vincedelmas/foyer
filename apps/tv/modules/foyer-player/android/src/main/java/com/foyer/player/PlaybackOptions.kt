@@ -1,4 +1,4 @@
-package com.ploux.player
+package com.foyer.player
 
 import org.json.JSONObject
 

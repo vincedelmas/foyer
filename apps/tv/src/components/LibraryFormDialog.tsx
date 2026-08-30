@@ -1,4 +1,4 @@
-import type { LibraryKind, LibraryRecord } from "@ploux/contracts"
+import type { LibraryKind, LibraryRecord } from "@foyer/contracts"
 import { useEffect, useState } from "react"
 import { StyleSheet, Text, View } from "react-native"
 
@@ -46,7 +46,7 @@ export function LibraryFormDialog({
     <TvModal
       visible={visible}
       title={library ? "Edit collection" : "Create a new collection"}
-      description="Choose a display name, an absolute server folder, and the media layout Ploux should expect."
+      description="Choose a display name, an absolute server folder, and the media layout Foyer should expect."
       onClose={onClose}
       width={620}
     >
@@ -60,7 +60,7 @@ export function LibraryFormDialog({
         />
         <FocusTextInput
           label="Folder on the server"
-          hint="Use an absolute path on the machine running Ploux."
+          hint="Use an absolute path on the machine running Foyer."
           value={path}
           onChangeText={setPath}
           autoCapitalize="none"
