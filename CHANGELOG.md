@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/vincedelmas/foyer/compare/v1.0.0...v1.1.0) (2026-08-30)
+
+
+### Features
+
+* refine watch progress and TV controls ([9ef20d0](https://github.com/vincedelmas/foyer/commit/9ef20d0c7b69b1af95e74b077e3f271463d5154f))
+
 ## [1.0.0](https://github.com/vincedelmas/foyer/compare/v0.4.0...v1.0.0) (2026-08-30)
 
 
