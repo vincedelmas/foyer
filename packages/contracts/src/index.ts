@@ -1,11 +1,14 @@
 import {z} from "zod";
 
+export {createPlouxApi, ApiError} from "./api-client";
+export type {LibraryQueryInput, PlouxApi} from "./api-client";
 
-export const mediaKindSchema = z.enum(["movie", "series", "anime"])
-export type MediaKind = z.infer<typeof mediaKindSchema>
 
-export const libraryKindSchema = z.enum(["movies", "series"])
-export type LibraryKind = z.infer<typeof libraryKindSchema>
+export const mediaKindSchema = z.enum(["movie", "series", "anime"]);
+export type MediaKind = z.infer<typeof mediaKindSchema>;
+
+export const libraryKindSchema = z.enum(["movies", "series"]);
+export type LibraryKind = z.infer<typeof libraryKindSchema>;
 
 export const mediaSortSchema = z.enum([
     "recent",
@@ -16,54 +19,62 @@ export const mediaSortSchema = z.enum([
     "runtime-asc",
     "rating-desc",
     "rating-asc",
-])
-export type MediaSort = z.infer<typeof mediaSortSchema>
+]);
+export type MediaSort = z.infer<typeof mediaSortSchema>;
 
-export const mediaWatchFilterSchema = z.enum(["all", "watched", "unwatched"])
-export type MediaWatchFilter = z.infer<typeof mediaWatchFilterSchema>
+export const mediaWatchFilterSchema = z.enum(["all", "watched", "unwatched"]);
+export type MediaWatchFilter = z.infer<typeof mediaWatchFilterSchema>;
 
 export const libraryInputSchema = z.object({
     name: z.string().trim().min(1).max(80),
     path: z.string().trim().min(1),
     kind: libraryKindSchema,
-})
+});
 
 export const libraryUpdateSchema = libraryInputSchema.extend({
     id: z.string().min(1),
-})
+});
 
 export const progressInputSchema = z.object({
     partId: z.string().min(1),
     positionSeconds: z.number().nonnegative(),
     durationSeconds: z.number().nonnegative(),
-})
+});
 
 export const metadataSearchInputSchema = z.object({
     mediaId: z.string().min(1),
     query: z.string().trim().min(1).max(160),
     year: z.number().int().min(1870).max(2200).optional(),
-})
+});
 
 export const identifyInputSchema = z.object({
     mediaId: z.string().min(1),
     tmdbId: z.number().int().positive(),
-})
+});
 
-export const mediaIdInputSchema = z.object({ mediaId: z.string().min(1) })
-export const mediaWatchStateInputSchema = z.object({watched: z.boolean()})
+export const mediaIdInputSchema = z.object({ mediaId: z.string().min(1) });
+
+export const mediaWatchStateInputSchema = z.object({ watched: z.boolean() });
+
 export const mediaPartWatchStateInputSchema = z.object({
     partId: z.string().min(1),
     watched: z.boolean(),
-})
-export const mediaDeleteInputSchema = z.object({deleteFiles: z.literal(true)})
-export const libraryIdInputSchema = z.object({ libraryId: z.string().min(1) })
+});
+
+export const mediaDeleteInputSchema = z.object({ deleteFiles: z.literal(true) });
+
+export const libraryIdInputSchema = z.object({ libraryId: z.string().min(1) });
+
 export const metadataRefreshInputSchema = z.union([
     mediaIdInputSchema,
     libraryIdInputSchema,
-])
+]);
+
 export const scanInputSchema = z.object({
     libraryId: z.string().min(1).optional(),
-})
+});
+
+export type MediaStreamType = "video" | "audio" | "subtitle" | "other"
 
 export interface PersonCredit {
     id: number
@@ -169,8 +180,6 @@ export interface MetadataRefreshSummary {
     skipped: number
     failed: number
 }
-
-export type MediaStreamType = "video" | "audio" | "subtitle" | "other"
 
 export interface MediaStreamInfo {
     index: number
@@ -283,4 +292,39 @@ export const formatRuntime = (minutes: number | null) => {
     const rest = minutes % 60;
 
     return hours ? `${hours}h ${rest}m` : `${rest}m`;
+};
+
+
+export const formatBytes = (bytes: number) => {
+    let unit = 0;
+    let value = bytes;
+    const units = ["B", "KB", "MB", "GB", "TB"];
+
+    while (value >= 1024 && unit < units.length - 1) {
+        unit += 1;
+        value /= 1024;
+    }
+
+    return `${value.toFixed(unit > 1 ? 1 : 0)} ${units[unit]}`;
+};
+
+
+export const formatBitRate = (bitRate: number | null) => {
+    return bitRate === null
+        ? null
+        : `${(bitRate / 1_000_000).toFixed(2)} Mbps`;
+};
+
+
+export const formatDurationSeconds = (seconds: number | null) => {
+    if (seconds === null) return null;
+
+    const totalSeconds = Math.round(seconds);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const remainingSeconds = totalSeconds % 60;
+
+    return hours
+        ? `${hours}h ${minutes}m ${remainingSeconds}s`
+        : `${minutes}m ${remainingSeconds}s`;
 };

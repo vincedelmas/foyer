@@ -41,7 +41,7 @@ export function SettingsScreen({
   firstRun?: boolean
 }) {
   const [server, setServer] = useState(initialServer)
-  const test = useMutation({ mutationFn: () => tvApi.health(server) })
+  const test = useMutation({ mutationFn: () => tvApi(server).health() })
   const [saving, setSaving] = useState(false)
 
   const save = async () => {
@@ -115,18 +115,18 @@ function SettingsDashboard({
     useState<MediaFolderSummary | null>(null)
   const settings = useQuery({
     queryKey: ["tv-settings", server],
-    queryFn: () => tvApi.settings(server),
+    queryFn: () => tvApi(server).settings(),
   })
   const folders = useQuery({
     queryKey: ["tv-folders", server],
-    queryFn: () => tvApi.mediaFolders(server),
+    queryFn: () => tvApi(server).mediaFolders(),
   })
   const library = useQuery({
     queryKey: ["tv-library", server, "settings-stats"],
-    queryFn: () => tvApi.library(server, { page: 1, pageSize: 1 }),
+    queryFn: () => tvApi(server).library({ page: 1, pageSize: 1 }),
   })
   const scanAll = useMutation({
-    mutationFn: () => tvApi.scan(server),
+    mutationFn: () => tvApi(server).scan(),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["tv-settings", server] }),

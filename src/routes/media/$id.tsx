@@ -9,11 +9,11 @@ import {ScrollArea} from "@/components/ui/scroll-area";
 import {useSuspenseQuery} from "@tanstack/react-query";
 import {IdentifyDialog} from "@/components/identify-dialog";
 import {createFileRoute, Link} from "@tanstack/react-router";
-import {formatRuntime, MediaPart, tmdbImage} from "@ploux/contracts";
+import {WatchToggleButton} from "@/components/watch-toggle-button";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
-import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip";
-import {CalendarIcon, CheckIcon, Clock3Icon, PlayIcon, RefreshCwIcon, StarIcon} from "lucide-react";
+import {formatBytes, formatRuntime, MediaPart, tmdbImage} from "@ploux/contracts";
+import {CalendarIcon, Clock3Icon, PlayIcon, RefreshCwIcon, StarIcon} from "lucide-react";
 import {useRefreshMediaMetadataMutation, useSetMediaPartWatchedMutation} from "@/lib/query-mutations";
 
 
@@ -324,29 +324,15 @@ function EpisodeList({ mediaId, parts, fallbackLabel }: EpisodeListProps) {
 
 function EpisodeWatchToggle({ mediaId, part }: { mediaId: string, part: MediaPart }) {
     const watched = part.progress?.completed === true;
-    const label = watched ? "Mark episode as unwatched" : "Mark episode as watched";
     const watchState = useSetMediaPartWatchedMutation(mediaId, part.id, !watched);
 
     return (
-        <Tooltip>
-            <TooltipTrigger
-                render={
-                    <Button
-                        size="icon-sm"
-                        aria-label={label}
-                        aria-pressed={watched}
-                        disabled={watchState.isPending}
-                        variant={watched ? "default" : "outline"}
-                        onClick={() => watchState.mutate()}
-                    />
-                }
-            >
-                {watchState.isPending ? <Spinner/> : <CheckIcon/>}
-            </TooltipTrigger>
-            <TooltipContent>
-                <p>{label}</p>
-            </TooltipContent>
-        </Tooltip>
+        <WatchToggleButton
+            watched={watched}
+            pending={watchState.isPending}
+            onToggle={() => watchState.mutate()}
+            label={watched ? "Mark episode as unwatched" : "Mark episode as watched"}
+        />
     );
 }
 
@@ -362,20 +348,6 @@ function DetailRow({ term, value }: { term: string, value: string | null | undef
             <dd>{value}</dd>
         </div>
     );
-}
-
-
-function formatBytes(bytes: number) {
-    let unit = 0;
-    let value = bytes;
-    const units = ["B", "KB", "MB", "GB", "TB"];
-
-    while (value >= 1024 && unit < units.length - 1) {
-        unit += 1;
-        value /= 1024;
-    }
-
-    return `${value.toFixed(unit > 1 ? 1 : 0)} ${units[unit]}`;
 }
 
 

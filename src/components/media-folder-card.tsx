@@ -9,7 +9,7 @@ import {MediaFolderSummary, tmdbImage} from "@ploux/contracts";
 import {Field, FieldDescription, FieldGroup, FieldLabel} from "@/components/ui/field";
 import {Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
-import {useDeleteCollectionMutation, useEditCollectionMutation, useRefreshCollectionMetadataMutation, useScanLibraryMutation} from "@/lib/query-mutations";
+import {useDeleteLibraryMutation, useEditCollectionMutation, useRefreshCollectionMetadataMutation, useScanLibraryMutation} from "@/lib/query-mutations";
 import {ArrowUpRightIcon, EllipsisVerticalIcon, FilmIcon, FolderInputIcon, FolderSyncIcon, PencilIcon, RefreshCwIcon, Trash2Icon, TvIcon} from "lucide-react";
 import {DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {
@@ -119,7 +119,7 @@ export function CollectionActions({ folder, placement = "card", onDeleted }: Col
     const scan = useScanLibraryMutation(folder, "rescanned");
     const refresh = useRefreshCollectionMetadataMutation(folder.id);
     const update = useEditCollectionMutation(folder, () => setEditMode(null));
-    const remove = useDeleteCollectionMutation(folder.id, () => {
+    const remove = useDeleteLibraryMutation(folder.id, () => {
         setDeleteOpen(false);
         onDeleted?.();
     });

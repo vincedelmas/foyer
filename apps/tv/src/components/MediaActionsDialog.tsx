@@ -56,28 +56,28 @@ export function MediaActionsDialog({
   }
 
   const clearProgress = useMutation({
-    mutationFn: () => tvApi.deleteProgress(server, item!.id),
+    mutationFn: () => tvApi(server).deleteProgress(item!.id),
     onSuccess: async () => {
       await invalidate(item!.id)
       onClose()
     },
   })
   const watchState = useMutation({
-    mutationFn: () => tvApi.setMediaWatched(server, item!.id, !item!.watched),
+    mutationFn: () => tvApi(server).setMediaWatched(item!.id, !item!.watched),
     onSuccess: async () => {
       await invalidate(item!.id)
       onClose()
     },
   })
   const refresh = useMutation({
-    mutationFn: () => tvApi.refreshMetadata(server, item!.id),
+    mutationFn: () => tvApi(server).refreshMetadata(item!.id),
     onSuccess: async () => {
       await invalidate(item!.id, true)
       onClose()
     },
   })
   const remove = useMutation({
-    mutationFn: () => tvApi.deleteMedia(server, item!.id),
+    mutationFn: () => tvApi(server).deleteMedia(item!.id),
     onSuccess: async () => {
       const removed = item!
       await Promise.all([

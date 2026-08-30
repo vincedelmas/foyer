@@ -12,6 +12,7 @@ import {resolve} from "node:path"
 import {db, ensureDatabase} from "@/server/db/index.server"
 import {libraries, mediaItems, mediaParts, subtitleTracks} from "@/server/db/schema"
 import {isPathInsideRoot} from "@/server/media/file-utils.server"
+import {compareMediaParts} from "@/server/media/media-part-sort"
 import {removeTvCompatibilityCache} from "@/server/media/tv-cache.server"
 
 
@@ -166,11 +167,7 @@ export const getMediaInfo = async (mediaId: string): Promise<MediaInfo | null> =
         .from(mediaParts)
         .where(eq(mediaParts.mediaItemId, mediaId))
         .all()
-        .sort((left, right) =>
-            (left.seasonNumber ?? 0) - (right.seasonNumber ?? 0) ||
-            (left.episodeNumber ?? 0) - (right.episodeNumber ?? 0) ||
-            left.fileName.localeCompare(right.fileName)
-        )
+        .sort(compareMediaParts)
     const partIds = new Set(parts.map((part) => part.id))
     const subtitlesByPart = new Map<string, MediaExternalSubtitleInfo[]>()
 

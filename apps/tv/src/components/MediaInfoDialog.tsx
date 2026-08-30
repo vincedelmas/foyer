@@ -1,4 +1,10 @@
-import type { MediaFileInfo, MediaStreamInfo } from "@ploux/contracts"
+import {
+  formatBitRate,
+  formatBytes,
+  formatDurationSeconds,
+  type MediaFileInfo,
+  type MediaStreamInfo,
+} from "@ploux/contracts"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import {
@@ -28,7 +34,7 @@ export function MediaInfoDialog({
 }) {
   const info = useQuery({
     queryKey: ["tv-media-info", server, mediaId],
-    queryFn: () => tvApi.mediaInfo(server, mediaId!),
+    queryFn: () => tvApi(server).mediaInfo(mediaId!),
     enabled: visible && Boolean(mediaId),
   })
 
@@ -85,7 +91,7 @@ function FileCard({ file }: { file: MediaFileInfo }) {
         <Fact label="Size" value={formatBytes(file.size)} />
         <Fact label="MIME" value={file.mimeType} />
         <Fact label="Format" value={file.formatName ?? file.container} />
-        <Fact label="Duration" value={formatDuration(file.durationSeconds)} />
+        <Fact label="Duration" value={formatDurationSeconds(file.durationSeconds)} />
         <Fact label="Bit rate" value={formatBitRate(file.bitRate)} />
       </View>
       {file.probeError ? <Text style={styles.error}>{file.probeError}</Text> : null}
@@ -143,29 +149,6 @@ function Fact({ label, value }: { label: string; value: string | null }) {
     </View>
   )
 }
-
-const formatBytes = (bytes: number) => {
-  const units = ["B", "KB", "MB", "GB", "TB"]
-  let value = bytes
-  let unit = 0
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024
-    unit += 1
-  }
-  return `${value.toFixed(unit > 1 ? 1 : 0)} ${units[unit]}`
-}
-
-const formatDuration = (seconds: number | null) => {
-  if (seconds === null) return null
-  const total = Math.round(seconds)
-  const hours = Math.floor(total / 3600)
-  const minutes = Math.floor((total % 3600) / 60)
-  const rest = total % 60
-  return hours ? `${hours}h ${minutes}m ${rest}s` : `${minutes}m ${rest}s`
-}
-
-const formatBitRate = (value: number | null) =>
-  value === null ? null : `${(value / 1_000_000).toFixed(2)} Mbps`
 
 const styles = StyleSheet.create({
   content: { gap: 12 },

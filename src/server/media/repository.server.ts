@@ -5,6 +5,7 @@ import {LibraryStats, MediaFolderSummary, MediaKind, MediaPart, MediaProgress, M
 import {filterByWatchStatus, selectCurrentlyWatching, selectNextPart} from "@/server/media/progress-utils"
 import {sortMedia} from "@/server/media/media-sort"
 import {isPlaybackCompleted} from "@/server/media/playback-completion"
+import {compareMediaParts} from "@/server/media/media-part-sort"
 
 
 const parseJson = <T>(value: string, fallback: T): T => {
@@ -37,14 +38,8 @@ const asProgress = (row: ProgressRow | undefined): MediaProgress | null => {
 }
 
 
-const sortParts = (left: MediaPartRow, right: MediaPartRow) =>
-    (left.seasonNumber ?? 0) - (right.seasonNumber ?? 0) ||
-    (left.episodeNumber ?? 0) - (right.episodeNumber ?? 0) ||
-    left.fileName.localeCompare(right.fileName)
-
-
 const asSummary = (item: MediaItemRow, parts: MediaPartRow[], progressByPart: Map<string, ProgressRow>) => {
-    const nextPart = selectNextPart([...parts].sort(sortParts), progressByPart);
+    const nextPart = selectNextPart([...parts].sort(compareMediaParts), progressByPart);
     const partProgress = parts.flatMap((part) => {
         const progress = progressByPart.get(part.id)
         return progress ? [progress] : []
@@ -351,7 +346,7 @@ export const getMediaDetail = (mediaId: string) => {
         .from(mediaParts)
         .where(eq(mediaParts.mediaItemId, mediaId))
         .all()
-        .sort(sortParts);
+        .sort(compareMediaParts);
 
     const progressRows = db
         .select()

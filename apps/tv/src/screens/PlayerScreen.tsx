@@ -38,7 +38,7 @@ export function PlayerScreen({
 
     const nativeParts: PlouxPlayerPart[] = parts.map((candidate) => {
       const streamUrl = new URL(
-        tvApi.absoluteUrl(server, candidate.streamUrl)
+        tvApi(server).absoluteUrl(candidate.streamUrl)
       )
       streamUrl.searchParams.set("compat", "android-tv")
 
@@ -53,7 +53,7 @@ export function PlayerScreen({
             : 0,
         subtitles: candidate.subtitles.map((subtitle) => {
           const subtitleUrl = new URL(
-            tvApi.absoluteUrl(server, subtitle.url)
+            tvApi(server).absoluteUrl(subtitle.url)
           )
           subtitleUrl.searchParams.set("compat", "android-tv")
           return {
@@ -81,8 +81,8 @@ export function PlayerScreen({
           result.durationSeconds !== undefined &&
           result.durationSeconds > 0
         ) {
-          await tvApi
-            .progress(server, {
+          await tvApi(server)
+            .progress({
               partId: result.partId,
               positionSeconds: result.positionSeconds,
               durationSeconds: result.durationSeconds,

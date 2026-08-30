@@ -37,7 +37,7 @@ export function IdentifyDialog({
 
   const search = useMutation({
     mutationFn: () =>
-      tvApi.searchMetadata(server, {
+      tvApi(server).searchMetadata({
         mediaId: media!.id,
         query: query.trim(),
         year: year ? Number(year) : undefined,
@@ -46,7 +46,7 @@ export function IdentifyDialog({
   })
   const identify = useMutation({
     mutationFn: (tmdbId: number) =>
-      tvApi.identify(server, media!.id, tmdbId),
+      tvApi(server).identify(media!.id, tmdbId),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({

@@ -35,13 +35,13 @@ export function LibraryFormDialog({
   const save = useMutation({
     mutationFn: () =>
       library
-        ? tvApi.updateLibrary(server, {
+        ? tvApi(server).updateLibrary({
             id: library.id,
             name: name.trim(),
             path: path.trim(),
             kind,
           })
-        : tvApi.createLibrary(server, {
+        : tvApi(server).createLibrary({
             name: name.trim(),
             path: path.trim(),
             kind,

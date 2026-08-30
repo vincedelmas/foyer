@@ -8,9 +8,7 @@ import { tvApi } from "../api"
 import { AppHeader } from "../components/AppHeader"
 import { CollectionActionsDialog } from "../components/CollectionActionsDialog"
 import { CollectionTile } from "../components/CollectionTile"
-import { IdentifyDialog } from "../components/IdentifyDialog"
-import { MediaActionsDialog } from "../components/MediaActionsDialog"
-import { MediaInfoDialog } from "../components/MediaInfoDialog"
+import { MediaDialogs, useMediaDialogs } from "../components/MediaDialogs"
 import { MediaTile } from "../components/MediaTile"
 import { colors, spacing } from "../theme"
 
@@ -27,17 +25,15 @@ export function HomeScreen({
 }) {
   const [collectionActions, setCollectionActions] =
     useState<MediaFolderSummary | null>(null)
-  const [mediaActions, setMediaActions] = useState<MediaSummary | null>(null)
-  const [identify, setIdentify] = useState<MediaSummary | null>(null)
-  const [info, setInfo] = useState<MediaSummary | null>(null)
+  const mediaDialogs = useMediaDialogs()
 
   const folders = useQuery({
     queryKey: ["tv-folders", server],
-    queryFn: () => tvApi.mediaFolders(server),
+    queryFn: () => tvApi(server).mediaFolders(),
   })
   const watching = useQuery({
     queryKey: ["tv-watching", server],
-    queryFn: () => tvApi.currentlyWatching(server),
+    queryFn: () => tvApi(server).currentlyWatching(),
   })
   return (
     <View style={styles.screen}>
@@ -111,7 +107,7 @@ export function HomeScreen({
                   item={item}
                   hasTVPreferredFocus={!folders.data?.length && index === 0}
                   onOpen={() => onOpenMedia(item)}
-                  onOpenActions={() => setMediaActions(item)}
+                  onOpenActions={() => mediaDialogs.openActions(item)}
                 />
               ))}
             </View>
@@ -132,27 +128,7 @@ export function HomeScreen({
         visible={collectionActions !== null}
         onClose={() => setCollectionActions(null)}
       />
-      <MediaActionsDialog
-        server={server}
-        item={mediaActions}
-        visible={mediaActions !== null}
-        onClose={() => setMediaActions(null)}
-        onIdentify={setIdentify}
-        onInfo={setInfo}
-      />
-      <IdentifyDialog
-        server={server}
-        media={identify}
-        visible={identify !== null}
-        onClose={() => setIdentify(null)}
-      />
-      <MediaInfoDialog
-        server={server}
-        mediaId={info?.id ?? null}
-        title={info?.title ?? ""}
-        visible={info !== null}
-        onClose={() => setInfo(null)}
-      />
+      <MediaDialogs server={server} controller={mediaDialogs} />
     </View>
   )
 }

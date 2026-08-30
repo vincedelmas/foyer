@@ -3,7 +3,7 @@ import {Badge} from "@/components/ui/badge";
 import {useQuery} from "@tanstack/react-query";
 import {Skeleton} from "@/components/ui/skeleton";
 import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
-import {MediaFileInfo, MediaInfo, MediaStreamInfo} from "@ploux/contracts";
+import {formatBitRate, formatBytes, formatDurationSeconds, MediaFileInfo, MediaInfo, MediaStreamInfo} from "@ploux/contracts";
 import {AudioLinesIcon, CaptionsIcon, FileVideoIcon, InfoIcon} from "lucide-react";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog";
@@ -109,7 +109,7 @@ function MediaFileCard({ file, showProbeError }: { file: MediaFileInfo, showProb
                     <InfoTerm term="Size" value={formatBytes(file.size)}/>
                     <InfoTerm term="MIME type" value={file.mimeType}/>
                     <InfoTerm term="Format" value={file.formatName ?? file.container}/>
-                    <InfoTerm term="Duration" value={formatDuration(file.durationSeconds)}/>
+                    <InfoTerm term="Duration" value={formatDurationSeconds(file.durationSeconds)}/>
                     <InfoTerm term="Bit rate" value={formatBitRate(file.bitRate)}/>
                     <InfoTerm term="Modified" value={new Date(file.modifiedAt).toLocaleString()}/>
                 </dl>
@@ -224,41 +224,6 @@ const streamDetails = (stream: MediaStreamInfo) => {
 
     return stream.title ?? "—";
 };
-
-
-const formatBytes = (bytes: number) => {
-    let unit = 0;
-    let value = bytes;
-    const units = ["B", "KB", "MB", "GB", "TB"];
-
-    while (value >= 1024 && unit < units.length - 1) {
-        unit += 1;
-        value /= 1024;
-    }
-
-    return `${value.toFixed(unit > 1 ? 1 : 0)} ${units[unit]}`;
-};
-
-
-const formatDuration = (seconds: number | null) => {
-    if (seconds === null) return null;
-
-    const totalSeconds = Math.round(seconds);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const remainingSeconds = totalSeconds % 60;
-
-    return hours
-        ? `${hours}h ${minutes}m ${remainingSeconds}s`
-        : `${minutes}m ${remainingSeconds}s`;
-};
-
-
-const formatBitRate = (bitRate: number | null) => {
-    return bitRate === null
-        ? null
-        : `${(bitRate / 1_000_000).toFixed(2)} Mbps`;
-}
 
 
 function MediaInfoSkeleton() {

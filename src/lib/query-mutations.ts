@@ -250,7 +250,7 @@ export const useScanLibraryMutation = (library: Pick<LibraryRecord, "id" | "name
 };
 
 
-export const useDeleteCollectionMutation = (libraryId: string, afterSuccess?: AfterSuccess) => {
+export const useDeleteLibraryMutation = (libraryId: string, afterSuccess?: AfterSuccess) => {
     const queryClient = useQueryClient();
 
     return useMutation({
@@ -273,30 +273,6 @@ export const useDeleteCollectionMutation = (libraryId: string, afterSuccess?: Af
                 type: "error",
                 description: error.message,
                 title: "Could not delete collection",
-            });
-        },
-    });
-};
-
-
-export const useDeleteLibraryMutation = (libraryId: string) => {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: () => api.deleteLibrary(libraryId),
-        onSuccess: async () => {
-            await invalidateLibraryQueries(queryClient);
-            toast.add({
-                type: "success",
-                title: "Media folder removed",
-                description: "Your media files were not touched.",
-            });
-        },
-        onError: (error) => {
-            toast.add({
-                type: "error",
-                description: error.message,
-                title: "Could not remove media folder",
             });
         },
     });
