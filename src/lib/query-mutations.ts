@@ -333,10 +333,16 @@ export const useScanAllLibrariesMutation = () => {
         ...plouxQueries.mutations.scanLibrary(),
         onSuccess: async (result) => {
             await plouxQueries.invalidate.catalog(queryClient);
+
+            const failed = result.scans.filter((scan) => scan.status === "failed").length;
+            const completed = result.scans.length - failed;
+
             toast.add({
-                type: "success",
-                title: "All media folders scanned",
-                description: `${result.scans.length} folders completed.`,
+                type: failed ? "warning" : "success",
+                title: failed ? "Scan completed with errors" : "All media folders scanned",
+                description: failed
+                    ? `${completed} completed, ${failed} failed.`
+                    : `${completed} folders completed.`,
             });
         },
         onError: (error) => {

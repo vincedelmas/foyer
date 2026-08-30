@@ -1,13 +1,16 @@
-import {Badge} from "@/components/ui/badge";
-import {useQuery} from "@tanstack/react-query";
+import {useState} from "react";
 import {plouxQueries} from "@/lib/queries";
+import {Badge} from "@/components/ui/badge";
+import {Button} from "@/components/ui/button";
+import {useQuery} from "@tanstack/react-query";
+import {Spinner} from "@/components/ui/spinner";
 import {Skeleton} from "@/components/ui/skeleton";
 import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
-import {formatBitRate, formatBytes, formatDurationSeconds, MediaFileInfo, MediaInfo, MediaStreamInfo} from "@ploux/contracts";
 import {AudioLinesIcon, CaptionsIcon, FileVideoIcon, InfoIcon} from "lucide-react";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
+import {formatBitRate, formatBytes, formatDurationSeconds, type MediaFileInfo, type MediaInfo, type MediaStreamInfo} from "@ploux/contracts";
 
 
 interface MediaInfoDialogProps {
@@ -64,22 +67,11 @@ function MediaInfoContent({ info }: { info: MediaInfo }) {
                 </Badge>
             </div>
 
-            {(!info.probeAvailable && !!info.files.length) &&
-                <Alert>
-                    <InfoIcon/>
-                    <AlertTitle>Stream inspection is unavailable</AlertTitle>
-                    <AlertDescription>
-                        ffprobe is not installed on this server. Indexed file and external
-                        subtitle information is still shown below.
-                    </AlertDescription>
-                </Alert>
-            }
-
             {info.files.map((file) =>
                 <MediaFileCard
                     file={file}
                     key={file.id}
-                    showProbeError={info.probeAvailable}
+                    mediaId={info.id}
                 />
             )}
         </div>
@@ -87,7 +79,16 @@ function MediaInfoContent({ info }: { info: MediaInfo }) {
 }
 
 
-function MediaFileCard({ file, showProbeError }: { file: MediaFileInfo, showProbeError: boolean }) {
+function MediaFileCard({ mediaId, file }: { mediaId: string, file: MediaFileInfo }) {
+    const [requested, setRequested] = useState(false);
+
+    const probe = useQuery({
+        ...plouxQueries.options.mediaFileInfo(mediaId, file),
+        enabled: requested,
+    });
+
+    const details = probe.data ?? file;
+
     return (
         <Card size="sm">
             <CardHeader>
@@ -107,21 +108,51 @@ function MediaFileCard({ file, showProbeError }: { file: MediaFileInfo, showProb
                 <dl className="grid gap-x-6 gap-y-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
                     <InfoTerm term="Size" value={formatBytes(file.size)}/>
                     <InfoTerm term="MIME type" value={file.mimeType}/>
-                    <InfoTerm term="Format" value={file.formatName ?? file.container}/>
-                    <InfoTerm term="Duration" value={formatDurationSeconds(file.durationSeconds)}/>
-                    <InfoTerm term="Bit rate" value={formatBitRate(file.bitRate)}/>
+                    <InfoTerm term="Format" value={details.formatName ?? file.container}/>
+                    <InfoTerm term="Duration" value={formatDurationSeconds(details.durationSeconds)}/>
+                    <InfoTerm term="Bit rate" value={formatBitRate(details.bitRate)}/>
                     <InfoTerm term="Modified" value={new Date(file.modifiedAt).toLocaleString()}/>
                 </dl>
 
-                {(showProbeError && file.probeError) &&
+                {!requested &&
+                    <Button size="sm" className="self-start" variant="outline" onClick={() => setRequested(true)}>
+                        Inspect streams
+                    </Button>
+                }
+
+                {probe.isPending && requested &&
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Spinner/>
+                        Inspecting streams…
+                    </div>
+                }
+
+                {probe.isError &&
                     <Alert variant="destructive">
                         <InfoIcon/>
                         <AlertTitle>Could not inspect streams</AlertTitle>
-                        <AlertDescription>{file.probeError}</AlertDescription>
+                        <AlertDescription className="flex flex-col items-start gap-2">
+                            {probe.error.message}
+                            <Button size="sm" variant="outline" onClick={() => void probe.refetch()}>
+                                Try again
+                            </Button>
+                        </AlertDescription>
                     </Alert>
                 }
 
-                {!!file.streams.length && <StreamTable streams={file.streams}/>}
+                {details.probeError &&
+                    <Alert variant="destructive">
+                        <InfoIcon/>
+                        <AlertTitle>Could not inspect streams</AlertTitle>
+                        <AlertDescription>{details.probeError}</AlertDescription>
+                    </Alert>
+                }
+
+                {!!details.streams.length &&
+                    <StreamTable
+                        streams={details.streams}
+                    />
+                }
 
                 {!!file.externalSubtitles.length &&
                     <div className="flex flex-col gap-2">

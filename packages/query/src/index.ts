@@ -1,5 +1,5 @@
 import {mutationOptions, type QueryClient, queryOptions} from "@tanstack/react-query";
-import {LibraryQueryInput, MediaFolderSummary, MediaQueryInput, PlouxApi} from "@ploux/contracts";
+import {LibraryQueryInput, MediaFileInfo, MediaFolderSummary, MediaQueryInput, PlouxApi} from "@ploux/contracts";
 
 
 type CreateLibraryInput = Parameters<PlouxApi["createLibrary"]>[0];
@@ -46,6 +46,11 @@ export const createPlouxQueries = (api: PlouxApi, cacheScope: string) => {
             all: [...rootKey, "media-info"] as const,
             detail: (mediaId: string) => [...rootKey, "media-info", mediaId] as const,
         },
+        mediaFileInfo: {
+            all: [...rootKey, "media-file-info"] as const,
+            detail: (mediaId: string, file: Pick<MediaFileInfo, "id" | "size" | "modifiedAt">) =>
+                [...rootKey, "media-file-info", mediaId, file.id, file.size, file.modifiedAt] as const,
+        },
         mediaFolders: [...rootKey, "media-folders"] as const,
         currentlyWatching: [...rootKey, "currently-watching"] as const,
         settings: [...rootKey, "settings"] as const,
@@ -69,6 +74,10 @@ export const createPlouxQueries = (api: PlouxApi, cacheScope: string) => {
         mediaInfo: (mediaId: string) => queryOptions({
             queryKey: keys.mediaInfo.detail(mediaId),
             queryFn: () => api.mediaInfo(mediaId),
+        }),
+        mediaFileInfo: (mediaId: string, file: Pick<MediaFileInfo, "id" | "size" | "modifiedAt">) => queryOptions({
+            queryKey: keys.mediaFileInfo.detail(mediaId, file),
+            queryFn: () => api.mediaFileInfo(mediaId, file.id),
         }),
         settings: () => queryOptions({
             queryKey: keys.settings,
@@ -202,6 +211,8 @@ export const createPlouxQueries = (api: PlouxApi, cacheScope: string) => {
                 queryClient.invalidateQueries({ queryKey: keys.mediaFolders }),
                 queryClient.invalidateQueries({ queryKey: keys.settings }),
                 queryClient.invalidateQueries({ queryKey: keys.currentlyWatching }),
+                queryClient.invalidateQueries({ queryKey: keys.mediaInfo.all }),
+                queryClient.invalidateQueries({ queryKey: keys.mediaFileInfo.all }),
             ]);
         },
         identification: async (queryClient: QueryClient, mediaId: string) => {
@@ -218,6 +229,7 @@ export const createPlouxQueries = (api: PlouxApi, cacheScope: string) => {
         media: (queryClient: QueryClient, mediaId: string) => {
             queryClient.removeQueries({ queryKey: keys.media.detail(mediaId) });
             queryClient.removeQueries({ queryKey: keys.mediaInfo.detail(mediaId) });
+            queryClient.removeQueries({ queryKey: [...keys.mediaFileInfo.all, mediaId] });
         },
     };
 

@@ -60,4 +60,64 @@ describe("library scanning", () => {
 
         expect(JSON.parse(stdout.trim())).toEqual({before: 1, after: 0})
     })
+
+    it("continues scan-all after a folder fails but throws for an explicitly requested folder", async () => {
+        const mediaDirectory = join(temporaryDirectory, "scan-all-media")
+        await mkdir(mediaDirectory)
+        await writeFile(join(mediaDirectory, "Movie.2025.mkv"), "video")
+
+        const {stdout} = await execFileAsync("bun", ["--eval", `
+            const scanner = await import("./src/server/media/scanner.server.ts")
+            const repository = await import("./src/server/media/repository.server.ts")
+            const broken = scanner.createLibrary({
+                name: "Broken",
+                path: process.env.REVIEW_MISSING_PATH,
+                kind: "movies",
+            })
+            const valid = scanner.createLibrary({
+                name: "Movies",
+                path: process.env.REVIEW_MEDIA_PATH,
+                kind: "movies",
+            })
+            const scans = await scanner.scanLibraries()
+            let explicitFailed = false
+            let missingFailed = false
+            try {
+                await scanner.scanLibraries(broken.id)
+            } catch {
+                explicitFailed = true
+            }
+            try {
+                await scanner.scanLibraries("missing-library")
+            } catch {
+                missingFailed = true
+            }
+            console.log(JSON.stringify({
+                statuses: Object.fromEntries(scans.map((scan) => [scan.libraryId, scan.status])),
+                titleCount: repository.listMedia({}).items.length,
+                explicitFailed,
+                missingFailed,
+                brokenId: broken.id,
+                validId: valid.id,
+            }))
+        `], {
+            cwd: process.cwd(),
+            env: {
+                ...process.env,
+                TMDB_READ_ACCESS_TOKEN: "",
+                REVIEW_MEDIA_PATH: mediaDirectory,
+                REVIEW_MISSING_PATH: join(temporaryDirectory, "does-not-exist"),
+                PLOUX_DATABASE_PATH: join(temporaryDirectory, "scan-all.sqlite"),
+            },
+        })
+
+        const result = JSON.parse(stdout.trim())
+        expect(result.statuses).toEqual({
+            [result.brokenId]: "failed",
+            [result.validId]: "completed",
+        })
+        expect(result.titleCount).toBe(1)
+        expect(result.explicitFailed).toBe(true)
+        expect(result.missingFailed).toBe(true)
+    })
 })

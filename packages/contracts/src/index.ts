@@ -221,6 +221,7 @@ export interface MediaFileInfo {
     formatName: string | null
     probeError: string | null
     streams: MediaStreamInfo[]
+    probeAvailable: boolean | null
     durationSeconds: number | null
     externalSubtitles: MediaExternalSubtitleInfo[]
 }
@@ -230,7 +231,6 @@ export interface MediaInfo {
     title: string
     totalSize: number
     files: MediaFileInfo[]
-    probeAvailable: boolean
 }
 
 export interface MediaDeleteResult {

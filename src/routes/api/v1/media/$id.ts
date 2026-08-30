@@ -2,7 +2,7 @@ import {z} from "zod";
 import {createFileRoute} from "@tanstack/react-router";
 import {emptyCors, handleApi, json, parseBody} from "@/server/http.server";
 import {getMediaDetail, setMediaWatched} from "@/server/media/repository.server";
-import {deleteMediaFiles, getMediaInfo} from "@/server/media/media-files.server";
+import {deleteMediaFiles, getMediaFileInfo, getMediaInfo} from "@/server/media/media-files.server";
 import {mediaDeleteInputSchema, mediaWatchStateInputSchema} from "@ploux/contracts";
 
 
@@ -14,8 +14,11 @@ export const Route = createFileRoute("/api/v1/media/$id")({
                 const searchParams = new URL(request.url).searchParams;
                 const view = searchParams.get("view");
 
+                const partId = searchParams.get("partId");
                 const media = view === "info"
-                    ? await getMediaInfo(params.id)
+                    ? partId !== null
+                        ? await getMediaFileInfo(params.id, z.string().min(1).parse(partId))
+                        : await getMediaInfo(params.id)
                     : getMediaDetail(params.id, {
                         season: searchParams.get("season")
                             ? z.coerce.number().int().min(0).parse(searchParams.get("season"))

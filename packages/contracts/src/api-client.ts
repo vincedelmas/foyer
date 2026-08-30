@@ -5,6 +5,7 @@ import type {
     LibraryResponse,
     MediaDeleteResult,
     MediaDetail,
+    MediaFileInfo,
     MediaFolderSummary,
     MediaInfo,
     MediaKind,
@@ -110,6 +111,8 @@ export const createPlouxApi = (baseUrl = "") => {
         absoluteUrl,
         currentlyWatching: () => request<MediaSummary[]>("/api/v1/progress"),
         mediaInfo: (id: string) => request<MediaInfo>(`/api/v1/media/${id}?view=info`),
+        mediaFileInfo: (mediaId: string, partId: string) =>
+            request<MediaFileInfo>(`/api/v1/media/${mediaId}?view=info&partId=${encodeURIComponent(partId)}`),
         mediaFolders: () => request<MediaFolderSummary[]>("/api/v1/libraries"),
         health: async () => {
             const result = healthResponseSchema.safeParse(await request<unknown>("/api/v1/"));
