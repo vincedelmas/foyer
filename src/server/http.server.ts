@@ -1,6 +1,13 @@
 import type {ZodType} from "zod";
 
 
+class HttpError extends Error {
+    constructor(public readonly status: number, message: string) {
+        super(message);
+    }
+}
+
+
 export const corsHeaders = (): Record<string, string> => {
     const origin = process.env.PLOUX_CORS_ORIGIN?.trim();
     if (!origin || origin === "*") return {};
@@ -32,6 +39,15 @@ export const emptyCors = () => {
 
 
 export const parseBody = async <T>(request: Request, schema: ZodType<T>) => {
+    const contentType = request.headers.get("Content-Type")
+        ?.split(";", 1)[0]
+        ?.trim()
+        .toLowerCase();
+
+    if (contentType !== "application/json") {
+        throw new HttpError(415, "Content-Type must be application/json");
+    }
+
     return schema.parse(await request.json());
 };
 
@@ -39,13 +55,15 @@ export const parseBody = async <T>(request: Request, schema: ZodType<T>) => {
 const apiError = (error: unknown) => {
     const message = error instanceof Error ? error.message : "Unexpected server error";
 
-    const status = error instanceof SyntaxError || (typeof error === "object" && error !== null && "issues" in error)
-        ? 400
-        : /not found/i.test(message)
-            ? 404
-            : /not configured|identify .* before/i.test(message)
-                ? 409
-                : 500;
+    const status = error instanceof HttpError
+        ? error.status
+        : error instanceof SyntaxError || (typeof error === "object" && error !== null && "issues" in error)
+            ? 400
+            : /not found/i.test(message)
+                ? 404
+                : /not configured|identify .* before/i.test(message)
+                    ? 409
+                    : 500;
 
     if (status === 500) {
         console.error(error);

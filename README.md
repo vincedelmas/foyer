@@ -48,15 +48,6 @@ production `node_modules` installation.
 pm2 start dist/server.js --name ploux --interpreter bun
 ```
 
-Or with Docker:
-
-```bash
-MEDIA_PATH=/path/to/your/media docker compose up --build
-```
-
-The compose setup mounts `MEDIA_PATH` read/write at `/media` so explicitly confirmed permanent deletion works. Use paths below `/media`
-when adding libraries through the dashboard. The Docker image includes FFmpeg/ffprobe for detailed media information and TV remuxing.
-
 ## Folder and filename conventions
 
 Movie folders may be flat or nested:
