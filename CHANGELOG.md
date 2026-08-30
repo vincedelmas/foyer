@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/vincedelmas/foyer/compare/v1.1.0...v1.1.1) (2026-08-30)
+
+
+### Bug Fixes
+
+* infer season folders and virtualize TV episodes ([0658ecf](https://github.com/vincedelmas/foyer/commit/0658ecf02f1e06d7337239022bc1f69ad728e236))
+
 ## [1.1.0](https://github.com/vincedelmas/foyer/compare/v1.0.0...v1.1.0) (2026-08-30)
 
 
