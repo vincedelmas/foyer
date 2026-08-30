@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/vincedelmas/foyer/compare/v0.4.0...v1.0.0) (2026-08-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* rebrand the project as Foyer
+
+### Refactors
+
+* rebrand the project as Foyer ([824c0fa](https://github.com/vincedelmas/foyer/commit/824c0fa0d4fda655698e6d7cfbeb69ddef68d1fa))
+
 ## [0.4.0](https://github.com/vincedelmas/foyer/compare/v0.3.5...v0.4.0) (2026-08-30)
 
 
