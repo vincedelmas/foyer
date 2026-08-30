@@ -1,16 +1,14 @@
-import type {MediaSummary} from "@ploux/contracts"
-import {useMutation, useQueryClient} from "@tanstack/react-query"
-import {
-    CircleXIcon,
-    EllipsisVerticalIcon,
-    InfoIcon,
-    RefreshCwIcon,
-    SearchIcon,
-    Trash2Icon,
-} from "lucide-react"
-import {useState} from "react"
-import {IdentifyDialog} from "@/components/identify-dialog"
-import {MediaInfoDialog} from "@/components/media-info-dialog"
+import {api} from "@/lib/api";
+import {useState} from "react";
+import {toast} from "@/components/ui/toast";
+import {Button} from "@/components/ui/button";
+import {MediaSummary} from "@ploux/contracts";
+import {Spinner} from "@/components/ui/spinner";
+import {IdentifyDialog} from "@/components/identify-dialog";
+import {MediaInfoDialog} from "@/components/media-info-dialog";
+import {useMutation, useQueryClient} from "@tanstack/react-query";
+import {CircleXIcon, EllipsisVerticalIcon, InfoIcon, RefreshCwIcon, SearchIcon, Trash2Icon} from "lucide-react";
+import {DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -21,72 +19,66 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import {Button} from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {Spinner} from "@/components/ui/spinner"
-import {toast} from "@/components/ui/toast"
-import {api} from "@/lib/api"
 
 
-export function MediaActionsMenu({item}: {item: MediaSummary}) {
-    const queryClient = useQueryClient()
-    const [identifyOpen, setIdentifyOpen] = useState(false)
-    const [infoOpen, setInfoOpen] = useState(false)
-    const [deleteOpen, setDeleteOpen] = useState(false)
+export function MediaActionsMenu({ item }: { item: MediaSummary }) {
+    const queryClient = useQueryClient();
+    const [infoOpen, setInfoOpen] = useState(false);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [identifyOpen, setIdentifyOpen] = useState(false);
 
     const invalidateMedia = async (includeFolders = false) => {
         await Promise.all([
-            queryClient.invalidateQueries({queryKey: ["library"]}),
-            queryClient.invalidateQueries({queryKey: ["currently-watching"]}),
-            queryClient.invalidateQueries({queryKey: ["media", item.id]}),
-            ...(includeFolders
-                ? [queryClient.invalidateQueries({queryKey: ["media-folders"]})]
-                : []),
+            queryClient.invalidateQueries({ queryKey: ["library"] }),
+            queryClient.invalidateQueries({ queryKey: ["media", item.id] }),
+            queryClient.invalidateQueries({ queryKey: ["currently-watching"] }),
+            ...(includeFolders ? [queryClient.invalidateQueries({ queryKey: ["media-folders"] })] : []),
         ])
-    }
+    };
+
     const clearProgress = useMutation({
         mutationFn: () => api.deleteProgress(item.id),
         onSuccess: async () => {
             await invalidateMedia()
-            toast.add({type: "success", title: "Watch progress removed"})
+            toast.add({ type: "success", title: "Watch progress removed" })
         },
-        onError: (error) =>
+        onError: (error) => {
             toast.add({
                 type: "error",
-                title: "Could not remove watch progress",
                 description: error.message,
-            }),
-    })
+                title: "Could not remove watch progress",
+            });
+        },
+    });
+
     const refresh = useMutation({
         mutationFn: () => api.refreshMetadata(item.id),
         onSuccess: async () => {
             await invalidateMedia(true)
-            toast.add({type: "success", title: "Metadata refreshed"})
+            toast.add({ type: "success", title: "Metadata refreshed" })
         },
-        onError: (error) =>
+        onError: (error) => {
             toast.add({
                 type: "error",
-                title: "Metadata refresh failed",
                 description: error.message,
-            }),
-    })
+                title: "Metadata refresh failed",
+            });
+        },
+    });
+
     const remove = useMutation({
         mutationFn: () => api.deleteMedia(item.id),
         onSuccess: async (result) => {
             await Promise.all([
                 invalidateMedia(true),
-                queryClient.invalidateQueries({queryKey: ["settings"]}),
-            ])
-            queryClient.removeQueries({queryKey: ["media", item.id]})
-            queryClient.removeQueries({queryKey: ["media-info", item.id]})
-            setDeleteOpen(false)
+                queryClient.invalidateQueries({ queryKey: ["settings"] }),
+            ]);
+
+            queryClient.removeQueries({ queryKey: ["media", item.id] });
+            queryClient.removeQueries({ queryKey: ["media-info", item.id] });
+
+            setDeleteOpen(false);
+
             toast.add({
                 type: "success",
                 title: "Media deleted permanently",
@@ -98,47 +90,35 @@ export function MediaActionsMenu({item}: {item: MediaSummary}) {
                 ].filter(Boolean).join(" "),
             })
         },
-        onError: (error) =>
+        onError: (error) => {
             toast.add({
                 type: "error",
                 title: "Could not delete media",
                 description: error.message,
-            }),
-    })
-    const isPending =
-        clearProgress.isPending ||
-        refresh.isPending ||
-        remove.isPending
+            });
+        },
+    });
+
+    const isPending = clearProgress.isPending || refresh.isPending || remove.isPending
 
     return (
         <>
             <DropdownMenu>
-                <DropdownMenuTrigger
-                    render={
-                        <Button
-                            variant="secondary"
-                            size="icon-sm"
-                            aria-label={`More options for ${item.title}`}
-                        />
-                    }
-                >
+                <DropdownMenuTrigger render={<Button variant="secondary" size="icon-sm" aria-label={`More options for ${item.title}`}/>}>
                     {isPending ? <Spinner/> : <EllipsisVerticalIcon/>}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-60">
-                    {item.hasProgress ? (
+                    {item.hasProgress &&
                         <>
                             <DropdownMenuGroup>
-                                <DropdownMenuItem
-                                    disabled={isPending}
-                                    onClick={() => clearProgress.mutate()}
-                                >
+                                <DropdownMenuItem disabled={isPending} onClick={() => clearProgress.mutate()}>
                                     <CircleXIcon/>
                                     Remove watch progress
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
                             <DropdownMenuSeparator/>
                         </>
-                    ) : null}
+                    }
                     <DropdownMenuGroup>
                         <DropdownMenuItem onClick={() => setIdentifyOpen(true)}>
                             <SearchIcon/>
@@ -148,21 +128,14 @@ export function MediaActionsMenu({item}: {item: MediaSummary}) {
                             <InfoIcon/>
                             Media info
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                            disabled={isPending}
-                            onClick={() => refresh.mutate()}
-                        >
+                        <DropdownMenuItem disabled={isPending} onClick={() => refresh.mutate()}>
                             <RefreshCwIcon/>
                             Refresh metadata
                         </DropdownMenuItem>
                     </DropdownMenuGroup>
                     <DropdownMenuSeparator/>
                     <DropdownMenuGroup>
-                        <DropdownMenuItem
-                            variant="destructive"
-                            disabled={isPending}
-                            onClick={() => setDeleteOpen(true)}
-                        >
+                        <DropdownMenuItem variant="destructive" disabled={isPending} onClick={() => setDeleteOpen(true)}>
                             <Trash2Icon/>
                             Delete media from server
                         </DropdownMenuItem>
@@ -171,18 +144,20 @@ export function MediaActionsMenu({item}: {item: MediaSummary}) {
             </DropdownMenu>
 
             <IdentifyDialog
-                key={`${item.id}-${item.title}-${item.year ?? "unknown"}`}
                 media={item}
                 open={identifyOpen}
-                onOpenChange={setIdentifyOpen}
                 showTrigger={false}
+                onOpenChange={setIdentifyOpen}
+                key={`${item.id}-${item.title}-${item.year ?? "unknown"}`}
             />
+
             <MediaInfoDialog
+                open={infoOpen}
                 mediaId={item.id}
                 title={item.title}
-                open={infoOpen}
                 onOpenChange={setInfoOpen}
             />
+
             <AlertDialog
                 open={deleteOpen}
                 onOpenChange={(open) => {
@@ -215,5 +190,5 @@ export function MediaActionsMenu({item}: {item: MediaSummary}) {
                 </AlertDialogContent>
             </AlertDialog>
         </>
-    )
+    );
 }

@@ -21,10 +21,12 @@ import android.view.WindowInsets
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
+import androidx.annotation.DrawableRes
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -74,11 +76,11 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
   private lateinit var positionView: TextView
   private lateinit var durationView: TextView
   private lateinit var timelineView: SeekBar
-  private lateinit var playButton: Button
-  private lateinit var previousButton: Button
-  private lateinit var nextButton: Button
-  private lateinit var audioButton: Button
-  private lateinit var subtitleButton: Button
+  private lateinit var playButton: ImageButton
+  private lateinit var previousButton: ImageButton
+  private lateinit var nextButton: ImageButton
+  private lateinit var audioButton: ImageButton
+  private lateinit var subtitleButton: ImageButton
 
   private val handler = Handler(Looper.getMainLooper())
   private val resumedParts = mutableSetOf<String>()
@@ -89,6 +91,8 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
   private var lastSavedAt = 0L
   private var playbackError: String? = null
   private var finishedWithResult = false
+  private var resumeWhenForegrounded = false
+  private var pendingCompletedPart: Pair<String, Long>? = null
 
   private val hideControlsRunnable = Runnable { hideControls() }
   private val progressRunnable = object : Runnable {
@@ -128,7 +132,7 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     hideSystemUi()
     try {
       createPlayer()
-      startPlayback()
+      startPlayback(savedInstanceState)
       handler.post(progressRunnable)
     } catch (error: Throwable) {
       playbackError = "The native player could not be initialized: ${error.message ?: error.javaClass.simpleName}"
@@ -209,18 +213,30 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     mediaSession = MediaSession.Builder(this, player).build()
   }
 
-  private fun startPlayback() {
+  private fun startPlayback(savedInstanceState: Bundle?) {
     val mediaItems = options.parts.map(::asMediaItem)
-    currentPart = options.parts[options.startIndex]
+    val restoredPartId = savedInstanceState?.getString(STATE_PART_ID)
+    val startIndex = options.parts
+      .indexOfFirst { it.id == restoredPartId }
+      .takeIf { it >= 0 }
+      ?: options.startIndex
+    currentPart = options.parts[startIndex]
+    currentPart?.let { resumedParts.add(it.id) }
+    val restoredPosition = savedInstanceState
+      ?.getLong(STATE_POSITION_MS, -1L)
+      ?.takeIf { it >= 0 }
+    val startPosition = restoredPosition ?: currentPart?.resumePositionMs ?: 0L
+    lastPositionMs = startPosition
+    lastDurationMs = savedInstanceState?.getLong(STATE_DURATION_MS, 0L) ?: 0L
     player.setMediaItems(
       mediaItems,
-      options.startIndex,
-      currentPart?.resumePositionMs ?: 0L,
+      startIndex,
+      startPosition,
     )
-    currentPart?.let { resumedParts.add(it.id) }
     updatePartInterface()
+    updateTimeline(startPosition, lastDurationMs)
     player.prepare()
-    player.playWhenReady = true
+    player.playWhenReady = savedInstanceState?.getBoolean(STATE_PLAY_WHEN_READY, true) ?: true
     showControls(requestTimelineFocus = true)
   }
 
@@ -265,19 +281,32 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
       lastPositionMs = lastDurationMs
       saveProgress()
       showControls(requestTimelineFocus = true)
-      playButton.text = "Replay"
+      updatePlayButton()
     }
   }
 
   override fun onIsPlayingChanged(isPlaying: Boolean) {
-    playButton.text = if (isPlaying) "Pause" else if (player.playbackState == Player.STATE_ENDED) "Replay" else "Play"
+    updatePlayButton()
     if (isPlaying) scheduleControlsHide() else cancelControlsHide()
   }
 
   override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     val previousPart = currentPart
     if (previousPart != null && previousPart.id != mediaItem?.mediaId) {
-      progressReporter.save(previousPart.id, lastPositionMs, lastDurationMs)
+      val pendingCompletion = pendingCompletedPart
+      val shouldComplete =
+        reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO ||
+          pendingCompletion?.first == previousPart.id
+      val completedDuration = pendingCompletion
+        ?.takeIf { it.first == previousPart.id }
+        ?.second
+        ?: lastDurationMs
+      if (shouldComplete) {
+        progressReporter.saveCompleted(previousPart.id, completedDuration)
+      } else {
+        progressReporter.save(previousPart.id, lastPositionMs, lastDurationMs)
+      }
+      pendingCompletedPart = null
     }
 
     currentPart = options.parts.firstOrNull { it.id == mediaItem?.mediaId }
@@ -330,7 +359,9 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
 
   private fun moveToNext() {
     if (!player.hasNextMediaItem()) return
-    saveProgress()
+    val part = currentPart ?: return
+    val duration = player.duration.takeUnless { it == C.TIME_UNSET } ?: lastDurationMs
+    pendingCompletedPart = part.id to duration
     player.seekToNextMediaItem()
     player.play()
     showControls()
@@ -347,16 +378,20 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
 
   private fun subtitleTracks(): List<SelectableTrack> = tracksOfType(C.TRACK_TYPE_TEXT)
 
-  private fun tracksOfType(trackType: Int): List<SelectableTrack> = buildList {
+  private fun tracksOfType(trackType: Int): List<SelectableTrack> = buildList trackList@{
     for (group in player.currentTracks.groups) {
       if (group.type != trackType) continue
       for (index in 0 until group.length) {
         if (!group.isTrackSupported(index)) continue
         val format = group.getTrackFormat(index)
         val fallback = if (trackType == C.TRACK_TYPE_AUDIO) "Audio" else "Subtitle"
+        val trackNumber = this@trackList.size + 1
+        val language = displayLanguage(format.language)
+        val trackLabel = meaningfulTrackLabel(format.label)
         val details = buildList {
-          displayLanguage(format.language)?.let(::add)
-          meaningfulTrackLabel(format.label)?.let(::add)
+          language?.let(::add)
+          trackLabel?.let(::add)
+          if (language == null && trackLabel == null) add("$fallback $trackNumber")
           if (trackType == C.TRACK_TYPE_TEXT) {
             subtitleFormatLabel(format)?.let(::add)
             if (format.selectionFlags and C.SELECTION_FLAG_FORCED != 0) add("Forced")
@@ -384,7 +419,9 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
 
   private fun meaningfulTrackLabel(label: String?): String? {
     val value = label?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-    return value.takeUnless { GENERIC_TRACK_LABEL.matches(it) }
+    return value.takeUnless {
+      GENERIC_TRACK_LABEL.matches(it) || MIME_OR_CODEC_TRACK_LABEL.matches(it)
+    }
   }
 
   private fun displayLanguage(language: String?): String? {
@@ -466,9 +503,36 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
 
   private fun saveProgress() {
     val part = currentPart ?: return
+    snapshotPlayback()
+    if (lastDurationMs > 0) {
+      progressReporter.save(part.id, lastPositionMs, lastDurationMs)
+    }
+  }
+
+  private fun snapshotPlayback() {
     val duration = player.duration.takeUnless { it == C.TIME_UNSET } ?: lastDurationMs
-    val position = if (player.playbackState == Player.STATE_ENDED) duration else player.currentPosition
-    if (duration > 0) progressReporter.save(part.id, position, duration)
+    if (duration > 0) lastDurationMs = duration
+    lastPositionMs = if (player.playbackState == Player.STATE_ENDED && lastDurationMs > 0) {
+      lastDurationMs
+    } else {
+      player.currentPosition.coerceAtLeast(0)
+    }
+  }
+
+  private fun updatePlayButton() {
+    val ended = player.playbackState == Player.STATE_ENDED
+    val icon = when {
+      player.isPlaying -> R.drawable.ic_pause
+      ended -> R.drawable.ic_replay
+      else -> R.drawable.ic_play
+    }
+    val label = when {
+      player.isPlaying -> "Pause"
+      ended -> "Replay"
+      else -> "Play"
+    }
+    playButton.setImageResource(icon)
+    playButton.contentDescription = label
   }
 
   private fun updatePartInterface() {
@@ -590,11 +654,38 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
   override fun onResume() {
     super.onResume()
     hideSystemUi()
+    if (
+      resumeWhenForegrounded &&
+      ::player.isInitialized &&
+      playbackError == null &&
+      player.playbackState != Player.STATE_ENDED
+    ) {
+      resumeWhenForegrounded = false
+      player.play()
+      showControls(requestTimelineFocus = true)
+    }
+  }
+
+  override fun onSaveInstanceState(outState: Bundle) {
+    if (::player.isInitialized) {
+      snapshotPlayback()
+      outState.putString(STATE_PART_ID, currentPart?.id)
+      outState.putLong(STATE_POSITION_MS, lastPositionMs)
+      outState.putLong(STATE_DURATION_MS, lastDurationMs)
+      outState.putBoolean(
+        STATE_PLAY_WHEN_READY,
+        player.playWhenReady || resumeWhenForegrounded,
+      )
+    }
+    super.onSaveInstanceState(outState)
   }
 
   override fun onStop() {
     if (::player.isInitialized) {
+      resumeWhenForegrounded =
+        player.playWhenReady && player.playbackState != Player.STATE_ENDED
       saveProgress()
+      progressReporter.flush()
       player.pause()
     }
     super.onStop()
@@ -629,7 +720,10 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
   private fun finishWithResult(reason: String, error: String? = null) {
     if (finishedWithResult) return
     finishedWithResult = true
-    if (::player.isInitialized) saveProgress()
+    if (::player.isInitialized) {
+      saveProgress()
+      progressReporter.flush()
+    }
     val result = Intent().apply {
       putExtra(RESULT_REASON, reason)
       putExtra(RESULT_PART_ID, currentPart?.id)
@@ -679,7 +773,7 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     })
     errorView.addView(horizontalRow(Gravity.CENTER).apply {
       if (::player.isInitialized) {
-        addView(actionButton("Try again") {
+        addView(textActionButton("Try again") {
           playbackError = null
           errorView.visibility = View.GONE
           loadingView.visibility = View.VISIBLE
@@ -688,7 +782,7 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
           showControls(requestTimelineFocus = true)
         })
       }
-      addView(actionButton("Back") { finishWithResult("error", message) })
+      addView(textActionButton("Back") { finishWithResult("error", message) })
     })
     errorView.post { (errorView.getChildAt(3) as? ViewGroup)?.getChildAt(0)?.requestFocus() }
   }
@@ -722,10 +816,14 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     controlsView = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
       gravity = Gravity.BOTTOM
-      setPadding(dp(42), dp(24), dp(42), dp(28))
+      setPadding(dp(32), dp(18), dp(32), dp(18))
       background = GradientDrawable(
         GradientDrawable.Orientation.BOTTOM_TOP,
-        intArrayOf(Color.argb(245, 0, 0, 0), Color.argb(220, 0, 0, 0)),
+        intArrayOf(
+          Color.argb(215, 0, 0, 0),
+          Color.argb(140, 0, 0, 0),
+          Color.argb(18, 0, 0, 0),
+        ),
       )
     }
     root.addView(
@@ -733,9 +831,9 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
       FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM),
     )
 
-    mediaTitleView = textView(options.mediaTitle, 22f, Color.WHITE, Typeface.BOLD)
-    partTitleView = textView("", 15f, MUTED_TEXT, Typeface.NORMAL).apply {
-      setPadding(0, dp(2), 0, dp(10))
+    mediaTitleView = textView(options.mediaTitle, 20f, Color.WHITE, Typeface.BOLD)
+    partTitleView = textView("", 14f, MUTED_TEXT, Typeface.NORMAL).apply {
+      setPadding(0, dp(1), 0, dp(6))
     }
     controlsView.addView(mediaTitleView)
     controlsView.addView(partTitleView)
@@ -750,23 +848,29 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
       progressBackgroundTintList = ColorStateList.valueOf(Color.rgb(73, 70, 66))
       thumbTintList = ColorStateList.valueOf(ACCENT)
     }
-    controlsView.addView(timelineView, linearMatchWidth(dp(28)))
+    controlsView.addView(timelineView, linearMatchWidth(dp(22)))
 
     val timeRow = horizontalRow(Gravity.CENTER_VERTICAL)
-    positionView = textView("0:00", 13f, MUTED_TEXT, Typeface.NORMAL)
-    durationView = textView("0:00", 13f, MUTED_TEXT, Typeface.NORMAL).apply { gravity = Gravity.END }
+    positionView = textView("0:00", 12f, MUTED_TEXT, Typeface.NORMAL)
+    durationView = textView("0:00", 12f, MUTED_TEXT, Typeface.NORMAL).apply { gravity = Gravity.END }
     timeRow.addView(positionView, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
     timeRow.addView(durationView, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
     controlsView.addView(timeRow, linearMatchWidth(ViewGroup.LayoutParams.WRAP_CONTENT))
 
-    val actions = horizontalRow(Gravity.CENTER).apply { setPadding(0, dp(8), 0, dp(7)) }
-    previousButton = actionButton("Previous") { moveToPrevious() }
-    val rewindButton = actionButton("−10s") { seekBy(-SEEK_INTERVAL_MS) }
-    playButton = actionButton("Play") { togglePlayback() }
-    val forwardButton = actionButton("+10s") { seekBy(SEEK_INTERVAL_MS) }
-    nextButton = actionButton("Next") { moveToNext() }
-    audioButton = actionButton("Audio") { showAudioPicker() }
-    subtitleButton = actionButton("Subtitles") { showSubtitlePicker() }
+    val actions = horizontalRow(Gravity.CENTER).apply { setPadding(0, dp(3), 0, 0) }
+    previousButton = controlButton(R.drawable.ic_skip_previous, "Previous episode") { moveToPrevious() }
+    val rewindButton = controlButton(R.drawable.ic_fast_rewind, "Back 10 seconds") {
+      seekBy(-SEEK_INTERVAL_MS)
+    }
+    playButton = controlButton(R.drawable.ic_play, "Play") { togglePlayback() }.apply {
+      layoutParams = controlButtonLayout(dp(52))
+    }
+    val forwardButton = controlButton(R.drawable.ic_fast_forward, "Forward 10 seconds") {
+      seekBy(SEEK_INTERVAL_MS)
+    }
+    nextButton = controlButton(R.drawable.ic_skip_next, "Next episode") { moveToNext() }
+    audioButton = controlButton(R.drawable.ic_audio, "Audio tracks") { showAudioPicker() }
+    subtitleButton = controlButton(R.drawable.ic_subtitles, "Subtitles") { showSubtitlePicker() }
     listOf(previousButton, rewindButton, playButton, forwardButton, nextButton, audioButton, subtitleButton)
       .forEach { button ->
         button.nextFocusUpId = timelineView.id
@@ -774,16 +878,6 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
       }
     timelineView.nextFocusDownId = playButton.id
     controlsView.addView(actions, linearMatchWidth(ViewGroup.LayoutParams.WRAP_CONTENT))
-
-    controlsView.addView(
-      textView(
-        "Direct play · automatic stream-copy remux when required · Media3 with FFmpeg audio",
-        12f,
-        DIM_TEXT,
-        Typeface.NORMAL,
-      ).apply { gravity = Gravity.CENTER },
-      linearMatchWidth(ViewGroup.LayoutParams.WRAP_CONTENT),
-    )
 
     errorView = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
@@ -797,7 +891,44 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     setContentView(root)
   }
 
-  private fun actionButton(label: String, onClick: () -> Unit) = Button(this).apply {
+  private fun controlButton(
+    @DrawableRes icon: Int,
+    label: String,
+    onClick: () -> Unit,
+  ) = ImageButton(this).apply {
+    id = View.generateViewId()
+    setImageResource(icon)
+    imageTintList = controlIconTint()
+    contentDescription = label
+    setPadding(dp(11), dp(11), dp(11), dp(11))
+    background = focusBackground(dp(24).toFloat())
+    setOnFocusChangeListener { view, focused ->
+      view.animate()
+        .scaleX(if (focused) 1.1f else 1f)
+        .scaleY(if (focused) 1.1f else 1f)
+        .setDuration(110)
+        .start()
+      scheduleControlsHide()
+    }
+    setOnClickListener { onClick() }
+    layoutParams = controlButtonLayout(dp(46))
+  }
+
+  private fun controlButtonLayout(size: Int) = LinearLayout.LayoutParams(size, size).apply {
+    marginStart = dp(5)
+    marginEnd = dp(5)
+  }
+
+  private fun controlIconTint() = ColorStateList(
+    arrayOf(
+      intArrayOf(android.R.attr.state_focused),
+      intArrayOf(-android.R.attr.state_enabled),
+      intArrayOf(),
+    ),
+    intArrayOf(Color.rgb(33, 23, 13), DIM_TEXT, Color.WHITE),
+  )
+
+  private fun textActionButton(label: String, onClick: () -> Unit) = Button(this).apply {
     id = View.generateViewId()
     text = label
     textSize = 14f
@@ -807,7 +938,7 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     setPadding(dp(16), dp(7), dp(16), dp(7))
     minWidth = dp(92)
     minimumHeight = dp(42)
-    background = focusBackground()
+    background = focusBackground(dp(8).toFloat())
     setOnFocusChangeListener { _, _ -> scheduleControlsHide() }
     setOnClickListener { onClick() }
     layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(44)).apply {
@@ -816,18 +947,18 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     }
   }
 
-  private fun focusBackground() = StateListDrawable().apply {
+  private fun focusBackground(radius: Float) = StateListDrawable().apply {
     addState(
       intArrayOf(android.R.attr.state_focused),
-      roundedBackground(ACCENT, dp(8).toFloat()),
+      roundedBackground(ACCENT, radius),
     )
     addState(
       intArrayOf(-android.R.attr.state_enabled),
-      roundedBackground(Color.rgb(40, 39, 37), dp(8).toFloat()),
+      roundedBackground(Color.argb(110, 40, 39, 37), radius),
     )
     addState(
       intArrayOf(),
-      roundedBackground(Color.rgb(30, 29, 27), dp(8).toFloat()),
+      roundedBackground(Color.argb(155, 30, 29, 27), radius),
     )
   }
 
@@ -909,8 +1040,16 @@ class PlouxPlayerActivity : Activity(), Player.Listener {
     private const val PROGRESS_SAVE_INTERVAL_MS = 10_000L
     private const val TIMELINE_UPDATE_INTERVAL_MS = 500L
     private const val TIMELINE_MAX = 1_000
+    private const val STATE_PART_ID = "ploux.player.part-id"
+    private const val STATE_POSITION_MS = "ploux.player.position-ms"
+    private const val STATE_DURATION_MS = "ploux.player.duration-ms"
+    private const val STATE_PLAY_WHEN_READY = "ploux.player.play-when-ready"
     private val GENERIC_TRACK_LABEL = Regex(
       "^(?:audio|subtitles?|track)(?:[\\s._-]*\\d+)?$",
+      RegexOption.IGNORE_CASE,
+    )
+    private val MIME_OR_CODEC_TRACK_LABEL = Regex(
+      "^(?:(?:application|audio|text|video)/[^\\s]+|subrip|srt|ass|ssa|webvtt|vtt)$",
       RegexOption.IGNORE_CASE,
     )
     private val LANGUAGE_ALIASES = mapOf(

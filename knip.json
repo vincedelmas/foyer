@@ -16,8 +16,9 @@
         },
         "apps/tv": {
             "entry": [
-                "index.ts",
                 "App.tsx",
+                "index.ts",
+                "plugins/with-tv-runtime.cjs",
                 "plugins/with-release-signing.cjs"
             ],
             "project": [

@@ -5,10 +5,12 @@
     "version": "0.3.5",
     "orientation": "landscape",
     "userInterfaceStyle": "dark",
+    "backgroundColor": "#12110f",
     "icon": "./assets/icon.png",
     "android": {
       "package": "com.ploux.tv",
       "versionCode": 1,
+      "backgroundColor": "#12110f",
       "permissions": [
         "android.permission.REQUEST_INSTALL_PACKAGES"
       ],
@@ -19,6 +21,7 @@
     },
     "plugins": [
       "./plugins/with-release-signing.cjs",
+      "./plugins/with-tv-runtime.cjs",
       [
         "@react-native-tvos/config-tv",
         {

@@ -1,51 +1,29 @@
-import type {MediaFileInfo, MediaInfo, MediaStreamInfo} from "@ploux/contracts"
-import {useQuery} from "@tanstack/react-query"
-import {AudioLinesIcon, CaptionsIcon, FileVideoIcon, InfoIcon} from "lucide-react"
-import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert"
-import {Badge} from "@/components/ui/badge"
-import {
-    Card,
-    CardAction,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog"
-import {Skeleton} from "@/components/ui/skeleton"
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
-import {api} from "@/lib/api"
+import {api} from "@/lib/api";
+import {Badge} from "@/components/ui/badge";
+import {useQuery} from "@tanstack/react-query";
+import {Skeleton} from "@/components/ui/skeleton";
+import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
+import {MediaFileInfo, MediaInfo, MediaStreamInfo} from "@ploux/contracts";
+import {AudioLinesIcon, CaptionsIcon, FileVideoIcon, InfoIcon} from "lucide-react";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 
 
-export function MediaInfoDialog({
-    mediaId,
-    title,
-    open,
-    onOpenChange,
-}: {
-    mediaId: string
-    title: string
-    open: boolean
-    onOpenChange: (open: boolean) => void
-}) {
+interface MediaInfoDialogProps {
+    title: string;
+    open: boolean;
+    mediaId: string;
+    onOpenChange: (open: boolean) => void;
+}
+
+
+export function MediaInfoDialog({ mediaId, title, open, onOpenChange }: MediaInfoDialogProps) {
     const info = useQuery({
         queryKey: ["media-info", mediaId],
         queryFn: () => api.mediaInfo(mediaId),
         enabled: open,
-    })
+    });
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -57,24 +35,24 @@ export function MediaInfoDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                {info.isPending ? <MediaInfoSkeleton/> : null}
+                {info.isPending && <MediaInfoSkeleton/>}
 
-                {info.isError ? (
+                {info.isError &&
                     <Alert variant="destructive">
                         <InfoIcon/>
                         <AlertTitle>Could not inspect this media</AlertTitle>
                         <AlertDescription>{info.error.message}</AlertDescription>
                     </Alert>
-                ) : null}
+                }
 
-                {info.data ? <MediaInfoContent info={info.data}/> : null}
+                {info.data && <MediaInfoContent info={info.data}/>}
             </DialogContent>
         </Dialog>
-    )
+    );
 }
 
 
-function MediaInfoContent({info}: {info: MediaInfo}) {
+function MediaInfoContent({ info }: { info: MediaInfo }) {
     return (
         <div className="flex flex-col gap-4">
             <div className="flex flex-wrap gap-2">
@@ -82,10 +60,12 @@ function MediaInfoContent({info}: {info: MediaInfo}) {
                     <FileVideoIcon data-icon="inline-start"/>
                     {info.files.length} {info.files.length === 1 ? "file" : "files"}
                 </Badge>
-                <Badge variant="secondary">{formatBytes(info.totalSize)} total</Badge>
+                <Badge variant="secondary">
+                    {formatBytes(info.totalSize)} total
+                </Badge>
             </div>
 
-            {!info.probeAvailable && info.files.length ? (
+            {(!info.probeAvailable && !!info.files.length) &&
                 <Alert>
                     <InfoIcon/>
                     <AlertTitle>Stream inspection is unavailable</AlertTitle>
@@ -94,34 +74,34 @@ function MediaInfoContent({info}: {info: MediaInfo}) {
                         subtitle information is still shown below.
                     </AlertDescription>
                 </Alert>
-            ) : null}
+            }
 
-            {info.files.map((file) => (
+            {info.files.map((file) =>
                 <MediaFileCard
-                    key={file.id}
                     file={file}
+                    key={file.id}
                     showProbeError={info.probeAvailable}
                 />
-            ))}
+            )}
         </div>
-    )
+    );
 }
 
 
-function MediaFileCard({
-    file,
-    showProbeError,
-}: {
-    file: MediaFileInfo
-    showProbeError: boolean
-}) {
+function MediaFileCard({ file, showProbeError }: { file: MediaFileInfo, showProbeError: boolean }) {
     return (
         <Card size="sm">
             <CardHeader>
-                <CardTitle className="truncate">{file.fileName}</CardTitle>
-                <CardDescription className="break-all">{file.path}</CardDescription>
+                <CardTitle className="truncate">
+                    {file.fileName}
+                </CardTitle>
+                <CardDescription className="break-all">
+                    {file.path}
+                </CardDescription>
                 <CardAction>
-                    <Badge variant="outline">{file.container.toUpperCase()}</Badge>
+                    <Badge variant="outline">
+                        {file.container.toUpperCase()}
+                    </Badge>
                 </CardAction>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -131,23 +111,20 @@ function MediaFileCard({
                     <InfoTerm term="Format" value={file.formatName ?? file.container}/>
                     <InfoTerm term="Duration" value={formatDuration(file.durationSeconds)}/>
                     <InfoTerm term="Bit rate" value={formatBitRate(file.bitRate)}/>
-                    <InfoTerm
-                        term="Modified"
-                        value={new Date(file.modifiedAt).toLocaleString()}
-                    />
+                    <InfoTerm term="Modified" value={new Date(file.modifiedAt).toLocaleString()}/>
                 </dl>
 
-                {showProbeError && file.probeError ? (
+                {(showProbeError && file.probeError) &&
                     <Alert variant="destructive">
                         <InfoIcon/>
                         <AlertTitle>Could not inspect streams</AlertTitle>
                         <AlertDescription>{file.probeError}</AlertDescription>
                     </Alert>
-                ) : null}
+                }
 
-                {file.streams.length ? <StreamTable streams={file.streams}/> : null}
+                {!!file.streams.length && <StreamTable streams={file.streams}/>}
 
-                {file.externalSubtitles.length ? (
+                {!!file.externalSubtitles.length &&
                     <div className="flex flex-col gap-2">
                         <h4 className="flex items-center gap-2 text-sm font-medium">
                             <CaptionsIcon className="size-4"/>
@@ -162,7 +139,7 @@ function MediaFileCard({
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {file.externalSubtitles.map((subtitle) => (
+                                {file.externalSubtitles.map((subtitle) =>
                                     <TableRow key={subtitle.id}>
                                         <TableCell>{subtitle.label}</TableCell>
                                         <TableCell>{subtitle.format.toUpperCase()}</TableCell>
@@ -170,18 +147,18 @@ function MediaFileCard({
                                             {subtitle.path}
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                )}
                             </TableBody>
                         </Table>
                     </div>
-                ) : null}
+                }
             </CardContent>
         </Card>
-    )
+    );
 }
 
 
-function StreamTable({streams}: {streams: MediaStreamInfo[]}) {
+function StreamTable({ streams }: { streams: MediaStreamInfo[] }) {
     return (
         <div className="flex flex-col gap-2">
             <h4 className="flex items-center gap-2 text-sm font-medium">
@@ -198,7 +175,7 @@ function StreamTable({streams}: {streams: MediaStreamInfo[]}) {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {streams.map((stream) => (
+                    {streams.map((stream) =>
                         <TableRow key={stream.index}>
                             <TableCell>
                                 <Badge variant="secondary">{stream.type}</Badge>
@@ -209,69 +186,79 @@ function StreamTable({streams}: {streams: MediaStreamInfo[]}) {
                             <TableCell>{streamDetails(stream)}</TableCell>
                             <TableCell>{stream.language ?? "—"}</TableCell>
                         </TableRow>
-                    ))}
+                    )}
                 </TableBody>
             </Table>
         </div>
-    )
+    );
 }
 
 
-function InfoTerm({term, value}: {term: string; value: string | null}) {
-    if (!value) return null
+function InfoTerm({ term, value }: { term: string; value: string | null }) {
+    if (!value) return null;
+
     return (
         <div className="min-w-0">
             <dt className="text-muted-foreground">{term}</dt>
             <dd className="mt-0.5 truncate font-medium" title={value}>{value}</dd>
         </div>
-    )
+    );
 }
 
 
 const streamDetails = (stream: MediaStreamInfo) => {
     if (stream.type === "video") {
         return [
-            stream.width && stream.height ? `${stream.width}×${stream.height}` : null,
             stream.frameRate ? `${stream.frameRate} fps` : null,
-        ].filter(Boolean).join(" · ") || "—"
+            stream.width && stream.height ? `${stream.width}×${stream.height}` : null,
+        ].filter(Boolean).join(" · ") || "—";
     }
+
     if (stream.type === "audio") {
         return [
-            stream.channels ? `${stream.channels} channels` : null,
             stream.channelLayout,
+            stream.channels ? `${stream.channels} channels` : null,
             stream.sampleRate ? `${Math.round(stream.sampleRate / 1000)} kHz` : null,
-        ].filter(Boolean).join(" · ") || "—"
+        ].filter(Boolean).join(" · ") || "—";
     }
-    return stream.title ?? "—"
-}
+
+    return stream.title ?? "—";
+};
 
 
 const formatBytes = (bytes: number) => {
-    const units = ["B", "KB", "MB", "GB", "TB"]
-    let value = bytes
-    let unit = 0
+    let unit = 0;
+    let value = bytes;
+    const units = ["B", "KB", "MB", "GB", "TB"];
+
     while (value >= 1024 && unit < units.length - 1) {
-        value /= 1024
-        unit += 1
+        unit += 1;
+        value /= 1024;
     }
-    return `${value.toFixed(unit > 1 ? 1 : 0)} ${units[unit]}`
-}
+
+    return `${value.toFixed(unit > 1 ? 1 : 0)} ${units[unit]}`;
+};
 
 
 const formatDuration = (seconds: number | null) => {
-    if (seconds === null) return null
-    const totalSeconds = Math.round(seconds)
-    const hours = Math.floor(totalSeconds / 3600)
-    const minutes = Math.floor((totalSeconds % 3600) / 60)
-    const remainingSeconds = totalSeconds % 60
+    if (seconds === null) return null;
+
+    const totalSeconds = Math.round(seconds);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const remainingSeconds = totalSeconds % 60;
+
     return hours
         ? `${hours}h ${minutes}m ${remainingSeconds}s`
-        : `${minutes}m ${remainingSeconds}s`
+        : `${minutes}m ${remainingSeconds}s`;
+};
+
+
+const formatBitRate = (bitRate: number | null) => {
+    return bitRate === null
+        ? null
+        : `${(bitRate / 1_000_000).toFixed(2)} Mbps`;
 }
-
-
-const formatBitRate = (bitRate: number | null) =>
-    bitRate === null ? null : `${(bitRate / 1_000_000).toFixed(2)} Mbps`
 
 
 function MediaInfoSkeleton() {
@@ -280,5 +267,5 @@ function MediaInfoSkeleton() {
             <Skeleton className="h-6 w-40"/>
             <Skeleton className="h-64 w-full rounded-xl"/>
         </div>
-    )
+    );
 }

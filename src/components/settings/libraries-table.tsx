@@ -1,29 +1,33 @@
-import type {LibraryKind, LibraryRecord} from "@ploux/contracts"
-import {useForm} from "@tanstack/react-form"
-import {useMutation, useQueryClient} from "@tanstack/react-query"
-import {createColumnHelper, tableFeatures, useTable} from "@tanstack/react-table"
-import {FolderSyncIcon, PencilIcon, Trash2Icon} from "lucide-react"
-import {useState} from "react"
-import {api} from "@/lib/api"
-import {Badge} from "@/components/ui/badge"
-import {Button} from "@/components/ui/button"
-import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog"
-import {Field, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field"
-import {Input} from "@/components/ui/input"
-import {Spinner} from "@/components/ui/spinner"
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table"
-import {toast} from "@/components/ui/toast"
-import {MediaTypeToggle} from "@/components/settings/media-type-toggle"
+import {api} from "@/lib/api";
+import {useState} from "react";
+import {Badge} from "@/components/ui/badge";
+import {Input} from "@/components/ui/input";
+import {toast} from "@/components/ui/toast";
+import {useForm} from "@tanstack/react-form";
+import {Button} from "@/components/ui/button";
+import {Spinner} from "@/components/ui/spinner";
+import {LibraryKind, LibraryRecord} from "@ploux/contracts";
+import {useMutation, useQueryClient} from "@tanstack/react-query";
+import {FolderSyncIcon, PencilIcon, Trash2Icon} from "lucide-react";
+import {MediaTypeToggle} from "@/components/settings/media-type-toggle";
+import {Field, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field";
+import {createColumnHelper, tableFeatures, useTable} from "@tanstack/react-table";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
+import {Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";
 
 
-const features = tableFeatures({})
-const columnHelper = createColumnHelper<typeof features, LibraryRecord>()
-const libraryKindLabel = (kind: LibraryKind) =>
-    kind === "movies" ? "Movies" : "TV shows"
+const features = tableFeatures({});
+const columnHelper = createColumnHelper<typeof features, LibraryRecord>();
+
+
+const libraryKindLabel = (kind: LibraryKind) => {
+    return kind === "movies" ? "Movies" : "TV shows";
+}
+
 
 const columns = columnHelper.columns([
-    columnHelper.accessor("name", {header: "Media folder"}),
-    columnHelper.accessor("path", {header: "Server folder"}),
+    columnHelper.accessor("name", { header: "Media folder" }),
+    columnHelper.accessor("path", { header: "Server folder" }),
     columnHelper.accessor("kind", {
         header: "Type",
         cell: (info) => (
@@ -43,8 +47,8 @@ interface LibraryActionsProps {
 }
 
 
-const LibraryActions = ({library}: LibraryActionsProps) => {
-    const queryClient = useQueryClient()
+const LibraryActions = ({ library }: LibraryActionsProps) => {
+    const queryClient = useQueryClient();
 
     const scan = useMutation({
         mutationFn: () => api.scan(library.id),
@@ -52,9 +56,9 @@ const LibraryActions = ({library}: LibraryActionsProps) => {
             const summary = result.scans[0]
 
             await Promise.all([
-                queryClient.invalidateQueries({queryKey: ["settings"]}),
-                queryClient.invalidateQueries({queryKey: ["library"]}),
-                queryClient.invalidateQueries({queryKey: ["media-folders"]}),
+                queryClient.invalidateQueries({ queryKey: ["library"] }),
+                queryClient.invalidateQueries({ queryKey: ["settings"] }),
+                queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
             ])
 
             toast.add({
@@ -65,21 +69,18 @@ const LibraryActions = ({library}: LibraryActionsProps) => {
                     : undefined,
             })
         },
-        onError: (error) =>
-            toast.add({
-                type: "error",
-                title: "Scan failed",
-                description: error.message,
-            }),
-    })
+        onError: (error) => {
+            toast.add({ type: "error", title: "Scan failed", description: error.message });
+        },
+    });
 
     const remove = useMutation({
         mutationFn: () => api.deleteLibrary(library.id),
         onSuccess: async () => {
             await Promise.all([
-                queryClient.invalidateQueries({queryKey: ["settings"]}),
-                queryClient.invalidateQueries({queryKey: ["library"]}),
-                queryClient.invalidateQueries({queryKey: ["media-folders"]}),
+                queryClient.invalidateQueries({ queryKey: ["library"] }),
+                queryClient.invalidateQueries({ queryKey: ["settings"] }),
+                queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
             ])
 
             toast.add({
@@ -88,23 +89,19 @@ const LibraryActions = ({library}: LibraryActionsProps) => {
                 description: "Your media files were not touched.",
             })
         },
-        onError: (error) =>
+        onError: (error) => {
             toast.add({
                 type: "error",
-                title: "Could not remove media folder",
                 description: error.message,
-            }),
-    })
+                title: "Could not remove media folder",
+            });
+        },
+    });
 
     return (
         <div className="flex justify-end gap-1">
             <EditLibraryDialog key={library.updatedAt} library={library}/>
-            <Button
-                size="sm"
-                variant="ghost"
-                disabled={scan.isPending}
-                onClick={() => scan.mutate()}
-            >
+            <Button size="sm" variant="ghost" disabled={scan.isPending} onClick={() => scan.mutate()}>
                 {scan.isPending
                     ? <Spinner data-icon="inline-start"/>
                     : <FolderSyncIcon data-icon="inline-start"/>
@@ -125,31 +122,9 @@ const LibraryActions = ({library}: LibraryActionsProps) => {
 }
 
 
-function EditLibraryDialog({library}: {library: LibraryRecord}) {
-    const [open, setOpen] = useState(false)
-    const queryClient = useQueryClient()
-    const update = useMutation({
-        mutationFn: api.updateLibrary,
-        onSuccess: async () => {
-            await Promise.all([
-                queryClient.invalidateQueries({queryKey: ["settings"]}),
-                queryClient.invalidateQueries({queryKey: ["library"]}),
-                queryClient.invalidateQueries({queryKey: ["media-folders"]}),
-            ])
-            setOpen(false)
-            toast.add({
-                type: "success",
-                title: "Media folder updated",
-                description: "Run a scan if you changed its path or media type.",
-            })
-        },
-        onError: (error) =>
-            toast.add({
-                type: "error",
-                title: "Could not update media folder",
-                description: error.message,
-            }),
-    })
+function EditLibraryDialog({ library }: { library: LibraryRecord }) {
+    const queryClient = useQueryClient();
+    const [open, setOpen] = useState(false);
     const form = useForm({
         defaultValues: {
             id: library.id,
@@ -157,31 +132,48 @@ function EditLibraryDialog({library}: {library: LibraryRecord}) {
             path: library.path,
             kind: library.kind as LibraryKind,
         },
-        onSubmit: async ({value}) => {
-            await update.mutateAsync(value)
+        onSubmit: async ({ value }) => {
+            await update.mutateAsync(value);
         },
-    })
+    });
+
+    const update = useMutation({
+        mutationFn: api.updateLibrary,
+        onSuccess: async () => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["library"] }),
+                queryClient.invalidateQueries({ queryKey: ["settings"] }),
+                queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
+            ])
+
+            setOpen(false);
+            toast.add({
+                type: "success",
+                title: "Media folder updated",
+                description: "Run a scan if you changed its path or media type.",
+            })
+        },
+        onError: (error) => {
+            toast.add({
+                type: "error",
+                description: error.message,
+                title: "Could not update media folder",
+            });
+        },
+    });
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger
-                render={
-                    <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        aria-label={`Edit ${library.name}`}
-                    />
-                }
-            >
+            <DialogTrigger render={<Button size="icon-sm" variant="ghost" aria-label={`Edit ${library.name}`}/>}>
                 <PencilIcon/>
             </DialogTrigger>
             <DialogContent>
                 <form
                     className="contents"
-                    onSubmit={(event) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        void form.handleSubmit()
+                    onSubmit={(ev) => {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        void form.handleSubmit();
                     }}
                 >
                     <DialogHeader>
@@ -194,21 +186,21 @@ function EditLibraryDialog({library}: {library: LibraryRecord}) {
                         <form.Field
                             name="name"
                             validators={{
-                                onChange: ({value}) => !value.trim() ? "Name is required" : undefined,
+                                onChange: ({ value }) => !value.trim() ? "Name is required" : undefined,
                             }}
                         >
                             {(field) => (
                                 <Field data-invalid={!field.state.meta.isValid}>
                                     <FieldLabel htmlFor={`edit-${library.id}-name`}>Name</FieldLabel>
                                     <Input
-                                        id={`edit-${library.id}-name`}
                                         value={field.state.value}
                                         onBlur={field.handleBlur}
+                                        id={`edit-${library.id}-name`}
                                         aria-invalid={!field.state.meta.isValid}
                                         onChange={(event) => field.handleChange(event.target.value)}
                                     />
                                     <FieldError
-                                        errors={field.state.meta.errors.map((message) => ({message}))}
+                                        errors={field.state.meta.errors.map((message) => ({ message }))}
                                     />
                                 </Field>
                             )}
@@ -216,7 +208,7 @@ function EditLibraryDialog({library}: {library: LibraryRecord}) {
                         <form.Field
                             name="path"
                             validators={{
-                                onChange: ({value}) => !value.trim() ? "Path is required" : undefined,
+                                onChange: ({ value }) => !value.trim() ? "Path is required" : undefined,
                             }}
                         >
                             {(field) => (
@@ -225,14 +217,14 @@ function EditLibraryDialog({library}: {library: LibraryRecord}) {
                                         Folder on the server
                                     </FieldLabel>
                                     <Input
-                                        id={`edit-${library.id}-path`}
                                         value={field.state.value}
                                         onBlur={field.handleBlur}
+                                        id={`edit-${library.id}-path`}
                                         aria-invalid={!field.state.meta.isValid}
                                         onChange={(event) => field.handleChange(event.target.value)}
                                     />
                                     <FieldError
-                                        errors={field.state.meta.errors.map((message) => ({message}))}
+                                        errors={field.state.meta.errors.map((message) => ({ message }))}
                                     />
                                 </Field>
                             )}
@@ -253,8 +245,8 @@ function EditLibraryDialog({library}: {library: LibraryRecord}) {
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                             Cancel
                         </Button>
-                        <form.Subscribe selector={(state) => ({canSubmit: state.canSubmit, isSubmitting: state.isSubmitting})}>
-                            {({canSubmit, isSubmitting}) => (
+                        <form.Subscribe selector={(s) => ({ canSubmit: s.canSubmit, isSubmitting: s.isSubmitting })}>
+                            {({ canSubmit, isSubmitting }) => (
                                 <Button type="submit" disabled={!canSubmit || isSubmitting}>
                                     {isSubmitting ? <Spinner data-icon="inline-start"/> : null}
                                     Save changes
@@ -265,51 +257,39 @@ function EditLibraryDialog({library}: {library: LibraryRecord}) {
                 </form>
             </DialogContent>
         </Dialog>
-    )
-}
+    );
+};
 
 
-interface LibrariesTableProps {
-    libraries: LibraryRecord[]
-}
-
-
-export const LibrariesTable = ({libraries}: LibrariesTableProps) => {
-    const table = useTable({
-        columns,
-        features,
-        data: libraries,
-    })
+export const LibrariesTable = ({ libraries }: { libraries: LibraryRecord[] }) => {
+    const table = useTable({ columns, features, data: libraries });
 
     return (
         <div className="overflow-hidden rounded-xl border">
             <Table>
                 <TableHeader>
-                    {table.getHeaderGroups().map((group) => (
+                    {table.getHeaderGroups().map((group) =>
                         <TableRow key={group.id}>
-                            {group.headers.map((header) => (
+                            {group.headers.map((header) =>
                                 <TableHead key={header.id}>
-                                    {header.isPlaceholder
-                                        ? null
-                                        : <table.FlexRender header={header}/>
-                                    }
+                                    {header.isPlaceholder ? null : <table.FlexRender header={header}/>}
                                 </TableHead>
-                            ))}
+                            )}
                         </TableRow>
-                    ))}
+                    )}
                 </TableHeader>
                 <TableBody>
-                    {table.getRowModel().rows.map((row) => (
+                    {table.getRowModel().rows.map((row) =>
                         <TableRow key={row.id}>
-                            {row.getAllCells().map((cell) => (
+                            {row.getAllCells().map((cell) =>
                                 <TableCell key={cell.id}>
                                     <table.FlexRender cell={cell}/>
                                 </TableCell>
-                            ))}
+                            )}
                         </TableRow>
-                    ))}
+                    )}
                 </TableBody>
             </Table>
         </div>
-    )
-}
+    );
+};

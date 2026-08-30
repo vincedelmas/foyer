@@ -74,7 +74,21 @@ export function PlayerScreen({
       startPartId: part.id,
       parts: nativeParts,
     })
-      .then(async () => {
+      .then(async (result) => {
+        if (
+          result.partId &&
+          result.positionSeconds !== undefined &&
+          result.durationSeconds !== undefined &&
+          result.durationSeconds > 0
+        ) {
+          await tvApi
+            .progress(server, {
+              partId: result.partId,
+              positionSeconds: result.positionSeconds,
+              durationSeconds: result.durationSeconds,
+            })
+            .catch(() => undefined)
+        }
         await Promise.all([
           queryClient.invalidateQueries({
             queryKey: ["tv-media", server, mediaId],

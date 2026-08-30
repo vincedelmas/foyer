@@ -3,41 +3,34 @@ import {Link} from "@tanstack/react-router";
 import {Badge} from "@/components/ui/badge";
 import {FilmIcon, PlayIcon} from "lucide-react";
 import {Progress} from "@/components/ui/progress";
-import {formatRuntime, MediaSummary, tmdbImage} from "@ploux/contracts";
 import {MediaActionsMenu} from "@/components/media-actions-menu";
 import {MediaWatchToggle} from "@/components/media-watch-toggle";
+import {formatRuntime, MediaSummary, tmdbImage} from "@ploux/contracts";
 
 
-export function MediaCard({
-    item,
-    index = 0,
-}: {
-    item: MediaSummary
-    index?: number
-}) {
+interface MediaCardProps {
+    index?: number;
+    item: MediaSummary;
+}
+
+
+export function MediaCard({ item, index = 0 }: MediaCardProps) {
     const poster = tmdbImage(item.posterPath, "w500");
+
     const cardMetadata = [
         item.year ?? "Unknown year",
-        ...(item.kind === "movie" && item.runtimeMinutes
-            ? [formatRuntime(item.runtimeMinutes)]
-            : []),
+        ...(item.kind === "movie" && item.runtimeMinutes ? [formatRuntime(item.runtimeMinutes)] : []),
         item.kind === "movie" ? "Movie" : "TV show",
-        ...(item.kind !== "movie"
-            ? [`${item.partCount} ${item.partCount === 1 ? "ep." : "eps."}`]
-            : []),
-    ]
+        ...(item.kind !== "movie" ? [`${item.partCount} ${item.partCount === 1 ? "ep." : "eps."}`] : []),
+    ];
 
     return (
-        <article
-            data-archive-item
-            className="group relative min-w-0"
-            style={{ "--archive-index": index } as CSSProperties}
-        >
+        <article data-archive-item className="group relative min-w-0" style={{ "--archive-index": index } as CSSProperties}>
             <Link
                 to="/media/$id"
                 params={{ id: item.id }}
-                className="group/poster block rounded-xl outline-none"
                 aria-label={`Open ${item.title}`}
+                className="group/poster block rounded-xl outline-none"
             >
                 <div
                     className="poster-shadow relative aspect-2/3 overflow-hidden rounded-xl bg-muted ring-1 ring-border transition duration-300
@@ -64,9 +57,11 @@ export function MediaCard({
                     </span>
 
                     <div className="absolute top-12 left-3 flex flex-col items-start gap-1.5">
-                        {item.metadataStatus === "unmatched" ? (
-                            <Badge variant="secondary">Unmatched</Badge>
-                        ) : null}
+                        {item.metadataStatus === "unmatched" &&
+                            <Badge variant="secondary">
+                                Unmatched
+                            </Badge>
+                        }
                     </div>
 
                     {item.progress && item.progress.positionSeconds > 0 && !item.progress.completed &&
@@ -84,7 +79,7 @@ export function MediaCard({
                 <MediaActionsMenu item={item}/>
             </div>
             <div className="mt-3 min-w-0 px-0.5">
-                <Link to="/media/$id" params={{id: item.id}} className="outline-none">
+                <Link to="/media/$id" params={{ id: item.id }} className="outline-none">
                     <h3 className="truncate text-sm font-semibold tracking-tight">
                         {item.title}
                     </h3>

@@ -27,6 +27,8 @@ class PlouxPlayerModule : Module() {
         }
         pendingPromise = promise
         activity.startActivityForResult(intent, PLAYER_REQUEST_CODE)
+        @Suppress("DEPRECATION")
+        activity.overridePendingTransition(0, 0)
       } catch (error: Throwable) {
         pendingPromise = null
         promise.reject(error.toCodedException())

@@ -1,6 +1,10 @@
 import type {MediaSummary} from "@ploux/contracts"
 import {describe, expect, it} from "vitest"
-import {filterByWatchStatus, selectCurrentlyWatching} from "./progress-utils"
+import {
+    filterByWatchStatus,
+    selectCurrentlyWatching,
+    selectNextPart,
+} from "./progress-utils"
 
 
 const media = (
@@ -69,5 +73,39 @@ describe("selectCurrentlyWatching", () => {
         expect(filterByWatchStatus([watched, unwatched], "all")).toHaveLength(2)
         expect(filterByWatchStatus([watched, unwatched], "watched")).toEqual([watched])
         expect(filterByWatchStatus([watched, unwatched], "unwatched")).toEqual([unwatched])
+    })
+})
+
+
+describe("selectNextPart", () => {
+    const parts = [{id: "episode-1"}, {id: "episode-2"}, {id: "episode-3"}]
+
+    it("resumes the most recently watched unfinished episode", () => {
+        const progress = new Map([
+            ["episode-1", {
+                completed: false,
+                positionSeconds: 600,
+                updatedAt: 1_000,
+            }],
+            ["episode-2", {
+                completed: false,
+                positionSeconds: 120,
+                updatedAt: 2_000,
+            }],
+        ])
+
+        expect(selectNextPart(parts, progress)?.id).toBe("episode-2")
+    })
+
+    it("selects the first unwatched episode when nothing is in progress", () => {
+        const progress = new Map([
+            ["episode-1", {
+                completed: true,
+                positionSeconds: 1_800,
+                updatedAt: 1_000,
+            }],
+        ])
+
+        expect(selectNextPart(parts, progress)?.id).toBe("episode-2")
     })
 })

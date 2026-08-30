@@ -2,7 +2,7 @@ import {and, eq, like, or} from "drizzle-orm";
 import {db, ensureDatabase} from "@/server/db/index.server"
 import {libraries, MediaItemRow, mediaItems, MediaPartRow, mediaParts, playbackProgress, ProgressRow, SubtitleRow, subtitleTracks} from "@/server/db/schema"
 import {LibraryStats, MediaFolderSummary, MediaKind, MediaPart, MediaProgress, MediaSort, MediaSummary, MediaWatchFilter, PersonCredit, SeasonMetadata, SubtitleTrack} from "@ploux/contracts";
-import {filterByWatchStatus, selectCurrentlyWatching} from "@/server/media/progress-utils"
+import {filterByWatchStatus, selectCurrentlyWatching, selectNextPart} from "@/server/media/progress-utils"
 import {sortMedia} from "@/server/media/media-sort"
 import {isPlaybackCompleted} from "@/server/media/playback-completion"
 
@@ -43,22 +43,8 @@ const sortParts = (left: MediaPartRow, right: MediaPartRow) =>
     left.fileName.localeCompare(right.fileName)
 
 
-const selectNextPart = (parts: MediaPartRow[], progressByPart: Map<string, ProgressRow>) => {
-    const sorted = [...parts].sort(sortParts)
-    return (
-        sorted.find((part) => {
-            const progress = progressByPart.get(part.id)
-            return progress && !progress.completed && progress.positionSeconds > 0
-        }) ??
-        sorted.find((part) => !progressByPart.get(part.id)?.completed) ??
-        sorted[0] ??
-        null
-    )
-}
-
-
 const asSummary = (item: MediaItemRow, parts: MediaPartRow[], progressByPart: Map<string, ProgressRow>) => {
-    const nextPart = selectNextPart(parts, progressByPart);
+    const nextPart = selectNextPart([...parts].sort(sortParts), progressByPart);
     const partProgress = parts.flatMap((part) => {
         const progress = progressByPart.get(part.id)
         return progress ? [progress] : []

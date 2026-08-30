@@ -52,10 +52,26 @@ internal class PlaybackProgressReporter(serverUrl: String) {
     }
   }
 
+  fun saveCompleted(partId: String, durationMs: Long) {
+    val completedDuration = durationMs.coerceAtLeast(1_000)
+    save(partId, completedDuration, completedDuration)
+  }
+
+  fun flush(timeoutMs: Long = 1_500) {
+    if (executor.isShutdown) return
+    try {
+      executor.submit {}.get(timeoutMs, TimeUnit.MILLISECONDS)
+    } catch (error: InterruptedException) {
+      Thread.currentThread().interrupt()
+    } catch (_: Exception) {
+      // A later periodic update can still recover if the LAN server is slow.
+    }
+  }
+
   fun close() {
     executor.shutdown()
     try {
-      executor.awaitTermination(750, TimeUnit.MILLISECONDS)
+      executor.awaitTermination(1_500, TimeUnit.MILLISECONDS)
     } catch (_: InterruptedException) {
       Thread.currentThread().interrupt()
     }

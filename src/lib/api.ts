@@ -1,11 +1,23 @@
-import type {LibraryKind, LibraryRecord, LibraryResponse, MediaDeleteResult, MediaDetail, MediaFolderSummary, MediaInfo, MediaKind, MediaSort, MediaSummary, MediaWatchFilter, MetadataRefreshSummary, ScanRecord, TmdbCandidate} from "@ploux/contracts";
+import type {
+    LibraryKind,
+    LibraryRecord,
+    LibraryResponse,
+    MediaDeleteResult,
+    MediaDetail,
+    MediaFolderSummary,
+    MediaInfo,
+    MediaKind,
+    MediaSort,
+    MediaSummary,
+    MediaWatchFilter,
+    MetadataRefreshSummary,
+    ScanRecord,
+    TmdbCandidate
+} from "@ploux/contracts";
 
 
 class ApiError extends Error {
-    constructor(
-        message: string,
-        public readonly status: number
-    ) {
+    constructor(message: string, public readonly status: number) {
         super(message);
     }
 }
@@ -35,56 +47,54 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
 
 export const api = {
     library: (input: {
-        libraryId?: string
-        kind?: MediaKind
-        search?: string
-        watch?: MediaWatchFilter
-        sort?: MediaSort
-        page?: number
-        pageSize?: number
+        page?: number,
+        search?: string,
+        kind?: MediaKind,
+        sort?: MediaSort,
+        pageSize?: number,
+        libraryId?: string,
+        watch?: MediaWatchFilter,
     }) => {
-        const query = new URLSearchParams()
-        if (input.libraryId) query.set("libraryId", input.libraryId)
-        if (input.kind) query.set("kind", input.kind)
-        if (input.search) query.set("search", input.search)
-        if (input.watch && input.watch !== "all") query.set("watch", input.watch)
-        if (input.sort) query.set("sort", input.sort)
-        if (input.page) query.set("page", String(input.page))
-        if (input.pageSize) query.set("pageSize", String(input.pageSize))
+        const query = new URLSearchParams();
+
+        if (input.libraryId) query.set("libraryId", input.libraryId);
+        if (input.kind) query.set("kind", input.kind);
+        if (input.search) query.set("search", input.search);
+        if (input.watch && input.watch !== "all") query.set("watch", input.watch);
+        if (input.sort) query.set("sort", input.sort);
+        if (input.page) query.set("page", String(input.page));
+        if (input.pageSize) query.set("pageSize", String(input.pageSize));
+
         return request<LibraryResponse>(`/api/v1/library?${query}`)
     },
-    mediaFolders: () => request<MediaFolderSummary[]>("/api/v1/libraries"),
-    currentlyWatching: () => request<MediaSummary[]>("/api/v1/progress"),
     media: (id: string) => request<MediaDetail>(`/api/v1/media/${id}`),
+    currentlyWatching: () => request<MediaSummary[]>("/api/v1/progress"),
     mediaInfo: (id: string) => request<MediaInfo>(`/api/v1/media/${id}?view=info`),
+    mediaFolders: () => request<MediaFolderSummary[]>("/api/v1/libraries"),
     setMediaWatched: (id: string, watched: boolean) =>
-        request<{watched: boolean; updatedParts: number}>(`/api/v1/media/${id}`, {
+        request<{ watched: boolean; updatedParts: number }>(`/api/v1/media/${id}`, {
             method: "PUT",
-            body: JSON.stringify({watched}),
+            body: JSON.stringify({ watched }),
         }),
     setMediaPartWatched: (partId: string, watched: boolean) =>
-        request<{partId: string; watched: boolean}>("/api/v1/progress", {
+        request<{ partId: string; watched: boolean }>("/api/v1/progress", {
             method: "PUT",
-            body: JSON.stringify({partId, watched}),
+            body: JSON.stringify({ partId, watched }),
         }),
     deleteMedia: (id: string) =>
         request<MediaDeleteResult>(`/api/v1/media/${id}`, {
             method: "DELETE",
-            body: JSON.stringify({deleteFiles: true}),
+            body: JSON.stringify({ deleteFiles: true }),
         }),
-    progress: (input: {
-        partId: string
-        positionSeconds: number
-        durationSeconds: number
-    }) =>
+    progress: (input: { partId: string, positionSeconds: number, durationSeconds: number }) =>
         request("/api/v1/progress", {
             method: "POST",
             body: JSON.stringify(input),
         }),
     deleteProgress: (mediaId: string) =>
-        request<{deleted: number}>("/api/v1/progress", {
+        request<{ deleted: number }>("/api/v1/progress", {
             method: "DELETE",
-            body: JSON.stringify({mediaId}),
+            body: JSON.stringify({ mediaId }),
         }),
     settings: () =>
         request<{
@@ -129,6 +139,6 @@ export const api = {
     refreshLibraryMetadata: (libraryId: string) =>
         request<MetadataRefreshSummary>("/api/v1/settings/metadata/refresh", {
             method: "POST",
-            body: JSON.stringify({libraryId}),
+            body: JSON.stringify({ libraryId }),
         }),
 }

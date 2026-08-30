@@ -5,14 +5,26 @@ import {FolderPlusIcon} from "lucide-react";
 import {useForm} from "@tanstack/react-form";
 import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
-import {useMutation, useQueryClient} from "@tanstack/react-query";
-import {Field, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field";
 import type {LibraryKind} from "@ploux/contracts";
+import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {MediaTypeToggle} from "@/components/settings/media-type-toggle";
+import {Field, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field";
 
 
 export function LibraryForm() {
     const queryClient = useQueryClient();
+
+    const form = useForm({
+        defaultValues: {
+            name: "",
+            path: "",
+            kind: "movies" as LibraryKind,
+        },
+        onSubmit: async ({ value, formApi }) => {
+            await create.mutateAsync(value);
+            formApi.reset();
+        },
+    })
 
     const create = useMutation({
         mutationFn: api.createLibrary,
@@ -27,23 +39,12 @@ export function LibraryForm() {
                 description: "Run a scan to index its files.",
             })
         },
-        onError: (error) =>
+        onError: (error) => {
             toast.add({
                 type: "error",
                 description: error.message,
                 title: "Could not add media folder",
-            }),
-    })
-
-    const form = useForm({
-        defaultValues: {
-            name: "",
-            path: "",
-            kind: "movies" as LibraryKind,
-        },
-        onSubmit: async ({ value, formApi }) => {
-            await create.mutateAsync(value);
-            formApi.reset();
+            });
         },
     })
 

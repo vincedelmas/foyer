@@ -1,54 +1,65 @@
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query"
-import {createFileRoute} from "@tanstack/react-router"
-import {DatabaseIcon, FilmIcon, FolderSyncIcon, LibraryIcon, SparklesIcon,} from "lucide-react"
-import {AppHeader} from "@/components/app-header"
-import {LibrariesTable} from "@/components/settings/libraries-table"
-import {LibraryForm} from "@/components/settings/library-form"
-import {Badge} from "@/components/ui/badge"
-import {Button} from "@/components/ui/button"
-import {Card, CardContent, CardDescription, CardHeader, CardTitle,} from "@/components/ui/card"
-import {Skeleton} from "@/components/ui/skeleton"
-import {Spinner} from "@/components/ui/spinner"
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
-import {toast} from "@/components/ui/toast"
-import {api} from "@/lib/api"
+import React from "react";
+import {api} from "@/lib/api";
+import {toast} from "@/components/ui/toast";
+import {Badge} from "@/components/ui/badge";
+import {Button} from "@/components/ui/button";
+import {Spinner} from "@/components/ui/spinner";
+import {Skeleton} from "@/components/ui/skeleton";
+import {AppHeader} from "@/components/app-header";
+import {createFileRoute} from "@tanstack/react-router";
+import {LibraryForm} from "@/components/settings/library-form";
+import {LibrariesTable} from "@/components/settings/libraries-table";
+import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
+import {DatabaseIcon, FilmIcon, FolderSyncIcon, LibraryIcon, SparklesIcon} from "lucide-react";
 
 
-export const Route = createFileRoute("/settings")({ component: SettingsPage })
+export const Route = createFileRoute("/settings")({
+    component: SettingsPage,
+});
 
 
 function SettingsPage() {
-    const queryClient = useQueryClient()
-    const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings })
+    const queryClient = useQueryClient();
+
+    const settings = useQuery({
+        queryKey: ["settings"],
+        queryFn: api.settings,
+    });
+
     const library = useQuery({
         queryKey: ["library", "settings-stats"],
         queryFn: () => api.library({}),
-    })
+    });
+
     const scanAll = useMutation({
         mutationFn: () => api.scan(),
         onSuccess: async (result) => {
             await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["settings"] }),
                 queryClient.invalidateQueries({ queryKey: ["library"] }),
+                queryClient.invalidateQueries({ queryKey: ["settings"] }),
                 queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
-            ])
+            ]);
             toast.add({
+                type: "success",
                 title: "All media folders scanned",
                 description: `${result.scans.length} folders completed.`,
-                type: "success",
-            })
+            });
         },
-        onError: (error) =>
+        onError: (error) => {
             toast.add({
+                type: "error",
                 title: "Scan failed",
                 description: error.message,
-                type: "error",
-            }),
-    })
+            });
+        },
+    });
 
     return (
         <div className="min-h-svh">
             <AppHeader/>
+
             <main className="mx-auto flex max-w-[100rem] flex-col gap-8 px-4 py-10 sm:px-6 lg:px-10 lg:py-14">
                 <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
                     <div>
@@ -64,23 +75,19 @@ function SettingsPage() {
                             permanent-delete confirmation.
                         </p>
                     </div>
-                    <Button
-                        onClick={() => scanAll.mutate()}
-                        disabled={scanAll.isPending || !settings.data?.libraries.length}
-                    >
-                        {scanAll.isPending ? (
-                            <Spinner data-icon="inline-start"/>
-                        ) : (
-                            <FolderSyncIcon data-icon="inline-start"/>
-                        )}
+                    <Button onClick={() => scanAll.mutate()} disabled={scanAll.isPending || !settings.data?.libraries.length}>
+                        {scanAll.isPending
+                            ? <Spinner data-icon="inline-start"/>
+                            : <FolderSyncIcon data-icon="inline-start"/>
+                        }
                         Scan all folders
                     </Button>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <StatCard
-                        icon={FilmIcon}
                         title="Titles"
+                        icon={FilmIcon}
                         value={library.data?.stats.titles}
                     />
                     <StatCard
@@ -89,8 +96,8 @@ function SettingsPage() {
                         value={settings.data?.libraries.length}
                     />
                     <StatCard
-                        icon={SparklesIcon}
                         title="Unmatched"
+                        icon={SparklesIcon}
                         value={library.data?.stats.unmatched}
                     />
                     <StatCard
@@ -129,16 +136,18 @@ function SettingsPage() {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    {settings.isPending ? (
+                                    {settings.isPending &&
                                         <Skeleton className="h-40 w-full"/>
-                                    ) : null}
-                                    {settings.data?.libraries.length ? (
-                                        <LibrariesTable libraries={settings.data.libraries}/>
-                                    ) : (
+                                    }
+                                    {settings.data?.libraries.length ?
+                                        <LibrariesTable
+                                            libraries={settings.data.libraries}
+                                        />
+                                        :
                                         <p className="py-12 text-center text-sm text-muted-foreground">
                                             No media folders have been added yet.
                                         </p>
-                                    )}
+                                    }
                                 </CardContent>
                             </Card>
                         </div>
@@ -155,17 +164,15 @@ function SettingsPage() {
                             <CardContent>
                                 <div className="flex flex-col gap-3">
                                     {settings.data?.scans.map((scan) => (
-                                        <div
-                                            key={scan.id}
-                                            className="grid gap-2 rounded-xl border p-4 sm:grid-cols-[1fr_auto] sm:items-center"
-                                        >
+                                        <div key={scan.id} className="grid gap-2 rounded-xl border p-4 sm:grid-cols-[1fr_auto] sm:items-center">
                                             <div>
                                                 <p className="text-sm font-medium">
                                                     {scan.status === "completed"
                                                         ? `${scan.filesSeen} files indexed`
                                                         : scan.status === "running"
                                                             ? "Scan in progress"
-                                                            : "Scan failed"}
+                                                            : "Scan failed"
+                                                    }
                                                 </p>
                                                 <p className="mt-1 text-xs text-muted-foreground">
                                                     {new Date(scan.startedAt).toLocaleString()} ·{" "}
@@ -174,23 +181,19 @@ function SettingsPage() {
                                                 </p>
                                             </div>
                                             <Badge
-                                                variant={
-                                                    scan.status === "failed"
-                                                        ? "destructive"
-                                                        : scan.status === "completed"
-                                                            ? "default"
-                                                            : "secondary"
+                                                variant={scan.status === "failed" ? "destructive"
+                                                    : scan.status === "completed" ? "default" : "secondary"
                                                 }
                                             >
                                                 {scan.status}
                                             </Badge>
                                         </div>
                                     ))}
-                                    {!settings.data?.scans.length ? (
+                                    {!settings.data?.scans.length &&
                                         <p className="py-12 text-center text-sm text-muted-foreground">
                                             No scans have run yet.
                                         </p>
-                                    ) : null}
+                                    }
                                 </div>
                             </CardContent>
                         </Card>
@@ -198,18 +201,18 @@ function SettingsPage() {
                 </Tabs>
             </main>
         </div>
-    )
+    );
 }
 
-function StatCard({
-                      icon: Icon,
-                      title,
-                      value,
-                  }: {
-    icon: React.ComponentType<{ className?: string }>
-    title: string
-    value: number | undefined
-}) {
+
+interface StatCard {
+    title: string;
+    value: number | undefined;
+    icon: React.ComponentType<{ className?: string }>;
+}
+
+
+function StatCard({ icon: Icon, title, value }: StatCard) {
     return (
         <Card>
             <CardHeader className="flex-row items-center justify-between">
@@ -217,8 +220,10 @@ function StatCard({
                 <Icon className="size-4 text-muted-foreground"/>
             </CardHeader>
             <CardContent>
-                <p className="font-heading text-4xl font-medium">{value ?? "—"}</p>
+                <p className="font-heading text-4xl font-medium">
+                    {value ?? "—"}
+                </p>
             </CardContent>
         </Card>
-    )
+    );
 }

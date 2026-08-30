@@ -1,41 +1,23 @@
-import {QueryClient, QueryClientProvider} from "@tanstack/react-query"
-import {ReactQueryDevtools} from "@tanstack/react-query-devtools"
-import {createRootRoute, HeadContent, Link, Scripts,} from "@tanstack/react-router"
-import {useState} from "react"
-import {Button} from "@/components/ui/button"
-import {Toaster} from "@/components/ui/toast"
-import {TooltipProvider} from "@/components/ui/tooltip"
-import appCss from "../styles.css?url"
+import React, {useState} from "react";
+import appCss from "../styles.css?url";
+import {Button} from "@/components/ui/button";
+import {Toaster} from "@/components/ui/toast";
+import {TooltipProvider} from "@/components/ui/tooltip";
+import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
+import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
+import {createRootRoute, HeadContent, Link, Scripts} from "@tanstack/react-router";
 
 
 export const Route = createRootRoute({
     head: () => ({
         meta: [
-            {
-                charSet: "utf-8",
-            },
-            {
-                name: "viewport",
-                content: "width=device-width, initial-scale=1",
-            },
-            {
-                title: "Ploux — Your cinema, at home",
-            },
-            {
-                name: "description",
-                content: "A small, direct-play home media library.",
-            },
-            {
-                name: "theme-color",
-                content: "#11100e",
-            },
+            { charSet: "utf-8" },
+            { title: "Ploux — Your cinema, at home" },
+            { name: "theme-color", content: "#11100e" },
+            { name: "viewport", content: "width=device-width, initial-scale=1" },
+            { name: "description", content: "A small, direct-play home media library." },
         ],
-        links: [
-            {
-                rel: "stylesheet",
-                href: appCss,
-            },
-        ],
+        links: [{ rel: "stylesheet", href: appCss }],
     }),
     notFoundComponent: NotFound,
     shellComponent: RootDocument,
@@ -43,14 +25,17 @@ export const Route = createRootRoute({
 
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-    const [queryClient] = useState(
-        () =>
-            new QueryClient({
-                defaultOptions: {
-                    queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false },
+    const [queryClient] = useState(() =>
+        new QueryClient({
+            defaultOptions: {
+                queries: {
+                    retry: 1,
+                    staleTime: 30_000,
+                    refetchOnWindowFocus: false,
                 },
-            })
-    )
+            },
+        })
+    );
 
     return (
         <html lang="en" className="dark">
@@ -62,14 +47,17 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <TooltipProvider>
                 <Toaster>{children}</Toaster>
             </TooltipProvider>
-            {import.meta.env.DEV ? (
-                <ReactQueryDevtools buttonPosition="bottom-left"/>
-            ) : null}
+
+            {import.meta.env.DEV &&
+                <ReactQueryDevtools
+                    buttonPosition="bottom-left"
+                />
+            }
         </QueryClientProvider>
         <Scripts/>
         </body>
         </html>
-    )
+    );
 }
 
 
@@ -93,5 +81,5 @@ function NotFound() {
                 </Button>
             </div>
         </main>
-    )
+    );
 }

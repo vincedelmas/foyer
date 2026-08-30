@@ -6,77 +6,86 @@ import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
 import {SearchIcon, SparklesIcon} from "lucide-react";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
-import type {MediaSummary, TmdbCandidate} from "@ploux/contracts";
-import {tmdbImage} from "@ploux/contracts";
+import {MediaSummary, TmdbCandidate, tmdbImage} from "@ploux/contracts";
 import {Field, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/input-group";
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";
 
 
-export function IdentifyDialog({
-    media,
-    open: controlledOpen,
-    onOpenChange,
-    showTrigger = true,
-}: {
-    media: Pick<MediaSummary, "id" | "title" | "year">
-    open?: boolean
-    onOpenChange?: (open: boolean) => void
-    showTrigger?: boolean
-}) {
+interface IdentifyDialogProps {
+    open?: boolean;
+    showTrigger?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    media: Pick<MediaSummary, "id" | "title" | "year">;
+}
+
+
+export function IdentifyDialog({ media, open: controlledOpen, onOpenChange, showTrigger = true }: IdentifyDialogProps) {
     const queryClient = useQueryClient();
     const [internalOpen, setInternalOpen] = useState(false);
     const [candidates, setCandidates] = useState<TmdbCandidate[]>([]);
-    const open = controlledOpen ?? internalOpen
+    const form = useForm({
+        defaultValues: {
+            query: media.title,
+            year: media.year?.toString() ?? "",
+        },
+        onSubmit: async ({ value }) => {
+            const result = await api.searchMetadata({
+                mediaId: media.id,
+                query: value.query,
+                year: value.year ? Number(value.year) : undefined,
+            });
+            setCandidates(result.candidates);
+        },
+    });
+
+    const open = controlledOpen ?? internalOpen;
+
     const setOpen = (nextOpen: boolean) => {
-        if (controlledOpen === undefined) setInternalOpen(nextOpen)
-        onOpenChange?.(nextOpen)
-        if (!nextOpen) setCandidates([])
+        if (controlledOpen === undefined) {
+            setInternalOpen(nextOpen);
+        }
+
+        onOpenChange?.(nextOpen);
+
+        if (!nextOpen) {
+            setCandidates([]);
+        }
     }
 
     const identify = useMutation({
         mutationFn: (tmdbId: number) => api.identify(media.id, tmdbId),
         onSuccess: async () => {
             await Promise.all([
-                queryClient.invalidateQueries({ queryKey: ["media", media.id] }),
                 queryClient.invalidateQueries({ queryKey: ["library"] }),
                 queryClient.invalidateQueries({ queryKey: ["media-folders"] }),
+                queryClient.invalidateQueries({ queryKey: ["media", media.id] }),
                 queryClient.invalidateQueries({ queryKey: ["currently-watching"] }),
             ])
             toast.add({
+                type: "success",
                 title: "Identity updated",
                 description: "TMDB metadata has been replaced.",
-                type: "success",
             })
             setOpen(false)
         },
-        onError: (error) =>
+        onError: (error) => {
             toast.add({
-                title: "Could not identify title",
-                description: error.message,
                 type: "error",
-            }),
-    });
-    const form = useForm({
-        defaultValues: { query: media.title, year: media.year?.toString() ?? "" },
-        onSubmit: async ({ value }) => {
-            const result = await api.searchMetadata({
-                mediaId: media.id,
-                query: value.query,
-                year: value.year ? Number(value.year) : undefined,
-            })
-            setCandidates(result.candidates)
+                description: error.message,
+                title: "Could not identify title",
+            });
         },
     });
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            {showTrigger ? (
+            {showTrigger &&
                 <DialogTrigger render={<Button variant="secondary"/>}>
                     <SearchIcon data-icon="inline-start"/>
                     Identify
                 </DialogTrigger>
-            ) : null}
+            }
             <DialogContent className="max-h-[88svh] overflow-y-auto sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>Identify “{media.title}”</DialogTitle>
@@ -87,18 +96,17 @@ export function IdentifyDialog({
                 </DialogHeader>
 
                 <form
-                    onSubmit={(event) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        void form.handleSubmit()
+                    onSubmit={(ev) => {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        void form.handleSubmit();
                     }}
                 >
                     <FieldGroup className="grid gap-3 sm:grid-cols-[1fr_8rem_auto] sm:items-end">
                         <form.Field
                             name="query"
                             validators={{
-                                onChange: ({ value }) =>
-                                    !value.trim() ? "Enter a title" : undefined,
+                                onChange: ({ value }) => !value.trim() ? "Enter a title" : undefined,
                             }}
                         >
                             {(field) => (
@@ -112,16 +120,12 @@ export function IdentifyDialog({
                                             id={field.name}
                                             value={field.state.value}
                                             onBlur={field.handleBlur}
-                                            onChange={(event) =>
-                                                field.handleChange(event.target.value)
-                                            }
                                             aria-invalid={!field.state.meta.isValid}
+                                            onChange={(ev) => field.handleChange(ev.target.value)}
                                         />
                                     </InputGroup>
                                     <FieldError
-                                        errors={field.state.meta.errors.map((message) => ({
-                                            message,
-                                        }))}
+                                        errors={field.state.meta.errors.map((message) => ({ message }))}
                                     />
                                 </Field>
                             )}
@@ -136,29 +140,19 @@ export function IdentifyDialog({
                                             inputMode="numeric"
                                             placeholder="Optional"
                                             value={field.state.value}
-                                            onChange={(event) =>
-                                                field.handleChange(
-                                                    event.target.value.replace(/\D/g, "").slice(0, 4)
-                                                )
-                                            }
+                                            onChange={(ev) => field.handleChange(ev.target.value.replace(/\D/g, "").slice(0, 4))}
                                         />
                                     </InputGroup>
                                 </Field>
                             )}
                         </form.Field>
-                        <form.Subscribe
-                            selector={(state) => ({
-                                canSubmit: state.canSubmit,
-                                isSubmitting: state.isSubmitting,
-                            })}
-                        >
+                        <form.Subscribe selector={(s) => ({ canSubmit: s.canSubmit, isSubmitting: s.isSubmitting })}>
                             {({ canSubmit, isSubmitting }) => (
                                 <Button type="submit" disabled={!canSubmit || isSubmitting}>
-                                    {isSubmitting ? (
-                                        <Spinner data-icon="inline-start"/>
-                                    ) : (
-                                        <SparklesIcon data-icon="inline-start"/>
-                                    )}
+                                    {isSubmitting
+                                        ? <Spinner data-icon="inline-start"/>
+                                        : <SparklesIcon data-icon="inline-start"/>
+                                    }
                                     Search
                                 </Button>
                             )}
@@ -167,42 +161,45 @@ export function IdentifyDialog({
                 </form>
 
                 <div className="grid gap-3 sm:grid-cols-2">
-                    {candidates.map((candidate) => (
+                    {candidates.map((candidate) =>
                         <CandidateCard
                             key={candidate.id}
                             candidate={candidate}
-                            pending={
-                                identify.isPending && identify.variables === candidate.id
-                            }
                             onSelect={() => identify.mutate(candidate.id)}
+                            pending={identify.isPending && identify.variables === candidate.id}
                         />
-                    ))}
-                    {!candidates.length ? (
+                    )}
+                    {!candidates.length &&
                         <p className="col-span-full py-8 text-center text-sm text-muted-foreground">
                             Search results will appear here.
                         </p>
-                    ) : null}
+                    }
                 </div>
             </DialogContent>
         </Dialog>
-    )
+    );
 }
 
 
-function CandidateCard({ candidate, pending, onSelect }: { candidate: TmdbCandidate, pending: boolean, onSelect: () => void }) {
+interface CandidateCardProps {
+    pending: boolean;
+    onSelect: () => void;
+    candidate: TmdbCandidate;
+}
+
+
+function CandidateCard({ candidate, pending, onSelect }: CandidateCardProps) {
     const poster = tmdbImage(candidate.posterPath, "w342");
 
     return (
         <article className="flex gap-3 rounded-xl border bg-card p-3">
             <div className="aspect-2/3 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
-                {poster ?
+                {!!poster &&
                     <img
                         alt=""
                         src={poster}
                         className="size-full object-cover"
                     />
-                    :
-                    null
                 }
             </div>
             <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
@@ -218,17 +215,11 @@ function CandidateCard({ candidate, pending, onSelect }: { candidate: TmdbCandid
                 <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
                     {candidate.overview || "No synopsis available."}
                 </p>
-                <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={onSelect}
-                    disabled={pending}
-                    className="mt-auto"
-                >
-                    {pending ? <Spinner data-icon="inline-start"/> : null}
+                <Button size="sm" variant="outline" onClick={onSelect} disabled={pending} className="mt-auto">
+                    {pending && <Spinner data-icon="inline-start"/>}
                     Choose match
                 </Button>
             </div>
         </article>
-    )
+    );
 }
