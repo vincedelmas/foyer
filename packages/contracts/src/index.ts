@@ -1,7 +1,7 @@
 import {z} from "zod";
 
-export {createPlouxApi, ApiError} from "./api-client";
-export type {LibraryQueryInput, PlouxApi} from "./api-client";
+export {createPlouxApi, ApiError, healthResponseSchema} from "./api-client";
+export type {HealthResponse, LibraryQueryInput, MediaQueryInput, PlouxApi} from "./api-client";
 
 
 export const mediaKindSchema = z.enum(["movie", "series", "anime"]);
@@ -93,65 +93,68 @@ export interface SeasonMetadata {
 }
 
 export interface MediaProgress {
-    positionSeconds: number
-    durationSeconds: number
+    updatedAt: number
     percentage: number
     completed: boolean
-    updatedAt: number
+    positionSeconds: number
+    durationSeconds: number
 }
 
 export interface SubtitleTrack {
     id: string
-    language: string
+    url: string
     label: string
     format: string
+    language: string
     isDefault: boolean
-    url: string
 }
 
 export interface MediaPart {
     id: string
+    size: number
     fileName: string
     mimeType: string
-    size: number
+    streamUrl: string
+    title: string | null
+    subtitles: SubtitleTrack[]
     seasonNumber: number | null
     episodeNumber: number | null
-    title: string | null
-    streamUrl: string
-    subtitles: SubtitleTrack[]
     progress: MediaProgress | null
 }
 
 export interface MediaSummary {
     id: string
-    kind: MediaKind
     title: string
+    addedAt: number
+    kind: MediaKind
+    watched: boolean
+    partCount: number
     year: number | null
-    releaseDate: string | null
+    hasProgress: boolean
     overview: string | null
+    nextPartId: string | null
     posterPath: string | null
+    releaseDate: string | null
     backdropPath: string | null
+    tmdbVoteCount: number | null
     runtimeMinutes: number | null
     tmdbVoteAverage: number | null
-    tmdbVoteCount: number | null
-    metadataStatus: "matched" | "unmatched" | "manual"
-    addedAt: number
-    partCount: number
-    nextPartId: string | null
     progress: MediaProgress | null
-    watched: boolean
-    hasProgress: boolean
+    metadataStatus: "matched" | "unmatched" | "manual"
 }
 
 export interface MediaDetail extends MediaSummary {
-    tmdbId: number | null
-    originalTitle: string | null
-    originalLanguage: string | null
-    contentRating: string | null
     genres: string[]
-    cast: PersonCredit[]
-    seasons: SeasonMetadata[]
     parts: MediaPart[]
+    cast: PersonCredit[]
+    tmdbId: number | null
+    partSeasons: number[]
+    seasons: SeasonMetadata[]
+    partsPagination: Pagination
+    originalTitle: string | null
+    contentRating: string | null
+    originalLanguage: string | null
+    selectedPartSeason: number | null
     metadataRefreshedAt: number | null
 }
 
@@ -175,59 +178,59 @@ export interface MediaFolderSummary {
 
 export interface MetadataRefreshSummary {
     total: number
-    refreshed: number
+    failed: number
     matched: number
     skipped: number
-    failed: number
+    refreshed: number
 }
 
 export interface MediaStreamInfo {
     index: number
-    type: MediaStreamType
     codec: string | null
-    codecDescription: string | null
-    profile: string | null
-    language: string | null
     title: string | null
     width: number | null
+    type: MediaStreamType
     height: number | null
-    frameRate: number | null
+    profile: string | null
+    language: string | null
     channels: number | null
-    channelLayout: string | null
+    frameRate: number | null
     sampleRate: number | null
+    channelLayout: string | null
+    codecDescription: string | null
 }
 
 export interface MediaExternalSubtitleInfo {
     id: string
     path: string
+    label: string
     format: string
     language: string
-    label: string
     isDefault: boolean
 }
 
 export interface MediaFileInfo {
     id: string
-    fileName: string
     path: string
-    container: string
-    mimeType: string
     size: number
+    fileName: string
+    mimeType: string
+    container: string
     modifiedAt: number
-    formatName: string | null
-    durationSeconds: number | null
     bitRate: number | null
-    streams: MediaStreamInfo[]
-    externalSubtitles: MediaExternalSubtitleInfo[]
+    formatName: string | null
     probeError: string | null
+    streams: MediaStreamInfo[]
+    durationSeconds: number | null
+    externalSubtitles: MediaExternalSubtitleInfo[]
 }
 
 export interface MediaInfo {
     id: string
     title: string
     totalSize: number
-    probeAvailable: boolean
     files: MediaFileInfo[]
+    probeAvailable: boolean
 }
 
 export interface MediaDeleteResult {
@@ -237,46 +240,48 @@ export interface MediaDeleteResult {
 }
 
 export interface LibraryStats {
+    anime: number
     titles: number
     movies: number
     series: number
-    anime: number
     unmatched: number
     inProgress: number
 }
 
+export interface Pagination {
+    page: number
+    pageSize: number
+    totalItems: number
+    totalPages: number
+}
+
 export interface LibraryResponse {
-    items: MediaSummary[]
     stats: LibraryStats
-    pagination: {
-        page: number
-        pageSize: number
-        totalItems: number
-        totalPages: number
-    }
+    items: MediaSummary[]
+    pagination: Pagination
 }
 
 export interface TmdbCandidate {
     id: number
-    kind: "movie" | "tv"
     title: string
-    originalTitle: string
-    year: number | null
     overview: string
-    posterPath: string | null
     popularity: number
+    year: number | null
+    kind: "movie" | "tv"
+    originalTitle: string
+    posterPath: string | null
 }
 
 export interface ScanRecord {
     id: string
-    libraryId: string | null
-    status: "running" | "completed" | "failed"
+    startedAt: number
     filesSeen: number
     titlesAdded: number
-    subtitlesFound: number
-    startedAt: number
-    completedAt: number | null
     error: string | null
+    subtitlesFound: number
+    libraryId: string | null
+    completedAt: number | null
+    status: "running" | "completed" | "failed"
 }
 
 

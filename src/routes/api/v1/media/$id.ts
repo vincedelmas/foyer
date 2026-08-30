@@ -1,3 +1,4 @@
+import {z} from "zod";
 import {createFileRoute} from "@tanstack/react-router";
 import {emptyCors, handleApi, json, parseBody} from "@/server/http.server";
 import {getMediaDetail, setMediaWatched} from "@/server/media/repository.server";
@@ -10,10 +11,22 @@ export const Route = createFileRoute("/api/v1/media/$id")({
         handlers: {
             OPTIONS: emptyCors,
             GET: ({ params, request }) => handleApi(async () => {
-                const view = new URL(request.url).searchParams.get("view");
+                const searchParams = new URL(request.url).searchParams;
+                const view = searchParams.get("view");
+
                 const media = view === "info"
                     ? await getMediaInfo(params.id)
-                    : getMediaDetail(params.id);
+                    : getMediaDetail(params.id, {
+                        season: searchParams.get("season")
+                            ? z.coerce.number().int().min(0).parse(searchParams.get("season"))
+                            : undefined,
+                        page: searchParams.get("page")
+                            ? z.coerce.number().int().min(1).parse(searchParams.get("page"))
+                            : undefined,
+                        pageSize: searchParams.get("pageSize")
+                            ? z.coerce.number().int().min(1).max(100).parse(searchParams.get("pageSize"))
+                            : undefined,
+                    });
 
                 return media
                     ? json(media)

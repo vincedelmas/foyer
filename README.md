@@ -178,4 +178,7 @@ bun run verify        # web + TV types, Oxlint, Knip, tests, production build
 Ploux assumes a trusted home network and has no authentication. Do not publish port 3000 directly to the internet. Put it behind an
 authenticated reverse proxy or VPN if remote access is required.
 
+Browser CORS access is disabled by default. Set `PLOUX_CORS_ORIGIN` to one exact origin only when hosting a separate browser client; the
+built-in web app and native Android TV client do not require it. Wildcard origins are ignored.
+
 TMDB credentials are supplied through `TMDB_READ_ACCESS_TOKEN`. This product uses the TMDB API but is not endorsed or certified by TMDB.

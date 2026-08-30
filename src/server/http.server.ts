@@ -1,12 +1,17 @@
 import type {ZodType} from "zod";
 
 
-export const corsHeaders = () => ({
-    "Access-Control-Allow-Headers": "Content-Type,Range",
-    "Access-Control-Allow-Methods": "GET,HEAD,POST,PUT,DELETE,OPTIONS",
-    "Access-Control-Allow-Origin": process.env.PLOUX_CORS_ORIGIN ?? "*",
-    "Access-Control-Expose-Headers": "Accept-Ranges,Content-Length,Content-Range",
-})
+export const corsHeaders = (): Record<string, string> => {
+    const origin = process.env.PLOUX_CORS_ORIGIN?.trim();
+    if (!origin || origin === "*") return {};
+
+    return {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Headers": "Content-Type,Range",
+        "Access-Control-Allow-Methods": "GET,HEAD,POST,PUT,DELETE,OPTIONS",
+        "Access-Control-Expose-Headers": "Accept-Ranges,Content-Length,Content-Range",
+    };
+}
 
 
 export const json = (data: unknown, init: ResponseInit = {}) => {

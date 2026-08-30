@@ -1,12 +1,12 @@
 import {z} from "zod";
+import {useEffect, useState} from "react";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {AppHeader} from "@/components/app-header";
 import {MediaGrid} from "@/components/media-grid";
-import {Separator} from "@/components/ui/separator";
 import {useSuspenseQuery} from "@tanstack/react-query";
-import {MouseEvent, useEffect, useState} from "react";
 import {createFileRoute, Link} from "@tanstack/react-router";
+import {MediaPagination} from "@/components/media-pagination";
 import {CollectionActions} from "@/components/media-folder-card";
 import {libraryOptions, mediaFoldersOptions} from "@/lib/query-options";
 import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/input-group";
@@ -14,7 +14,6 @@ import {ArrowLeftIcon, FilmIcon, FolderSearchIcon, SearchIcon, TvIcon} from "luc
 import {mediaSortSchema, MediaWatchFilter, mediaWatchFilterSchema} from "@ploux/contracts";
 import {Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle} from "@/components/ui/empty";
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
-import {Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious} from "@/components/ui/pagination"
 
 
 const searchSchema = z.object({
@@ -292,6 +291,7 @@ function MediaFolderPage() {
                             />
                             {!!library.pagination.totalItems &&
                                 <MediaPagination
+                                    itemLabel="titles"
                                     hrefForPage={pageHref}
                                     onPageChange={changePage}
                                     pagination={library.pagination}
@@ -301,95 +301,6 @@ function MediaFolderPage() {
                     </>
                 }
             </main>
-        </div>
-    );
-}
-
-
-interface MediaPaginationProps {
-    onPageChange: (page: number) => void;
-    hrefForPage: (page: number) => string;
-    pagination: {
-        page: number,
-        pageSize: number,
-        totalItems: number,
-        totalPages: number,
-    };
-}
-
-
-function MediaPagination({ pagination, hrefForPage, onPageChange }: MediaPaginationProps) {
-    const { page, pageSize, totalItems, totalPages } = pagination;
-
-    const firstItem = (page - 1) * pageSize + 1;
-    const lastItem = Math.min(page * pageSize, totalItems);
-
-    const pageNumbers = [...new Set([1, page - 1, page, page + 1, totalPages])]
-        .filter((pageNumber) => pageNumber >= 1 && pageNumber <= totalPages)
-        .sort((left, right) => left - right);
-
-    const handlePageClick = (targetPage: number) => {
-        return (ev: MouseEvent<HTMLAnchorElement>) => {
-            if (ev.button !== 0 || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) return;
-
-            ev.preventDefault();
-            onPageChange(targetPage);
-        };
-    };
-
-    return (
-        <div className="flex flex-col gap-6">
-            <Separator/>
-            <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                <p className="text-xs text-muted-foreground">
-                    Showing {firstItem}–{lastItem} of {totalItems} titles
-                </p>
-                {totalPages > 1 &&
-                    <Pagination className="mx-0 w-auto">
-                        <PaginationContent>
-                            {page > 1 &&
-                                <PaginationItem>
-                                    <PaginationPrevious
-                                        href={hrefForPage(page - 1)}
-                                        onClick={handlePageClick(page - 1)}
-                                    />
-                                </PaginationItem>
-                            }
-
-                            {pageNumbers.flatMap((pageNumber, idx) => {
-                                const previousPage = pageNumbers[idx - 1];
-                                const hasGap = previousPage !== undefined && pageNumber - previousPage > 1;
-
-                                return [
-                                    hasGap &&
-                                    <PaginationItem key={`ellipsis-${pageNumber}`}>
-                                        <PaginationEllipsis/>
-                                    </PaginationItem>
-                                    ,
-                                    <PaginationItem key={pageNumber}>
-                                        <PaginationLink
-                                            href={hrefForPage(pageNumber)}
-                                            isActive={pageNumber === page}
-                                            onClick={handlePageClick(pageNumber)}
-                                        >
-                                            {pageNumber}
-                                        </PaginationLink>
-                                    </PaginationItem>,
-                                ]
-                            })}
-
-                            {page < totalPages &&
-                                <PaginationItem>
-                                    <PaginationNext
-                                        href={hrefForPage(page + 1)}
-                                        onClick={handlePageClick(page + 1)}
-                                    />
-                                </PaginationItem>
-                            }
-                        </PaginationContent>
-                    </Pagination>
-                }
-            </div>
         </div>
     );
 }

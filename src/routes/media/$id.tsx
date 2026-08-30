@@ -1,3 +1,4 @@
+import {z} from "zod";
 import {cn} from "@/lib/utils";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
@@ -9,6 +10,7 @@ import {ScrollArea} from "@/components/ui/scroll-area";
 import {useSuspenseQuery} from "@tanstack/react-query";
 import {IdentifyDialog} from "@/components/identify-dialog";
 import {createFileRoute, Link} from "@tanstack/react-router";
+import {MediaPagination} from "@/components/media-pagination";
 import {WatchToggleButton} from "@/components/watch-toggle-button";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
@@ -17,9 +19,17 @@ import {CalendarIcon, Clock3Icon, PlayIcon, RefreshCwIcon, StarIcon} from "lucid
 import {useRefreshMediaMetadataMutation, useSetMediaPartWatchedMutation} from "@/lib/query-mutations";
 
 
+const searchSchema = z.object({
+    page: z.coerce.number().int().min(1).optional().catch(1),
+    season: z.coerce.number().int().min(0).optional().catch(undefined),
+});
+
+
 export const Route = createFileRoute("/media/$id")({
-    context: ({ params: { id } }) => ({
-        mediaQueryOptions: mediaOptions(id),
+    validateSearch: searchSchema,
+    loaderDeps: ({ search }) => ({ search }),
+    context: ({ params: { id }, deps: { search } }) => ({
+        mediaQueryOptions: mediaOptions(id, { season: search.season, page: search.page, pageSize: 50 }),
     }),
     loader: ({ context }) => {
         return context.queryClient.query(context.mediaQueryOptions);
@@ -30,6 +40,7 @@ export const Route = createFileRoute("/media/$id")({
 
 function MediaDetailsPage() {
     const { id } = Route.useParams();
+    const navigate = Route.useNavigate();
     const { mediaQueryOptions } = Route.useRouteContext();
 
     const refresh = useRefreshMediaMetadataMutation(id);
@@ -37,17 +48,20 @@ function MediaDetailsPage() {
 
     const poster = tmdbImage(item.posterPath, "w500");
     const backdrop = tmdbImage(item.backdropPath, "original");
-    const showPartList = item.kind !== "movie" || item.parts.length > 1;
+
+    const showPartList = item.kind !== "movie" || item.partCount > 1;
+    const selectedSeason = item.selectedPartSeason ?? item.partSeasons[0] ?? 1;
     const tmdbRating = formatTmdbRating(item.tmdbVoteAverage, item.tmdbVoteCount);
 
-    const seasons = item.parts.reduce((grouped, part) => {
-        const season = part.seasonNumber ?? 1;
-        const bucket = grouped.get(season) ?? [];
-        bucket.push(part);
-        grouped.set(season, bucket);
+    const changeEpisodePage = (page: number) => {
+        void navigate({ search: (previous) => ({ ...previous, season: selectedSeason, page }) });
+    };
 
-        return grouped;
-    }, new Map<number, MediaPart[]>());
+    const episodePageHref = (page: number) => {
+        const query = new URLSearchParams({ season: String(selectedSeason) });
+        if (page > 1) query.set("page", String(page));
+        return `/media/${encodeURIComponent(id)}?${query}`;
+    };
 
     return (
         <div className="min-h-svh">
@@ -116,10 +130,10 @@ function MediaDetailsPage() {
                                         </span>
                                     }
                                     <span>
-                                        {item.parts.length}{" "}
+                                        {item.partCount}{" "}
                                         {item.kind === "movie"
-                                            ? item.parts.length === 1 ? "file" : "files"
-                                            : item.parts.length === 1 ? "episode" : "episodes"}
+                                            ? item.partCount === 1 ? "file" : "files"
+                                            : item.partCount === 1 ? "episode" : "episodes"}
                                     </span>
                                 </div>
                             </div>
@@ -172,29 +186,42 @@ function MediaDetailsPage() {
                                         mediaId={item.id}
                                         parts={item.parts}
                                         fallbackLabel="Part"
+                                        startIndex={(item.partsPagination.page - 1) * item.partsPagination.pageSize}
                                     />
                                     :
-                                    <Tabs defaultValue={String([...seasons.keys()][0] ?? 1)}>
+                                    <Tabs
+                                        value={String(selectedSeason)}
+                                        onValueChange={(value) => {
+                                            void navigate({ resetScroll: false, search: { season: Number(value), page: 1 } });
+                                        }}
+                                    >
                                         <div className="max-w-full overflow-x-auto overflow-y-hidden pb-1.5 scrollbar-none
                                         [&::-webkit-scrollbar]:hidden">
                                             <TabsList variant="line">
-                                                {[...seasons.keys()].map((season) =>
+                                                {item.partSeasons.map((season) =>
                                                     <TabsTrigger key={season} value={String(season)}>
                                                         Season {season}
                                                     </TabsTrigger>
                                                 )}
                                             </TabsList>
                                         </div>
-                                        {[...seasons.entries()].map(([season, parts]) =>
-                                            <TabsContent key={season} value={String(season)} className="pt-3">
-                                                <EpisodeList
-                                                    parts={parts}
-                                                    mediaId={item.id}
-                                                    fallbackLabel="Episode"
-                                                />
-                                            </TabsContent>
-                                        )}
+                                        <TabsContent value={String(selectedSeason)} className="pt-3">
+                                            <EpisodeList
+                                                mediaId={item.id}
+                                                parts={item.parts}
+                                                fallbackLabel="Episode"
+                                                startIndex={(item.partsPagination.page - 1) * item.partsPagination.pageSize}
+                                            />
+                                        </TabsContent>
                                     </Tabs>
+                                }
+                                {!!item.partsPagination.totalItems &&
+                                    <MediaPagination
+                                        hrefForPage={episodePageHref}
+                                        onPageChange={changeEpisodePage}
+                                        pagination={item.partsPagination}
+                                        itemLabel={item.kind === "movie" ? "files" : "episodes"}
+                                    />
                                 }
                             </div>
                         }
@@ -268,11 +295,12 @@ function MediaDetailsPage() {
 interface EpisodeListProps {
     mediaId: string;
     parts: MediaPart[];
+    startIndex: number;
     fallbackLabel: string;
 }
 
 
-function EpisodeList({ mediaId, parts, fallbackLabel }: EpisodeListProps) {
+function EpisodeList({ mediaId, parts, fallbackLabel, startIndex }: EpisodeListProps) {
     const rows = (
         <>
             {parts.map((part, idx) =>
@@ -280,11 +308,14 @@ function EpisodeList({ mediaId, parts, fallbackLabel }: EpisodeListProps) {
                     {!!idx && <Separator/>}
                     <div className="flex items-center gap-4 p-4 sm:p-5">
                     <span className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary text-sm font-semibold">
-                      {part.episodeNumber ?? idx + 1}
+                      {part.episodeNumber ?? startIndex + idx + 1}
                     </span>
                         <div className="min-w-0 flex-1">
                             <p className="truncate font-medium">
-                                {part.title || (part.episodeNumber ? `Episode ${part.episodeNumber}` : `${fallbackLabel} ${idx + 1}`)}
+                                {part.title || (part.episodeNumber
+                                    ? `Episode ${part.episodeNumber}`
+                                    : `${fallbackLabel} ${startIndex + idx + 1}`)
+                                }
                             </p>
                             <p className="mt-1 truncate text-xs text-muted-foreground">
                                 {part.fileName} · {formatBytes(part.size)}

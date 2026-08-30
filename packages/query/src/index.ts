@@ -1,5 +1,5 @@
-import type {LibraryQueryInput, MediaFolderSummary, PlouxApi} from "@ploux/contracts";
-import {mutationOptions, queryOptions, type QueryClient} from "@tanstack/react-query";
+import {mutationOptions, type QueryClient, queryOptions} from "@tanstack/react-query";
+import {LibraryQueryInput, MediaFolderSummary, MediaQueryInput, PlouxApi} from "@ploux/contracts";
 
 
 type CreateLibraryInput = Parameters<PlouxApi["createLibrary"]>[0];
@@ -38,7 +38,9 @@ export const createPlouxQueries = (api: PlouxApi, cacheScope: string) => {
         },
         media: {
             all: [...rootKey, "media"] as const,
-            detail: (mediaId: string) => [...rootKey, "media", mediaId] as const,
+            detail: (mediaId: string, input?: MediaQueryInput) => input
+                ? [...rootKey, "media", mediaId, input] as const
+                : [...rootKey, "media", mediaId] as const,
         },
         mediaInfo: {
             all: [...rootKey, "media-info"] as const,
@@ -60,9 +62,9 @@ export const createPlouxQueries = (api: PlouxApi, cacheScope: string) => {
             queryKey: keys.currentlyWatching,
             queryFn: api.currentlyWatching,
         }),
-        media: (mediaId: string) => queryOptions({
-            queryKey: keys.media.detail(mediaId),
-            queryFn: () => api.media(mediaId),
+        media: (mediaId: string, input?: MediaQueryInput) => queryOptions({
+            queryKey: keys.media.detail(mediaId, input),
+            queryFn: () => api.media(mediaId, input),
         }),
         mediaInfo: (mediaId: string) => queryOptions({
             queryKey: keys.mediaInfo.detail(mediaId),
@@ -115,6 +117,7 @@ export const createPlouxQueries = (api: PlouxApi, cacheScope: string) => {
         }),
         saveProgress: (partId: string) => mutationOptions({
             mutationKey: keys.mutation("save-progress", partId),
+            scope: { id: `playback-progress:${cacheScope}:${partId}` },
             mutationFn: (value: ProgressValue) => api.progress({ partId, ...value }),
         }),
         saveProgressForPart: () => mutationOptions({

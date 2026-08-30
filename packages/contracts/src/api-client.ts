@@ -1,3 +1,4 @@
+import {z} from "zod";
 import type {
     LibraryKind,
     LibraryRecord,
@@ -14,6 +15,16 @@ import type {
     ScanRecord,
     TmdbCandidate,
 } from "./index";
+
+
+export const healthResponseSchema = z.object({
+    directPlay: z.boolean(),
+    transcoding: z.boolean(),
+    status: z.literal("ok"),
+    name: z.literal("Ploux"),
+    version: z.string().min(1),
+});
+export type HealthResponse = z.infer<typeof healthResponseSchema>;
 
 
 export class ApiError extends Error {
@@ -34,6 +45,13 @@ export interface LibraryQueryInput {
 }
 
 
+export interface MediaQueryInput {
+    page?: number;
+    season?: number;
+    pageSize?: number;
+}
+
+
 const libraryQuery = (input: LibraryQueryInput) => {
     const query = new URLSearchParams();
 
@@ -44,6 +62,17 @@ const libraryQuery = (input: LibraryQueryInput) => {
     if (input.libraryId) query.set("libraryId", input.libraryId);
     if (input.pageSize) query.set("pageSize", String(input.pageSize));
     if (input.watch && input.watch !== "all") query.set("watch", input.watch);
+
+    return query.toString();
+};
+
+
+const mediaQuery = (input: MediaQueryInput) => {
+    const query = new URLSearchParams();
+
+    if (input.page) query.set("page", String(input.page));
+    if (input.pageSize) query.set("pageSize", String(input.pageSize));
+    if (input.season !== undefined) query.set("season", String(input.season));
 
     return query.toString();
 };
@@ -79,11 +108,20 @@ export const createPlouxApi = (baseUrl = "") => {
 
     return {
         absoluteUrl,
-        health: () => request<{ status: string }>("/api/v1/"),
-        media: (id: string) => request<MediaDetail>(`/api/v1/media/${id}`),
         currentlyWatching: () => request<MediaSummary[]>("/api/v1/progress"),
         mediaInfo: (id: string) => request<MediaInfo>(`/api/v1/media/${id}?view=info`),
         mediaFolders: () => request<MediaFolderSummary[]>("/api/v1/libraries"),
+        health: async () => {
+            const result = healthResponseSchema.safeParse(await request<unknown>("/api/v1/"));
+            if (!result.success) {
+                throw new Error("This address does not appear to be a Ploux server.");
+            }
+            return result.data;
+        },
+        media: (id: string, input: MediaQueryInput = {}) => {
+            const query = mediaQuery(input);
+            return request<MediaDetail>(`/api/v1/media/${id}${query ? `?${query}` : ""}`);
+        },
         library: (input: LibraryQueryInput = {}) => {
             return request<LibraryResponse>(`/api/v1/library?${libraryQuery(input)}`);
         },
