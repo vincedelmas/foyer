@@ -230,7 +230,25 @@ export const streamSubtitle = async (request: Request, subtitleId: string) => {
             headers: corsHeaders(),
         })
     }
-    const source = await readFile(subtitle.filePath, "utf8")
+    let source: string
+    try {
+        source = await readFile(subtitle.filePath, "utf8")
+    } catch (error) {
+        if (
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            (error.code === "ENOENT" || error.code === "ENOTDIR")
+        ) {
+            return unavailableFileResponse(
+                404,
+                "Subtitle file is no longer available. Rescan the collection to update Ploux."
+            )
+        }
+
+        console.error(`Could not access subtitle file ${subtitle.filePath}`, error)
+        return unavailableFileResponse(500, "Could not access the subtitle file.")
+    }
     const preserveAssFormatting =
         new URL(request.url).searchParams.get("compat") === "android-tv" &&
         (subtitle.format === "ass" || subtitle.format === "ssa")

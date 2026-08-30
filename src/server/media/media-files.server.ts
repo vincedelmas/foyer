@@ -214,10 +214,16 @@ const probePart = (part: MediaPartRow) => {
 
     if (cached) return cached;
 
-    const pending = probeFile(part.filePath).catch((error) => {
-        probeCache.delete(key);
-        throw error;
-    })
+    const pending = probeFile(part.filePath).then(
+        (result) => {
+            if (result.error) probeCache.delete(key);
+            return result;
+        },
+        (error) => {
+            probeCache.delete(key);
+            throw error;
+        },
+    )
 
     probeCache.set(key, pending);
 

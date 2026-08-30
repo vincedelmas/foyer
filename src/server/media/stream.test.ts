@@ -10,7 +10,7 @@ const repository = vi.hoisted(() => ({
 
 vi.mock("@/server/media/repository.server.ts", () => repository)
 
-import {streamPart} from "./stream.server"
+import {streamPart, streamSubtitle} from "./stream.server"
 
 const temporaryPaths: string[] = []
 
@@ -22,6 +22,7 @@ beforeEach(() => {
 
 afterEach(async () => {
     repository.getPartFile.mockReset()
+    repository.getSubtitleFile.mockReset()
     vi.unstubAllGlobals()
     await Promise.all(
         temporaryPaths.splice(0).map((path) => rm(path, {force: true}))
@@ -73,5 +74,28 @@ describe("media streaming", () => {
 
         expect(response.status).toBe(200)
         expect(response.headers.get("content-length")).toBe("19")
+    })
+
+    it("returns a helpful 404 when a scanned subtitle has moved", async () => {
+        repository.getSubtitleFile.mockReturnValue({
+            id: "subtitle-1",
+            mediaPartId: "part-1",
+            filePath: resolve("/tmp", `${randomUUID()}.srt`),
+            language: "en",
+            label: "English",
+            format: "srt",
+            isDefault: false,
+            createdAt: 0,
+            updatedAt: 0,
+        })
+
+        const response = await streamSubtitle(
+            new Request("http://localhost/api/v1/subtitles/subtitle-1"),
+            "subtitle-1"
+        )
+
+        expect(response.status).toBe(404)
+        expect(response.headers.get("cache-control")).toBe("no-store")
+        expect(await response.text()).toContain("Rescan the collection")
     })
 })

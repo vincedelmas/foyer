@@ -1,65 +1,60 @@
 # Ploux
 
-Ploux is a small, direct-play home media server. It scans folders, enriches titles with TMDB, streams the original file with HTTP byte
-ranges, remembers playback position, serves external subtitles, can permanently delete explicitly confirmed media, and exposes the same
-API to its web and Android TV clients.
+Ploux is the home media server I wanted for myself: point it at a few folders, let it find the artwork, and watch the original files from a browser or Android TV.
 
-It deliberately has no transcoder, accounts, sharing, plugins, live TV, or cloud features.
+It is intentionally small and opinionated. There are no accounts, plugins, live TV, sharing features, or server-side transcoding. If you need a full Plex or Jellyfin replacement, this probably is not it. If you want a simple direct-play library for a trusted home network, it may be useful to you too.
 
-## Stack
+## What it does
 
-- Bun runtime and workspaces, including a native `Bun.serve` production server
-- TanStack Start in client-only SPA mode, with Vite and React 19 Compiler
-- TanStack Router, Query, Form, Store, and Table
-- React Native TV/Expo client for Android TV
-- SQLite through Drizzle ORM and generated migrations
-- Tailwind CSS 4 and shadcn/ui Nova on Base UI
-- Zod contracts shared by web, server, and TV
-- Oxlint, Knip, Vitest, and TypeScript
+- Scans movie, series, and anime folders into separate collections
+- Matches titles against TMDB, with manual identify and refresh tools when a match is wrong
+- Streams the original files with HTTP range support for seeking
+- Remembers playback position and watched status
+- Finds external SRT, VTT, ASS, and SSA subtitles next to a video
+- Provides a web app and a D-pad-friendly Android TV app
+- Shows detailed codec and stream information when `ffprobe` is available
+- Can permanently delete a title's source files, but only after explicit confirmation
 
-## Quick start
+## Getting started
 
-Requirements: Bun 1.4+, optionally FFmpeg/ffprobe for detailed stream information and cached stream-copy remuxing, and optionally a
-[TMDB v4 read access token](https://www.themoviedb.org/settings/api).
+You need [Bun 1.4 or newer](https://bun.sh/). A [TMDB v4 read access token](https://www.themoviedb.org/settings/api) is optional, but without one Ploux cannot download titles, posters, or other metadata.
 
 ```bash
+git clone https://github.com/vincedelmas/ploux.git
+cd ploux
 cp .env.example .env
 bun install
-bun run db:migrate
 bun run dev
 ```
 
-Open `http://localhost:3000/settings`, add an absolute server-side folder, and click **Scan**. The database is also migrated automatically on
-first access; the explicit command makes setup failures easier to see.
+Open [http://localhost:3000](http://localhost:3000), go to **Settings**, add an absolute path from the machine running Ploux, and scan it. SQLite data is stored in `./data/ploux.sqlite` by default, and migrations run automatically.
 
-For production:
+For optional stream inspection and Android TV compatibility remuxing, install FFmpeg so that both `ffmpeg` and `ffprobe` are on your `PATH`.
 
-```bash
-bun run build
-bun run start
-```
+### Configuration
 
-The build writes browser assets to `dist/client`, the TanStack Start handler to `dist/server`, and the bundled Bun entry to
-`dist/server.js`. For PM2, run that last file with Bun as the interpreter. The server bundle contains its JavaScript dependencies, so the
-deployment needs `dist`, `drizzle`, and Bun, plus FFmpeg/ffprobe for optional media inspection and TV remuxing. It does not need Nitro or a
-production `node_modules` installation.
+The defaults in `.env.example` are enough for a local setup.
 
-```bash
-pm2 start dist/server.js --name ploux --interpreter bun
-```
+| Variable | What it changes |
+| --- | --- |
+| `TMDB_READ_ACCESS_TOKEN` | Enables automatic and manual TMDB matching |
+| `PLOUX_DATABASE_PATH` | SQLite database path; defaults to `./data/ploux.sqlite` |
+| `PLOUX_CACHE_PATH` | Cache used for Android TV AVI remuxes; defaults to `./data/cache` |
+| `PLOUX_CORS_ORIGIN` | Allows one separate browser origin; the built-in web app and TV app do not need it |
+| `HOST` | Production bind address; defaults to `0.0.0.0` |
+| `PORT` | Production port; defaults to `3000` |
 
-## Folder and filename conventions
+## Organizing media
 
-Movie folders may be flat or nested:
+Movies can be flat or placed in their own folders. Including the release year gives TMDB a better chance of finding the right title.
 
 ```text
 /media/movies/
-  Dune Part Two (2024)/Dune.Part.Two.2024.mp4
   Perfect Days.2023.mkv
+  Dune Part Two (2024)/Dune.Part.Two.2024.mp4
 ```
 
-Series and anime work best with one top-level folder per title. Episode patterns `S01E02`, `1x02`, and common anime ` - 02` naming are
-recognized.
+For series, a top-level folder per show is the clearest layout:
 
 ```text
 /media/series/The Bear/
@@ -67,7 +62,17 @@ recognized.
   Season 03/The.Bear.S03E02.Next.mkv
 ```
 
-External subtitles belong next to the video and begin with the same filename stem:
+Flat series folders work too, as long as the show name and episode marker are present in each filename:
+
+```text
+/media/series/
+  The.Bear.S03E01.Tomorrow.mkv
+  The.Bear.S03E02.Next.mkv
+```
+
+Ploux recognizes `S01E02`, `1x02`, and common anime names ending in ` - 02`.
+
+External subtitles belong beside the video and must start with the same filename stem:
 
 ```text
 The.Bear.S03E01.Tomorrow.mkv
@@ -75,38 +80,22 @@ The.Bear.S03E01.Tomorrow.en.srt
 The.Bear.S03E01.Tomorrow.fr.default.ass
 ```
 
-Supported external formats are `.srt`, `.vtt`, `.ass`, and `.ssa`. Ploux converts them to WebVTT when served. It does not extract subtitle
-tracks embedded in a container.
+SRT, VTT, ASS, and SSA files are supported. Browser playback receives WebVTT; the Android TV client keeps ASS/SSA styling through libass. Embedded subtitle tracks are played by compatible clients but are not extracted into separate files.
 
-## Direct-play limits
+## Direct play and format support
 
-Ploux never transcodes video or audio. It serves `Range` requests from the original file, which makes seeking efficient. The Android TV
-client plays that original stream with embedded LibVLC: it prefers the Shield's hardware decoder and can fall back to local software
-decoding for an unsupported codec. No converted media stream is created or sent by the server. The explicit permanent-delete action is
-the sole operation that
-removes source media and indexed external subtitle files.
+Ploux does not transcode video or audio. That keeps the server simple, but the device doing the playback must understand the file.
 
-- Browsers are usually safest with MP4 containing H.264/H.265 where supported and AAC audio, or WebM.
-- MKV support varies substantially in browsers.
-- The Android TV app uses embedded LibVLC and supports substantially more containers, audio codecs, and subtitle formats than browsers.
-- A file can be indexed even when the current client cannot decode it. The web player shows a direct-play warning for containers with weak
-  browser support.
+- Browsers are most reliable with MP4 containing H.264 and AAC. HEVC support depends on the browser and operating system, and MKV support varies considerably.
+- The Android TV player uses AndroidX Media3 (ExoPlayer), hardware video decoding, a local FFmpeg audio decoder fallback for formats such as AC3, E-AC3, and DTS, and libass for styled subtitles.
+- AVI files requested by the TV app can be remuxed to MKV with FFmpeg. This is a cached stream copy, not a video or audio transcode.
+- A file may scan successfully even when the current playback device cannot decode it.
 
-## Android TV app
+## Android TV
 
-The TV project is in `apps/tv`. It is configured as an Android-TV-only, landscape Expo native project using `react-native-tvos`; it is not
-intended for a store.
+The TV app lives in `apps/tv` and targets Android TV only. On first launch it asks for the Ploux server's LAN address, for example `http://192.168.1.10:3000`. Remember that `localhost` on the TV means the TV itself; an Android emulator can reach the host at `http://10.0.2.2:3000`.
 
-Its player uses `@lunarr/vlc-player` and LibVLC. Distribution notices for those native playback dependencies are in
-[`apps/tv/THIRD_PARTY_NOTICES.md`](apps/tv/THIRD_PARTY_NOTICES.md).
-
-The TV client uses the same collection-first home, currently-watching data, server-side search, per-collection watch filters, sorting,
-pagination, watch controls, collection management, metadata actions, media information, and progress APIs as the web UI. Its layouts and
-dialogs are adapted for D-pad focus instead of pointer interaction.
-
-1. Install Android Studio/SDK and enable developer mode plus USB/network debugging on the TV.
-2. Connect the device with `adb connect TV_IP:5555` if using network ADB.
-3. Build and install:
+To build and install it locally:
 
 ```bash
 cd apps/tv
@@ -114,10 +103,7 @@ bun run prebuild
 bun run android
 ```
 
-On first launch, enter the Ploux server's LAN address, for example `http://192.168.1.10:3000`. `localhost` on the TV is the TV itself. The
-Android emulator reaches the host through `http://10.0.2.2:3000`.
-
-To produce a sideloadable release APK after prebuild:
+This requires Android Studio, the Android SDK, and a connected device or emulator. After prebuild, a release APK can also be built with:
 
 ```bash
 cd apps/tv/android
@@ -125,51 +111,51 @@ cd apps/tv/android
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
-For a long-lived install, use the permanent signing and release workflow described below instead of editing the generated native project.
+The repository also includes a GitHub Actions workflow for permanently signed release APKs and in-app updates. The one-time signing setup is documented in the [Android TV release guide](docs/android-tv-releases.md). Native playback licenses and source links are listed in [third-party notices](apps/tv/THIRD_PARTY_NOTICES.md).
 
-### Build an APK without an Android toolchain
-
-Release Please turns Conventional Commits into a release PR. Merging that PR creates the versioned GitHub release, then the `Build Android
-TV APK` workflow builds and permanently signs the APK entirely on GitHub's runner before publishing the release. The TV app consumes its
-attached update manifest. The first setup requires an OpenSSL-generated signing key and four GitHub Actions secrets, but no local Android
-SDK. See the complete [Android TV release and update guide](docs/android-tv-releases.md).
-
-## API
-
-The TV client consumes the versioned HTTP API under `/api/v1`:
-
-| Method            | Endpoint                          | Purpose                                        |
-|-------------------|-----------------------------------|------------------------------------------------|
-| `GET`             | `/api/v1/`                        | Health and capabilities                        |
-| `GET`             | `/api/v1/library`                 | Search, watch-status filter, and sort media    |
-| `GET/PUT/DELETE`  | `/api/v1/media/:id`               | Details/info, watch state, permanent deletion  |
-| `GET/HEAD`        | `/api/v1/stream/:partId`          | Original file with byte-range support          |
-| `GET`             | `/api/v1/subtitles/:id`           | WebVTT subtitle response                       |
-| `GET/POST/DELETE` | `/api/v1/progress`                | List, save, or clear resume progress           |
-| `GET/POST/PUT/DELETE` | `/api/v1/settings/libraries`         | Manage indexed folders                         |
-| `POST`                | `/api/v1/settings/scan`              | Walk one or all libraries                      |
-| `GET`                  | `/api/v1/settings/overview`          | Read settings overview                         |
-| `POST`                | `/api/v1/settings/metadata/search`   | Search TMDB candidates                         |
-| `POST`                | `/api/v1/settings/metadata/identify` | Apply a manual TMDB match                      |
-| `POST`                | `/api/v1/settings/metadata/refresh`  | Refresh the current match                      |
-
-Shared input validation and response types live in `packages/contracts`.
-
-## Maintenance
+## Running a production build
 
 ```bash
-bun run db:generate   # after changing src/server/db/schema.ts
-bun run db:migrate
-bun run db:studio
-bun run verify        # web + TV types, Oxlint, Knip, tests, production build
+bun run build
+bun run start
 ```
 
-## Security and metadata
+The build produces browser assets in `dist/client`, the TanStack Start handler in `dist/server`, and a bundled Bun entry at `dist/server.js`. A minimal deployment needs `dist`, `drizzle`, and Bun. FFmpeg/ffprobe remain optional.
 
-Ploux assumes a trusted home network and has no authentication. Do not publish port 3000 directly to the internet. Put it behind an
-authenticated reverse proxy or VPN if remote access is required.
+For example, with PM2:
 
-Browser CORS access is disabled by default. Set `PLOUX_CORS_ORIGIN` to one exact origin only when hosting a separate browser client; the
-built-in web app and native Android TV client do not require it. Wildcard origins are ignored.
+```bash
+pm2 start dist/server.js --name ploux --interpreter bun
+```
 
-TMDB credentials are supplied through `TMDB_READ_ACCESS_TOKEN`. This product uses the TMDB API but is not endorsed or certified by TMDB.
+## Development
+
+The main pieces are a TanStack Start/React web app, a Bun server, SQLite with Drizzle, shared Zod contracts, and a React Native TV client.
+
+Useful commands:
+
+```bash
+bun run test          # Vitest suite
+bun run typecheck     # web and server TypeScript
+bun run typecheck:tv  # Android TV TypeScript
+bun run lint          # Oxlint
+bun run db:studio     # inspect the SQLite database
+bun run verify        # all checks plus a production build
+```
+
+If you change `src/server/db/schema.ts`, generate and apply a migration with:
+
+```bash
+bun run db:generate
+bun run db:migrate
+```
+
+The versioned JSON API is under `/api/v1`. Its schemas and the client shared by the web and TV apps live in `packages/contracts` and `packages/query`.
+
+## Security
+
+Ploux has no authentication and assumes it is running on a trusted home network. Do not expose it directly to the public internet. Use an authenticated reverse proxy or a VPN if you need remote access.
+
+`PLOUX_CORS_ORIGIN` accepts one exact browser origin. Wildcard origins are deliberately ignored.
+
+Ploux uses the TMDB API but is not endorsed or certified by TMDB.

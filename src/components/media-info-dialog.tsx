@@ -120,14 +120,14 @@ function MediaFileCard({ mediaId, file }: { mediaId: string, file: MediaFileInfo
                     </Button>
                 }
 
-                {probe.isPending && requested &&
+                {probe.isFetching && requested &&
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Spinner/>
                         Inspecting streams…
                     </div>
                 }
 
-                {probe.isError &&
+                {probe.isError && !probe.isFetching &&
                     <Alert variant="destructive">
                         <InfoIcon/>
                         <AlertTitle>Could not inspect streams</AlertTitle>
@@ -140,11 +140,16 @@ function MediaFileCard({ mediaId, file }: { mediaId: string, file: MediaFileInfo
                     </Alert>
                 }
 
-                {details.probeError &&
+                {details.probeError && !probe.isFetching &&
                     <Alert variant="destructive">
                         <InfoIcon/>
                         <AlertTitle>Could not inspect streams</AlertTitle>
-                        <AlertDescription>{details.probeError}</AlertDescription>
+                        <AlertDescription className="flex flex-col items-start gap-2">
+                            {details.probeError}
+                            <Button size="sm" variant="outline" onClick={() => void probe.refetch()}>
+                                Try again
+                            </Button>
+                        </AlertDescription>
                     </Alert>
                 }
 

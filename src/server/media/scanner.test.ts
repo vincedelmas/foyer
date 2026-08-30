@@ -21,6 +21,79 @@ afterAll(async () => {
 
 
 describe("library scanning", () => {
+    it("keeps a library identity independent from its current path", async () => {
+        const {stdout} = await execFileAsync("bun", ["--eval", `
+            const scanner = await import("./src/server/media/scanner.server.ts")
+            const original = scanner.createLibrary({
+                name: "Original",
+                path: process.env.REVIEW_ORIGINAL_PATH,
+                kind: "movies",
+            })
+            const moved = scanner.updateLibrary({
+                id: original.id,
+                name: "Moved",
+                path: process.env.REVIEW_MOVED_PATH,
+                kind: "movies",
+            })
+            const replacement = scanner.createLibrary({
+                name: "Replacement",
+                path: process.env.REVIEW_ORIGINAL_PATH,
+                kind: "movies",
+            })
+            console.log(JSON.stringify({moved, replacement}))
+        `], {
+            cwd: process.cwd(),
+            env: {
+                ...process.env,
+                REVIEW_MOVED_PATH: join(temporaryDirectory, "moved-library"),
+                REVIEW_ORIGINAL_PATH: join(temporaryDirectory, "original-library"),
+                PLOUX_DATABASE_PATH: join(temporaryDirectory, "library-identity.sqlite"),
+            },
+        })
+
+        const result = JSON.parse(stdout.trim())
+        expect(result.moved.id).not.toBe(result.replacement.id)
+        expect(result.moved.path).toBe(join(temporaryDirectory, "moved-library"))
+        expect(result.replacement.path).toBe(join(temporaryDirectory, "original-library"))
+    })
+
+    it("groups flat series episodes under one title", async () => {
+        const mediaDirectory = join(temporaryDirectory, "flat-series")
+        await mkdir(mediaDirectory)
+        await Promise.all([
+            writeFile(join(mediaDirectory, "Example.Show.S01E01.Pilot.mkv"), "video"),
+            writeFile(join(mediaDirectory, "Example.Show.S01E02.Second.mkv"), "video"),
+        ])
+
+        const {stdout} = await execFileAsync("bun", ["--eval", `
+            const scanner = await import("./src/server/media/scanner.server.ts")
+            const repository = await import("./src/server/media/repository.server.ts")
+            const library = scanner.createLibrary({
+                name: "Shows",
+                path: process.env.REVIEW_MEDIA_PATH,
+                kind: "series",
+            })
+            await scanner.scanLibraries(library.id)
+            const items = repository.listMedia({libraryId: library.id}).items
+            const detail = repository.getMediaDetail(items[0].id)
+            console.log(JSON.stringify({items, parts: detail.parts}))
+        `], {
+            cwd: process.cwd(),
+            env: {
+                ...process.env,
+                TMDB_READ_ACCESS_TOKEN: "",
+                REVIEW_MEDIA_PATH: mediaDirectory,
+                PLOUX_DATABASE_PATH: join(temporaryDirectory, "flat-series.sqlite"),
+            },
+        })
+
+        const result = JSON.parse(stdout.trim())
+        expect(result.items).toHaveLength(1)
+        expect(result.items[0].title).toBe("Example Show")
+        expect(result.parts).toHaveLength(2)
+        expect(result.parts.map((part: {episodeNumber: number}) => part.episodeNumber)).toEqual([1, 2])
+    })
+
     it("removes subtitle records when their files disappear", async () => {
         const mediaDirectory = join(temporaryDirectory, "media")
         const videoPath = join(mediaDirectory, "Movie.2024.mkv")

@@ -117,7 +117,7 @@ function FileCard({ server, mediaId, file }: { server: string; mediaId: string; 
                 </Text>
             }
 
-            {probe.isPending && requested &&
+            {probe.isFetching && requested &&
                 <View style={styles.inspecting}>
                     <ActivityIndicator
                         size="small"
@@ -129,15 +129,15 @@ function FileCard({ server, mediaId, file }: { server: string; mediaId: string; 
                 </View>
             }
 
-            {probe.isError &&
+            {probe.isError && !probe.isFetching &&
                 <Text style={styles.error}>
                     {probe.error.message} · Press OK to retry
                 </Text>
             }
 
-            {details.probeError &&
+            {details.probeError && !probe.isFetching &&
                 <Text style={styles.error}>
-                    {details.probeError}
+                    {details.probeError} · Press OK to retry
                 </Text>
             }
 

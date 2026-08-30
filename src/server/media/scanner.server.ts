@@ -104,10 +104,14 @@ const discoverLibrary = async (library: LibraryRow) => {
             ? deriveSeriesTitle(videoPath, library.path)
             : movie.title;
 
-        const firstSegment = relativePath.split(sep)[0] ?? relativePath;
+        const pathSegments = relativePath.split(sep);
+        const firstSegment = pathSegments[0] ?? relativePath;
+        const seriesIdentity = pathSegments.length > 1
+            ? normalizeTitle(firstSegment)
+            : title;
 
         const sourceKey = isSeries
-            ? `show:${normalizeTitle(firstSegment).toLocaleLowerCase() || title.toLocaleLowerCase()}`
+            ? `show:${seriesIdentity.toLocaleLowerCase()}`
             : `movie:${relativePath.toLocaleLowerCase()}`;
 
         const fileStat = await stat(videoPath);
@@ -436,7 +440,7 @@ export const createLibrary = (input: { name: string, path: string, kind: Library
     ensureDatabase();
 
     const path = resolve(input.path);
-    const id = stableId("library", path);
+    const id = crypto.randomUUID();
 
     db.insert(libraries)
         .values({ id, name: input.name, path, kind: input.kind })
