@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/vincedelmas/foyer/compare/v1.1.1...v1.2.0) (2026-08-31)
+
+
+### Features
+
+* **brand:** adopt warm Foyer identity ([33102f9](https://github.com/vincedelmas/foyer/commit/33102f9d8221d0e7716ec5ad442a0079c9e9fcce))
+* improve media search and series progress ([6e3c734](https://github.com/vincedelmas/foyer/commit/6e3c734397128620c332c2a2ffa73e7fcfd0bd03))
+
 ## [1.1.1](https://github.com/vincedelmas/foyer/compare/v1.1.0...v1.1.1) (2026-08-30)
 
 
