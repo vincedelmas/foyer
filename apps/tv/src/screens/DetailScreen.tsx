@@ -66,9 +66,14 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
         if (!seasons.size) return;
 
         if (selectedSeason === null || !seasons.has(selectedSeason)) {
-            setSelectedSeason(seasons.keys().next().value ?? 1);
+            const continuationSeason = media.data?.nextPartSeasonNumber;
+            setSelectedSeason(
+                continuationSeason !== null && continuationSeason !== undefined && seasons.has(continuationSeason)
+                    ? continuationSeason
+                    : seasons.keys().next().value ?? 1
+            );
         }
-    }, [seasons, selectedSeason]);
+    }, [media.data?.nextPartSeasonNumber, seasons, selectedSeason]);
 
     if (media.isPending) {
         return <CenteredMessage title="Opening title…"/>;

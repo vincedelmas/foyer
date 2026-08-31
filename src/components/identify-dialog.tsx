@@ -2,11 +2,11 @@ import {useState} from "react";
 import {useForm} from "@tanstack/react-form";
 import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
-import {SearchIcon, SparklesIcon} from "lucide-react";
+import {SearchIcon, SparklesIcon, XIcon} from "lucide-react";
 import {useIdentifyMediaMutation, useSearchMetadataMutation} from "@/lib/query-mutations";
 import {MediaSummary, TmdbCandidate, tmdbImage} from "@foyer/contracts";
 import {Field, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field";
-import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/input-group";
+import {InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput} from "@/components/ui/input-group";
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";
 
 
@@ -64,10 +64,10 @@ export function IdentifyDialog({ media, open: controlledOpen, onOpenChange, show
             }
             <DialogContent className="max-h-[88svh] overflow-y-auto sm:max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>Identify “{media.title}”</DialogTitle>
+                    <DialogTitle>Identify media</DialogTitle>
                     <DialogDescription>
-                        Search TMDB and choose the correct match. This replaces only
-                        metadata, never your files.
+                        On disk: “{media.title}”. Search TMDB and choose the correct
+                        match. This replaces only metadata, never your files.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -99,6 +99,17 @@ export function IdentifyDialog({ media, open: controlledOpen, onOpenChange, show
                                             aria-invalid={!field.state.meta.isValid}
                                             onChange={(ev) => field.handleChange(ev.target.value)}
                                         />
+                                        {!!field.state.value &&
+                                            <InputGroupAddon align="inline-end">
+                                                <InputGroupButton
+                                                    size="icon-xs"
+                                                    aria-label="Clear title"
+                                                    onClick={() => field.handleChange("")}
+                                                >
+                                                    <XIcon/>
+                                                </InputGroupButton>
+                                            </InputGroupAddon>
+                                        }
                                     </InputGroup>
                                     <FieldError
                                         errors={field.state.meta.errors.map((message) => ({ message }))}
@@ -168,7 +179,7 @@ function CandidateCard({ candidate, pending, onSelect }: CandidateCardProps) {
     const poster = tmdbImage(candidate.posterPath, "w342");
 
     return (
-        <article className="flex gap-3 rounded-xl border bg-card p-3">
+        <article className="flex min-w-0 gap-3 overflow-hidden rounded-xl border bg-card p-3">
             <div className="aspect-2/3 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
                 {!!poster &&
                     <img
@@ -179,8 +190,8 @@ function CandidateCard({ candidate, pending, onSelect }: CandidateCardProps) {
                 }
             </div>
             <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
-                <div className="min-w-0">
-                    <h3 className="truncate font-medium">
+                <div className="w-full min-w-0">
+                    <h3 className="line-clamp-2 break-words font-medium leading-snug">
                         {candidate.title}
                     </h3>
                     <p className="text-xs text-muted-foreground">

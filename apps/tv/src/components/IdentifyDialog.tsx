@@ -1,12 +1,13 @@
 import type { MediaSummary, TmdbCandidate } from "@foyer/contracts"
 import { tmdbImage } from "@foyer/contracts"
-import { CheckIcon, SearchIcon } from "lucide-react-native"
+import { CheckIcon, SearchIcon, XIcon } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { Image, Pressable, StyleSheet, Text, View } from "react-native"
 
 import { useIdentifyMediaMutation, useSearchMetadataMutation } from "../query-mutations"
 import { colors } from "../theme"
 import { FocusButton } from "./FocusButton"
+import { FocusIconButton } from "./FocusIconButton"
 import { FocusTextInput } from "./FocusTextInput"
 import { TvModal } from "./TvModal"
 
@@ -62,14 +63,25 @@ export function IdentifyDialog({
       width={840}
       scroll
     >
+      <View style={styles.sourceTitle}>
+        <Text style={styles.sourceLabel}>ON DISK</Text>
+        <Text numberOfLines={2} style={styles.sourceValue}>{media.title}</Text>
+      </View>
       <View style={styles.searchRow}>
-        <FocusTextInput
-          label="Title"
-          value={query}
-          onChangeText={setQuery}
-          hasTVPreferredFocus
-          style={styles.titleInput}
-        />
+        <View style={styles.titleField}>
+          <FocusTextInput
+            label="Title"
+            value={query}
+            onChangeText={setQuery}
+            hasTVPreferredFocus
+            style={styles.titleInput}
+          />
+          {query ? (
+            <View style={styles.titleClear}>
+              <FocusIconButton icon={XIcon} label="Clear title" onPress={() => setQuery("")} />
+            </View>
+          ) : null}
+        </View>
         <FocusTextInput
           label="Year"
           value={year}
@@ -109,7 +121,7 @@ export function IdentifyDialog({
                 ) : null}
               </View>
               <View style={styles.candidateCopy}>
-                <Text numberOfLines={1} style={styles.candidateTitle}>
+                <Text numberOfLines={2} style={styles.candidateTitle}>
                   {candidate.title}
                 </Text>
                 <Text style={styles.candidateMeta}>
@@ -139,8 +151,13 @@ export function IdentifyDialog({
 }
 
 const styles = StyleSheet.create({
+  sourceTitle: { marginBottom: 14, gap: 3 },
+  sourceLabel: { color: colors.muted, fontSize: 9, fontWeight: "900", letterSpacing: 0.8 },
+  sourceValue: { color: colors.text, fontSize: 16, fontWeight: "800" },
   searchRow: { flexDirection: "row", alignItems: "flex-end", gap: 10 },
-  titleInput: { width: 370 },
+  titleField: { width: 370, position: "relative" },
+  titleInput: { width: "100%", paddingRight: 48 },
+  titleClear: { position: "absolute", right: 4, bottom: 4 },
   yearInput: { width: 110 },
   searchButton: { marginBottom: 1 },
   results: { marginTop: 18, flexDirection: "row", flexWrap: "wrap", gap: 10 },
@@ -165,8 +182,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   image: { width: "100%", height: "100%" },
-  candidateCopy: { flex: 1, gap: 4 },
-  candidateTitle: { color: colors.text, fontSize: 14, fontWeight: "800" },
+  candidateCopy: { flex: 1, minWidth: 0, gap: 4 },
+  candidateTitle: { color: colors.text, flexShrink: 1, fontSize: 14, fontWeight: "800" },
   candidateMeta: { color: colors.muted, fontSize: 9 },
   overview: { color: colors.muted, fontSize: 10, lineHeight: 14 },
   choose: { marginTop: "auto", flexDirection: "row", alignItems: "center", gap: 7 },

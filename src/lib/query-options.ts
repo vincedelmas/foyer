@@ -26,7 +26,7 @@ interface LibraryOptionsInput {
 
 
 export const libraryOptions = (libraryId: string, search: LibraryOptionsInput) => {
-    return foyerQueries.options.library({ libraryId, ...search, pageSize: 28 });
+    return foyerQueries.options.library({ libraryId, ...search, pageSize: 50 });
 };
 
 

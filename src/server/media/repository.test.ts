@@ -60,6 +60,7 @@ describe("media repository", () => {
             const playbackQueue = repository.getMediaDetail("show")
             repository.setMediaWatched("show", true, 1)
             const watchedSeason = repository.getMediaDetail("show")
+            const continuation = repository.getMediaDetail("show", {pageSize: 50})
             const deletedEpisodeProgress = repository.deleteMediaPartProgress("s1e2")
             const clearedEpisode = repository.getMediaDetail("show")
             console.log(JSON.stringify({
@@ -76,6 +77,8 @@ describe("media repository", () => {
                 },
                 playbackQueueSize: playbackQueue.parts.length,
                 watchedSeasons: watchedSeason.watchedSeasons,
+                continuationSeason: continuation.selectedPartSeason,
+                remainingEpisodes: continuation.unwatchedPartCount,
                 deletedEpisodeProgress,
                 watchedSeasonsAfterClear: clearedEpisode.watchedSeasons,
                 clearedEpisodeProgress: clearedEpisode.parts.find((part) => part.id === "s1e2").progress,
@@ -119,6 +122,8 @@ describe("media repository", () => {
             },
             playbackQueueSize: 4,
             watchedSeasons: [1],
+            continuationSeason: 2,
+            remainingEpisodes: 1,
             deletedEpisodeProgress: 1,
             watchedSeasonsAfterClear: [],
             clearedEpisodeProgress: null,

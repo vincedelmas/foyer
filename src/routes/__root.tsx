@@ -17,7 +17,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
             { name: "viewport", content: "width=device-width, initial-scale=1" },
             { name: "description", content: "A small, direct-play home media library." },
         ],
-        links: [{ rel: "stylesheet", href: appCss }],
+        links: [
+            { rel: "stylesheet", href: appCss },
+            { rel: "icon", href: "/favicon.ico", sizes: "any" },
+        ],
     }),
     notFoundComponent: NotFound,
     shellComponent: RootDocument,

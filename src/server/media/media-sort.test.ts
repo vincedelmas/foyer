@@ -21,6 +21,7 @@ const media = (
     metadataStatus: "matched",
     addedAt: 0,
     partCount: 1,
+    unwatchedPartCount: 1,
     nextPartId: `part-${id}`,
     nextPartTitle: null,
     nextPartSeasonNumber: null,

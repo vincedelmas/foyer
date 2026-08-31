@@ -136,6 +136,7 @@ export interface MediaSummary {
     kind: MediaKind
     watched: boolean
     partCount: number
+    unwatchedPartCount: number
     year: number | null
     hasProgress: boolean
     overview: string | null

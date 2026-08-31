@@ -6,15 +6,16 @@ import {MediaTile} from "../components/MediaTile";
 import {AppHeader} from "../components/AppHeader";
 import {ActionMenu} from "../components/ActionMenu";
 import {FocusButton} from "../components/FocusButton";
+import {FocusIconButton} from "../components/FocusIconButton";
 import {FocusTextInput} from "../components/FocusTextInput";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {MediaDialogs, useMediaDialogs} from "../components/MediaDialogs";
 import {ActivityIndicator, BackHandler, ScrollView, StyleSheet, Text, View} from "react-native";
-import {ArrowUpDownIcon, CheckIcon, FilmIcon, FilterIcon, SearchIcon, TvIcon} from "lucide-react-native";
+import {ArrowUpDownIcon, CheckIcon, FilmIcon, FilterIcon, SearchIcon, TvIcon, XIcon} from "lucide-react-native";
 import {type MediaFolderSummary, type MediaSort, type MediaSummary, type MediaWatchFilter} from "@foyer/contracts";
 
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 50;
 
 const watchStorageKey = (libraryId: string) => {
     return `foyer.tv.watch-filter.${libraryId}`;
@@ -143,6 +144,15 @@ export function CollectionScreen({ server, initialFolder, onHome, onOpenMedia, o
                             label="Search this collection"
                             placeholder={`Search ${folder.name}…`}
                         />
+                        {!!searchInput &&
+                            <View style={styles.searchClear}>
+                                <FocusIconButton
+                                    icon={XIcon}
+                                    label="Clear search"
+                                    onPress={() => setSearchInput("")}
+                                />
+                            </View>
+                        }
                     </View>
                     <FocusButton
                         icon={FilterIcon}
@@ -299,7 +309,8 @@ const styles = StyleSheet.create({
     toolbar: { marginTop: 18, marginBottom: 18, flexDirection: "row", alignItems: "flex-end", gap: 9 },
     searchField: { flex: 1, maxWidth: 480, position: "relative" },
     searchIcon: { position: "absolute", left: 13, bottom: 14, zIndex: 2 },
-    searchInput: { paddingLeft: 40 },
+    searchInput: { paddingLeft: 40, paddingRight: 48 },
+    searchClear: { position: "absolute", right: 4, bottom: 4, zIndex: 2 },
     refreshing: { color: colors.muted, alignSelf: "flex-end", marginBottom: 8 },
     grid: { flexDirection: "row", flexWrap: "wrap" },
     empty: {

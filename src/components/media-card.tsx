@@ -27,11 +27,15 @@ export function MediaCard({ item, index = 0 }: MediaCardProps) {
         item.year ?? "Unknown year",
         ...(item.kind === "movie" && item.runtimeMinutes ? [formatRuntime(item.runtimeMinutes)] : []),
         item.kind === "movie" ? "Movie" : "TV show",
-        ...(episodeProgress
-            ? [`${episodeProgress} · ${item.progress?.percentage}%`]
-            : item.kind !== "movie"
-                ? [`${item.partCount} ${item.partCount === 1 ? "ep." : "eps."}`]
-                : []),
+        ...(episodeProgress ? [`${episodeProgress} · ${item.progress?.percentage}%`] : []),
+        ...(item.kind !== "movie"
+            ? [
+                item.unwatchedPartCount === 0
+                    ? "All watched"
+                    : `${item.unwatchedPartCount} ${item.unwatchedPartCount === 1 ? "episode" : "episodes"} to watch`,
+                `${item.partCount} ${item.partCount === 1 ? "episode" : "episodes"} on disk`,
+            ]
+            : []),
     ];
 
     return (

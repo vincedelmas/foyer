@@ -53,6 +53,7 @@ const asSummary = (item: MediaItemRow, parts: SummaryPart[], progressByPart: Map
         title: item.title,
         addedAt: item.addedAt,
         partCount: parts.length,
+        unwatchedPartCount: parts.filter((part) => progressByPart.get(part.id)?.completed !== true).length,
         overview: item.overview,
         posterPath: item.posterPath,
         releaseDate: item.releaseDate,
@@ -512,13 +513,14 @@ export const getMediaDetail = (mediaId: string, input: { season?: number, page?:
         : [];
 
     const progressByPart = new Map(progressRows.map((row) => [row.mediaPartId, row]));
+    const summary = asSummary(item, summaryParts, progressByPart);
     const partSeasons = [...new Set(summaryParts.map((p) => p.seasonNumber ?? 1))].sort((l, r) => l - r);
     const watchedSeasons = partSeasons.filter((season) =>
         summaryParts
             .filter((part) => (part.seasonNumber ?? 1) === season)
             .every((part) => progressByPart.get(part.id)?.completed === true)
     );
-    const requestedSeason = input.season ?? partSeasons[0];
+    const requestedSeason = input.season ?? summary.nextPartSeasonNumber ?? partSeasons[0];
 
     const selectedPartSeason = input.pageSize
         ? partSeasons.includes(requestedSeason ?? 1) ? requestedSeason ?? 1 : partSeasons[0] ?? 1
@@ -569,8 +571,6 @@ export const getMediaDetail = (mediaId: string, input: { season?: number, page?:
         bucket.push(subtitle);
         subtitlesByPart.set(subtitle.mediaPartId, bucket);
     }
-
-    const summary = asSummary(item, summaryParts, progressByPart);
 
     const hydratedParts: MediaPart[] = parts.map((part) => ({
         id: part.id,

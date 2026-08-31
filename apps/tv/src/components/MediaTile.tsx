@@ -109,8 +109,12 @@ export function MediaTile({
           item.kind === "movie" ? "Movie" : "TV show",
           episodeProgress ? `${episodeProgress} · ${item.progress?.percentage}%` : null,
           item.kind !== "movie"
-            && !episodeProgress
-            ? `${item.partCount} ${item.partCount === 1 ? "ep." : "eps."}`
+            ? item.unwatchedPartCount === 0
+              ? "All watched"
+              : `${item.unwatchedPartCount} ${item.unwatchedPartCount === 1 ? "ep." : "eps."} to watch`
+            : null,
+          item.kind !== "movie"
+            ? `${item.partCount} ${item.partCount === 1 ? "ep." : "eps."} on disk`
             : null,
         ]
           .filter(Boolean)

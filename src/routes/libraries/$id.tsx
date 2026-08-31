@@ -9,8 +9,8 @@ import {createFileRoute, Link} from "@tanstack/react-router";
 import {MediaPagination} from "@/components/media-pagination";
 import {CollectionActions} from "@/components/media-folder-card";
 import {libraryOptions, mediaFoldersOptions} from "@/lib/query-options";
-import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/input-group";
-import {ArrowLeftIcon, FilmIcon, FolderSearchIcon, SearchIcon, TvIcon} from "lucide-react";
+import {InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput} from "@/components/ui/input-group";
+import {ArrowLeftIcon, FilmIcon, FolderSearchIcon, SearchIcon, TvIcon, XIcon} from "lucide-react";
 import {mediaSortSchema, MediaWatchFilter, mediaWatchFilterSchema} from "@foyer/contracts";
 import {Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle} from "@/components/ui/empty";
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
@@ -230,6 +230,17 @@ function MediaFolderPage() {
                                         placeholder={`Search ${folder.name}…`}
                                         onChange={(event) => setSearchInput(event.target.value)}
                                     />
+                                    {!!searchInput &&
+                                        <InputGroupAddon align="inline-end">
+                                            <InputGroupButton
+                                                size="icon-xs"
+                                                aria-label="Clear search"
+                                                onClick={() => setSearchInput("")}
+                                            >
+                                                <XIcon/>
+                                            </InputGroupButton>
+                                        </InputGroupAddon>
+                                    }
                                 </InputGroup>
                                 <div className="flex w-full gap-2 sm:w-auto">
                                     <Select

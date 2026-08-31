@@ -125,7 +125,7 @@ export const searchTmdb = async (
     const response = await tmdbFetch<{ results: SearchResult[] }>(
         `/search/${tmdbKind}`,
         {
-            query,
+            query: query.normalize("NFC"),
             include_adult: "false",
             ...(year
                 ? tmdbKind === "movie"
