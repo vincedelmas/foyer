@@ -27,6 +27,9 @@ module.exports = function withTvRuntime(config) {
     // opens Foyer again from the TV home screen. singleTop brings the existing
     // task back with the player still on top.
     mainActivity.$["android:launchMode"] = "singleTop"
+    // The generated splash theme uses Expo's placeholder target image when no
+    // splash artwork is configured. Use the app theme for a clean dark launch.
+    mainActivity.$["android:theme"] = "@style/AppTheme"
     return manifestConfig
   })
 
