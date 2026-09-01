@@ -297,8 +297,8 @@ export function useTvUpdater() {
 const styles = StyleSheet.create({
   dialogBody: { gap: 18 },
   phaseRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  phaseTitle: { flex: 1, color: colors.text, fontSize: 15, fontWeight: "800" },
-  message: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  phaseTitle: { flex: 1, color: colors.text, fontSize: 13, fontWeight: "800" },
+  message: { color: colors.muted, fontSize: 11, lineHeight: 16 },
   progressTrack: {
     height: 7,
     overflow: "hidden",

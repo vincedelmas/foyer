@@ -104,8 +104,8 @@ export function LibraryFormDialog({
 const styles = StyleSheet.create({
   form: { gap: 14 },
   typeField: { gap: 6 },
-  label: { color: colors.text, fontSize: 11, fontWeight: "700" },
+  label: { color: colors.text, fontSize: 10, fontWeight: "700" },
   types: { flexDirection: "row", gap: 9 },
-  error: { color: colors.danger, fontSize: 11 },
+  error: { color: colors.danger, fontSize: 10 },
   actions: { flexDirection: "row", justifyContent: "flex-end", gap: 9 },
 })

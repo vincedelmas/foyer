@@ -16,11 +16,11 @@ export function FocusTextInput({
   onFocus,
   onBlur,
   ...props
-}: TextInputProps & { label: string; hint?: string }) {
+}: TextInputProps & { label?: string; hint?: string }) {
   const [focused, setFocused] = useState(false)
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
         {...props}
         onFocus={(event) => {
@@ -41,7 +41,7 @@ export function FocusTextInput({
 
 const styles = StyleSheet.create({
   field: { gap: 5 },
-  label: { color: colors.text, fontSize: 11, fontWeight: "700" },
+  label: { color: colors.text, fontSize: 10, fontWeight: "700" },
   input: {
     height: 44,
     paddingHorizontal: 13,
@@ -50,8 +50,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.background,
     color: colors.text,
-    fontSize: 14,
+    fontSize: 12,
   },
   inputFocused: { borderColor: colors.white },
-  hint: { color: colors.muted, fontSize: 10, lineHeight: 14 },
+  hint: { color: colors.muted, fontSize: 9, lineHeight: 13 },
 })

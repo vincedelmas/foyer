@@ -145,12 +145,12 @@ const styles = StyleSheet.create({
     padding: 48,
     backgroundColor: colors.black,
   },
-  title: { color: colors.text, fontSize: 24, fontWeight: "800" },
+  title: { color: colors.text, fontSize: 20, fontWeight: "800" },
   description: {
     maxWidth: 720,
     color: colors.muted,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 13,
+    lineHeight: 19,
     textAlign: "center",
   },
 })

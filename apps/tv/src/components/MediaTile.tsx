@@ -2,7 +2,7 @@ import type { MediaSummary } from "@foyer/contracts"
 import { formatRuntime, tmdbImage } from "@foyer/contracts"
 import { CheckIcon, FilmIcon } from "lucide-react-native"
 import { Image, Pressable, StyleSheet, Text, View } from "react-native"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { colors } from "../theme"
 
@@ -18,6 +18,7 @@ export function MediaTile({
   hasTVPreferredFocus?: boolean
 }) {
   const poster = tmdbImage(item.posterPath, "w500")
+  const posterRef = useRef<View & { requestTVFocus: () => void }>(null)
   const episodeProgress =
     item.kind !== "movie" && item.progress?.positionSeconds && !item.progress.completed
       ? [
@@ -31,11 +32,25 @@ export function MediaTile({
           .filter(Boolean)
           .join(" · ")
       : null
+  const episodeStatus =
+    item.kind === "movie"
+      ? null
+      : typeof item.unwatchedPartCount === "number"
+        ? item.unwatchedPartCount === 0
+          ? "All watched"
+          : `${item.unwatchedPartCount} ${item.unwatchedPartCount === 1 ? "episode" : "episodes"} left`
+        : `${item.partCount} ${item.partCount === 1 ? "episode" : "episodes"}`
   const [focused, setFocused] = useState(false)
   const longPressed = useRef(false)
+
+  useEffect(() => {
+    if (hasTVPreferredFocus) posterRef.current?.requestTVFocus()
+  }, [hasTVPreferredFocus])
+
   return (
     <View style={styles.container}>
       <Pressable
+        ref={posterRef}
         accessibilityLabel={`Open ${item.title}`}
         accessibilityHint="Hold Select for title options"
         android_disableSound
@@ -68,7 +83,7 @@ export function MediaTile({
           />
         ) : (
           <View style={styles.placeholder}>
-            <FilmIcon color={colors.muted} size={42} />
+            <FilmIcon color={colors.muted} size={36} />
           </View>
         )}
         {item.progress &&
@@ -90,7 +105,7 @@ export function MediaTile({
         ) : null}
         {item.watched ? (
           <View style={styles.watchedBadge}>
-            <CheckIcon color={colors.primaryText} size={13} strokeWidth={3} />
+            <CheckIcon color={colors.primaryText} size={11} strokeWidth={3} />
           </View>
         ) : null}
         {focused ? (
@@ -102,20 +117,12 @@ export function MediaTile({
       <Text numberOfLines={1} style={styles.title}>
         {item.title}
       </Text>
-      <Text style={styles.meta}>
+      <Text numberOfLines={2} style={styles.meta}>
         {[
           item.year ?? "Unknown year",
           item.kind === "movie" ? formatRuntime(item.runtimeMinutes) : null,
-          item.kind === "movie" ? "Movie" : "TV show",
           episodeProgress ? `${episodeProgress} · ${item.progress?.percentage}%` : null,
-          item.kind !== "movie"
-            ? item.unwatchedPartCount === 0
-              ? "All watched"
-              : `${item.unwatchedPartCount} ${item.unwatchedPartCount === 1 ? "ep." : "eps."} to watch`
-            : null,
-          item.kind !== "movie"
-            ? `${item.partCount} ${item.partCount === 1 ? "ep." : "eps."} on disk`
-            : null,
+          episodeStatus,
         ]
           .filter(Boolean)
           .join(" · ")}
@@ -124,33 +131,33 @@ export function MediaTile({
   )
 }
 
-const tileWidth = 132
+const tileWidth = 112
 
 const styles = StyleSheet.create({
   container: {
     width: tileWidth,
-    marginRight: 14,
-    marginBottom: 22,
+    marginRight: 12,
+    marginBottom: 18,
     position: "relative",
   },
   focused: {
     borderColor: colors.white,
-    transform: [{ scale: 1.04 }],
+    transform: [{ scale: 1.035 }],
     elevation: 10,
   },
   pressed: { opacity: 0.75 },
   poster: {
-    height: 192,
-    borderRadius: 7,
+    height: 163,
+    borderRadius: 6,
     overflow: "hidden",
     backgroundColor: colors.surface,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.border,
   },
   image: { width: "100%", height: "100%" },
   placeholder: { flex: 1, alignItems: "center", justifyContent: "center" },
-  title: { color: colors.text, fontSize: 12, fontWeight: "700", marginTop: 8 },
-  meta: { color: colors.muted, fontSize: 9, marginTop: 3 },
+  title: { color: colors.text, fontSize: 11, fontWeight: "700", marginTop: 7 },
+  meta: { color: colors.muted, fontSize: 8, marginTop: 2 },
   progressTrack: {
     position: "absolute",
     left: 6,
@@ -165,9 +172,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 7,
     left: 7,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primary,

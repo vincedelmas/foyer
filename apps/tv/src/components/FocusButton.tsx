@@ -101,6 +101,6 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.78 },
   disabled: { opacity: 0.42 },
-  label: { color: colors.text, fontSize: 14, fontWeight: "700" },
+  label: { color: colors.text, fontSize: 12, fontWeight: "700" },
   smallLabel: { fontSize: 12 },
 })

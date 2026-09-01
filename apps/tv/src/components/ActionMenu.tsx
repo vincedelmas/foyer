@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   itemDisabled: { opacity: 0.42 },
   itemPressed: { opacity: 0.76 },
   itemCopy: { flex: 1, gap: 2 },
-  itemLabel: { color: colors.text, fontSize: 14, fontWeight: "700" },
+  itemLabel: { color: colors.text, fontSize: 12, fontWeight: "700" },
   itemLabelDanger: { color: colors.danger },
-  itemDescription: { color: colors.muted, fontSize: 10, lineHeight: 14 },
+  itemDescription: { color: colors.muted, fontSize: 9, lineHeight: 13 },
 })

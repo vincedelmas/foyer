@@ -100,12 +100,12 @@ export function CollectionTile({
 }
 
 const styles = StyleSheet.create({
-  container: { width: 286, height: 168, position: "relative" },
+  container: { width: 244, height: 143, position: "relative" },
   card: {
     flex: 1,
     overflow: "hidden",
-    borderRadius: 11,
-    borderWidth: 2,
+    borderRadius: 9,
+    borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     top: "30%",
     backgroundColor: "rgba(18,17,15,0.66)",
   },
-  copy: { position: "absolute", left: 15, right: 15, bottom: 13, gap: 3 },
+  copy: { position: "absolute", left: 13, right: 13, bottom: 11, gap: 2 },
   badge: {
     alignSelf: "flex-start",
     flexDirection: "row",
@@ -152,9 +152,9 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: "rgba(40,36,31,0.94)",
   },
-  badgeText: { color: colors.text, fontSize: 9, fontWeight: "800" },
-  title: { color: colors.text, fontSize: 22, lineHeight: 25, fontWeight: "800" },
-  meta: { color: colors.muted, fontSize: 10, fontWeight: "600" },
+  badgeText: { color: colors.text, fontSize: 8, fontWeight: "800" },
+  title: { color: colors.text, fontSize: 19, lineHeight: 22, fontWeight: "800" },
+  meta: { color: colors.muted, fontSize: 9, fontWeight: "600" },
   hintBadge: {
     position: "absolute",
     top: 10,
@@ -164,5 +164,5 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: "rgba(18,17,15,0.9)",
   },
-  hint: { color: colors.primary, fontSize: 9, fontWeight: "800" },
+  hint: { color: colors.primary, fontSize: 8, fontWeight: "800" },
 })

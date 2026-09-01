@@ -152,8 +152,8 @@ export function IdentifyDialog({
 
 const styles = StyleSheet.create({
   sourceTitle: { marginBottom: 14, gap: 3 },
-  sourceLabel: { color: colors.muted, fontSize: 9, fontWeight: "900", letterSpacing: 0.8 },
-  sourceValue: { color: colors.text, fontSize: 16, fontWeight: "800" },
+  sourceLabel: { color: colors.muted, fontSize: 8, fontWeight: "900", letterSpacing: 0.8 },
+  sourceValue: { color: colors.text, fontSize: 14, fontWeight: "800" },
   searchRow: { flexDirection: "row", alignItems: "flex-end", gap: 10 },
   titleField: { width: 370, position: "relative" },
   titleInput: { width: "100%", paddingRight: 48 },
@@ -183,10 +183,10 @@ const styles = StyleSheet.create({
   },
   image: { width: "100%", height: "100%" },
   candidateCopy: { flex: 1, minWidth: 0, gap: 4 },
-  candidateTitle: { color: colors.text, flexShrink: 1, fontSize: 14, fontWeight: "800" },
-  candidateMeta: { color: colors.muted, fontSize: 9 },
-  overview: { color: colors.muted, fontSize: 10, lineHeight: 14 },
+  candidateTitle: { color: colors.text, flexShrink: 1, fontSize: 12, fontWeight: "800" },
+  candidateMeta: { color: colors.muted, fontSize: 8 },
+  overview: { color: colors.muted, fontSize: 9, lineHeight: 13 },
   choose: { marginTop: "auto", flexDirection: "row", alignItems: "center", gap: 7 },
-  chooseText: { color: colors.primary, fontSize: 12, fontWeight: "800" },
-  empty: { width: "100%", paddingVertical: 44, color: colors.muted, textAlign: "center" },
+  chooseText: { color: colors.primary, fontSize: 10, fontWeight: "800" },
+  empty: { width: "100%", paddingVertical: 44, color: colors.muted, fontSize: 10, textAlign: "center" },
 })

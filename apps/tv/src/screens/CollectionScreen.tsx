@@ -53,6 +53,7 @@ export function CollectionScreen({ server, initialFolder, onHome, onOpenMedia, o
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState("");
     const [searchInput, setSearchInput] = useState("");
+    const [searchOpen, setSearchOpen] = useState(false);
     const [sort, setSort] = useState<MediaSort>("recent");
     const [watch, setWatch] = useState<MediaWatchFilter>("all");
     const [picker, setPicker] = useState<"watch" | "sort" | null>(null);
@@ -63,12 +64,18 @@ export function CollectionScreen({ server, initialFolder, onHome, onOpenMedia, o
 
     useEffect(() => {
         const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+            if (searchOpen) {
+                setSearchInput("");
+                setSearchOpen(false);
+                return true;
+            }
+
             onHome();
             return true;
         })
 
         return () => subscription.remove();
-    }, [onHome]);
+    }, [onHome, searchOpen]);
 
     useEffect(() => {
         void AsyncStorage.getItem(watchStorageKey(initialFolder.id)).then((value) => {
@@ -132,40 +139,49 @@ export function CollectionScreen({ server, initialFolder, onHome, onOpenMedia, o
                             {library.data?.pagination.totalItems ?? folder.titleCount} titles
                         </Text>
                     </View>
-                </View>
-
-                <View style={styles.toolbar}>
-                    <View style={styles.searchField}>
-                        <SearchIcon color={colors.muted} size={20} style={styles.searchIcon}/>
-                        <FocusTextInput
-                            value={searchInput}
-                            style={styles.searchInput}
-                            onChangeText={setSearchInput}
-                            label="Search this collection"
-                            placeholder={`Search ${folder.name}…`}
-                        />
-                        {!!searchInput &&
-                            <View style={styles.searchClear}>
-                                <FocusIconButton
-                                    icon={XIcon}
-                                    label="Clear search"
-                                    onPress={() => setSearchInput("")}
+                    <View style={styles.toolbar}>
+                        {searchOpen ?
+                            <View style={styles.searchField}>
+                                <SearchIcon color={colors.muted} size={18} style={styles.searchIcon}/>
+                                <FocusTextInput
+                                    autoFocus
+                                    value={searchInput}
+                                    style={styles.searchInput}
+                                    onChangeText={setSearchInput}
+                                    accessibilityLabel="Search this collection"
+                                    placeholder={`Search ${folder.name}…`}
                                 />
+                                <View style={styles.searchClear}>
+                                    <FocusIconButton
+                                        icon={XIcon}
+                                        label="Close search"
+                                        onPress={() => {
+                                            setSearchInput("");
+                                            setSearchOpen(false);
+                                        }}
+                                    />
+                                </View>
                             </View>
+                            :
+                            <FocusIconButton
+                                icon={SearchIcon}
+                                label="Search this collection"
+                                onPress={() => setSearchOpen(true)}
+                            />
                         }
+                        <FocusButton
+                            icon={FilterIcon}
+                            label={watchLabel}
+                            variant="secondary"
+                            onPress={() => setPicker("watch")}
+                        />
+                        <FocusButton
+                            label={sortLabel}
+                            variant="secondary"
+                            icon={ArrowUpDownIcon}
+                            onPress={() => setPicker("sort")}
+                        />
                     </View>
-                    <FocusButton
-                        icon={FilterIcon}
-                        label={watchLabel}
-                        variant="secondary"
-                        onPress={() => setPicker("watch")}
-                    />
-                    <FocusButton
-                        label={sortLabel}
-                        variant="secondary"
-                        icon={ArrowUpDownIcon}
-                        onPress={() => setPicker("sort")}
-                    />
                 </View>
 
                 {library.isFetching &&
@@ -287,10 +303,11 @@ const styles = StyleSheet.create({
         gap: 20,
         marginTop: 8,
         flexDirection: "row",
-        alignItems: "flex-end",
+        alignItems: "center",
         justifyContent: "space-between",
     },
     titleCopy: {
+        flex: 1,
         gap: 5,
     },
     badge: {
@@ -303,16 +320,16 @@ const styles = StyleSheet.create({
         alignSelf: "flex-start",
         backgroundColor: colors.surfaceRaised,
     },
-    badgeText: { color: colors.text, fontSize: 9, fontWeight: "800" },
-    heading: { color: colors.text, fontSize: 34, lineHeight: 38, fontWeight: "800", letterSpacing: -0.8 },
-    description: { color: colors.muted, fontSize: 11 },
-    toolbar: { marginTop: 18, marginBottom: 18, flexDirection: "row", alignItems: "flex-end", gap: 9 },
-    searchField: { flex: 1, maxWidth: 480, position: "relative" },
-    searchIcon: { position: "absolute", left: 13, bottom: 14, zIndex: 2 },
+    badgeText: { color: colors.text, fontSize: 8, fontWeight: "800" },
+    heading: { color: colors.text, fontSize: 29, lineHeight: 33, fontWeight: "800", letterSpacing: -0.7 },
+    description: { color: colors.muted, fontSize: 10 },
+    toolbar: { flexDirection: "row", alignItems: "center", gap: 8 },
+    searchField: { width: 300, position: "relative" },
+    searchIcon: { position: "absolute", left: 13, bottom: 13, zIndex: 2 },
     searchInput: { paddingLeft: 40, paddingRight: 48 },
     searchClear: { position: "absolute", right: 4, bottom: 4, zIndex: 2 },
-    refreshing: { color: colors.muted, alignSelf: "flex-end", marginBottom: 8 },
-    grid: { flexDirection: "row", flexWrap: "wrap" },
+    refreshing: { color: colors.muted, fontSize: 10, alignSelf: "flex-end", marginBottom: 8 },
+    grid: { marginTop: 14, flexDirection: "row", flexWrap: "wrap" },
     empty: {
         minHeight: 190,
         alignItems: "center",
@@ -323,9 +340,9 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
         backgroundColor: colors.surface
     },
-    emptyTitle: { color: colors.text, fontSize: 19, fontWeight: "800" },
-    emptyDescription: { color: colors.muted, fontSize: 12 },
-    error: { color: colors.danger, fontSize: 13, marginBottom: 10 },
+    emptyTitle: { color: colors.text, fontSize: 16, fontWeight: "800" },
+    emptyDescription: { color: colors.muted, fontSize: 10 },
+    error: { color: colors.danger, fontSize: 11, marginBottom: 10 },
     pagination: { marginTop: 24, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 20 },
-    pageLabel: { color: colors.text, minWidth: 150, textAlign: "center", fontSize: 15, fontWeight: "700" },
+    pageLabel: { color: colors.text, minWidth: 130, textAlign: "center", fontSize: 13, fontWeight: "700" },
 })

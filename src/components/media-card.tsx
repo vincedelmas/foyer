@@ -22,20 +22,19 @@ export function MediaCard({ item, index = 0 }: MediaCardProps) {
             item.nextPartEpisodeNumber === null ? item.nextPartTitle : `E${item.nextPartEpisodeNumber}`,
         ].filter(Boolean).join(" · ")
         : null;
+    const episodeStatus = item.kind === "movie"
+        ? null
+        : typeof item.unwatchedPartCount === "number"
+            ? item.unwatchedPartCount === 0
+                ? "All watched"
+                : `${item.unwatchedPartCount} ${item.unwatchedPartCount === 1 ? "episode" : "episodes"} left`
+            : `${item.partCount} ${item.partCount === 1 ? "episode" : "episodes"}`;
 
     const cardMetadata = [
         item.year ?? "Unknown year",
         ...(item.kind === "movie" && item.runtimeMinutes ? [formatRuntime(item.runtimeMinutes)] : []),
-        item.kind === "movie" ? "Movie" : "TV show",
         ...(episodeProgress ? [`${episodeProgress} · ${item.progress?.percentage}%`] : []),
-        ...(item.kind !== "movie"
-            ? [
-                item.unwatchedPartCount === 0
-                    ? "All watched"
-                    : `${item.unwatchedPartCount} ${item.unwatchedPartCount === 1 ? "episode" : "episodes"} to watch`,
-                `${item.partCount} ${item.partCount === 1 ? "episode" : "episodes"} on disk`,
-            ]
-            : []),
+        ...(episodeStatus ? [episodeStatus] : []),
     ];
 
     return (

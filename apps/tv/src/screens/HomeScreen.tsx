@@ -150,10 +150,10 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.page, paddingBottom: 56, gap: 46 },
   section: { gap: 18 },
   headingCopy: { gap: 4, maxWidth: 760 },
-  eyebrow: { color: colors.primary, fontSize: 9, fontWeight: "900", letterSpacing: 1.7 },
-  heading: { color: colors.text, fontSize: 34, lineHeight: 38, fontWeight: "800", letterSpacing: -0.8 },
-  subheading: { color: colors.text, fontSize: 28, lineHeight: 32, fontWeight: "800", letterSpacing: -0.5 },
-  description: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  eyebrow: { color: colors.primary, fontSize: 8, fontWeight: "900", letterSpacing: 1.5 },
+  heading: { color: colors.text, fontSize: 29, lineHeight: 33, fontWeight: "800", letterSpacing: -0.7 },
+  subheading: { color: colors.text, fontSize: 24, lineHeight: 27, fontWeight: "800", letterSpacing: -0.4 },
+  description: { color: colors.muted, fontSize: 10, lineHeight: 15 },
   collections: { flexDirection: "row", flexWrap: "wrap", gap: 16 },
   mediaGrid: { flexDirection: "row", flexWrap: "wrap" },
   empty: {
@@ -167,6 +167,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
-  emptyTitle: { color: colors.text, fontSize: 18, fontWeight: "800" },
-  emptyDescription: { color: colors.muted, fontSize: 12, textAlign: "center" },
+  emptyTitle: { color: colors.text, fontSize: 15, fontWeight: "800" },
+  emptyDescription: { color: colors.muted, fontSize: 10, textAlign: "center" },
 })
