@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/vincedelmas/foyer/compare/v1.2.0...v1.3.0) (2026-09-01)
+
+
+### Features
+
+* **tv:** compact collection browsing and cover metadata ([1369f2f](https://github.com/vincedelmas/foyer/commit/1369f2ffe51527c3a876801f54e6102db8af8f46))
+
 ## [1.2.0](https://github.com/vincedelmas/foyer/compare/v1.1.1...v1.2.0) (2026-08-31)
 
 
