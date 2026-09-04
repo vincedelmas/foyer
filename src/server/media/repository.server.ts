@@ -296,7 +296,7 @@ export const listMediaFolders = () => {
 };
 
 
-export const listCurrentlyWatching = () => {
+export const listCurrentlyWatching = (limit?: number) => {
     ensureDatabase();
 
     const rows = db
@@ -305,7 +305,8 @@ export const listCurrentlyWatching = () => {
         .where(hasInProgressPart)
         .all();
 
-    return selectCurrentlyWatching(hydrateSummaries(rows));
+    const items = selectCurrentlyWatching(hydrateSummaries(rows));
+    return limit === undefined ? items : items.slice(0, limit);
 };
 
 
@@ -532,7 +533,15 @@ export const getMediaDetail = (mediaId: string, input: { season?: number, page?:
 
     const pageSize = input.pageSize ?? Math.max(totalItems, 1);
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-    const page = Math.min(input.page ?? 1, totalPages);
+    const continuationIndex = selectedPartSeason === null || !summary.nextPartId
+        ? -1
+        : summaryParts
+            .filter((part) => (part.seasonNumber ?? 1) === selectedPartSeason)
+            .findIndex((part) => part.id === summary.nextPartId);
+    const continuationPage = continuationIndex < 0
+        ? 1
+        : Math.floor(continuationIndex / pageSize) + 1;
+    const page = Math.min(input.page ?? continuationPage, totalPages);
 
     const partFilter = and(
         eq(mediaParts.mediaItemId, mediaId),

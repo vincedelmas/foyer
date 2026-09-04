@@ -41,17 +41,17 @@ export function FocusTextInput({
 
 const styles = StyleSheet.create({
   field: { gap: 5 },
-  label: { color: colors.text, fontSize: 10, fontWeight: "700" },
+  label: { color: colors.text, fontSize: 13, fontWeight: "700" },
   input: {
-    height: 44,
-    paddingHorizontal: 13,
+    height: 50,
+    paddingHorizontal: 15,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: colors.border,
     backgroundColor: colors.background,
     color: colors.text,
-    fontSize: 12,
+    fontSize: 15,
   },
   inputFocused: { borderColor: colors.white },
-  hint: { color: colors.muted, fontSize: 9, lineHeight: 13 },
+  hint: { color: colors.muted, fontSize: 12, lineHeight: 17 },
 })

@@ -1,3 +1,4 @@
+import {z} from "zod";
 import {createFileRoute} from "@tanstack/react-router";
 import {emptyCors, handleApi, json, parseBody} from "@/server/http.server";
 import {mediaPartWatchStateInputSchema, progressDeleteInputSchema, progressInputSchema} from "@foyer/contracts";
@@ -8,7 +9,13 @@ export const Route = createFileRoute("/api/v1/progress")({
     server: {
         handlers: {
             OPTIONS: emptyCors,
-            GET: () => handleApi(() => json(listCurrentlyWatching())),
+            GET: ({request}) => handleApi(() => {
+                const limitParam = new URL(request.url).searchParams.get("limit");
+                const limit = limitParam
+                    ? z.coerce.number().int().min(1).max(100).parse(limitParam)
+                    : undefined;
+                return json(listCurrentlyWatching(limit));
+            }),
             POST: ({ request }) => handleApi(async () => {
                 return json(saveProgress(await parseBody(request, progressInputSchema)));
             }),

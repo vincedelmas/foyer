@@ -58,6 +58,9 @@ describe("media repository", () => {
             const second = repository.listMedia({libraryId: "library", sort: "title", watch: "unwatched", page: 2, pageSize: 1})
             const episodePage = repository.getMediaDetail("show", {season: 1, page: 2, pageSize: 1})
             const playbackQueue = repository.getMediaDetail("show")
+            repository.setMediaPartWatched("s1e1", true)
+            const continuationPage = repository.getMediaDetail("show", {season: 1, pageSize: 1})
+            repository.setMediaPartWatched("s1e1", false)
             repository.setMediaWatched("show", true, 1)
             const watchedSeason = repository.getMediaDetail("show")
             const continuation = repository.getMediaDetail("show", {pageSize: 50})
@@ -76,6 +79,10 @@ describe("media repository", () => {
                     pagination: episodePage.partsPagination,
                 },
                 playbackQueueSize: playbackQueue.parts.length,
+                continuationPage: {
+                    page: continuationPage.partsPagination.page,
+                    partIds: continuationPage.parts.map((part) => part.id),
+                },
                 watchedSeasons: watchedSeason.watchedSeasons,
                 continuationSeason: continuation.selectedPartSeason,
                 remainingEpisodes: continuation.unwatchedPartCount,
@@ -121,6 +128,10 @@ describe("media repository", () => {
                 },
             },
             playbackQueueSize: 4,
+            continuationPage: {
+                page: 2,
+                partIds: ["s1e2"],
+            },
             watchedSeasons: [1],
             continuationSeason: 2,
             remainingEpisodes: 1,

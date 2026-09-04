@@ -58,7 +58,10 @@ export const createFoyerQueries = (api: FoyerApi, cacheScope: string) => {
                 [...rootKey, "media-file-info", mediaId, file.id, file.size, file.modifiedAt] as const,
         },
         mediaFolders: [...rootKey, "media-folders"] as const,
-        currentlyWatching: [...rootKey, "currently-watching"] as const,
+        currentlyWatching: {
+            all: [...rootKey, "currently-watching"] as const,
+            list: (limit?: number) => [...rootKey, "currently-watching", limit ?? "all"] as const,
+        },
         settings: [...rootKey, "settings"] as const,
         streamAvailability: (partId: string) => [...rootKey, "stream-availability", partId] as const,
         mutation: (name: string, id?: string) => [...rootKey, "mutation", name, id] as const,
@@ -67,31 +70,31 @@ export const createFoyerQueries = (api: FoyerApi, cacheScope: string) => {
     const options = {
         mediaFolders: () => queryOptions({
             queryKey: keys.mediaFolders,
-            queryFn: api.mediaFolders,
+            queryFn: ({signal}) => api.mediaFolders(signal),
         }),
-        currentlyWatching: () => queryOptions({
-            queryKey: keys.currentlyWatching,
-            queryFn: api.currentlyWatching,
+        currentlyWatching: (limit?: number) => queryOptions({
+            queryKey: keys.currentlyWatching.list(limit),
+            queryFn: ({signal}) => api.currentlyWatching(limit, signal),
         }),
         media: (mediaId: string, input?: MediaQueryInput) => queryOptions({
             queryKey: keys.media.detail(mediaId, input),
-            queryFn: () => api.media(mediaId, input),
+            queryFn: ({signal}) => api.media(mediaId, input, signal),
         }),
         mediaInfo: (mediaId: string) => queryOptions({
             queryKey: keys.mediaInfo.detail(mediaId),
-            queryFn: () => api.mediaInfo(mediaId),
+            queryFn: ({signal}) => api.mediaInfo(mediaId, signal),
         }),
         mediaFileInfo: (mediaId: string, file: Pick<MediaFileInfo, "id" | "size" | "modifiedAt">) => queryOptions({
             queryKey: keys.mediaFileInfo.detail(mediaId, file),
-            queryFn: () => api.mediaFileInfo(mediaId, file.id),
+            queryFn: ({signal}) => api.mediaFileInfo(mediaId, file.id, signal),
         }),
         settings: () => queryOptions({
             queryKey: keys.settings,
-            queryFn: api.settings,
+            queryFn: ({signal}) => api.settings(signal),
         }),
         library: (input: LibraryQueryInput = {}) => queryOptions({
             queryKey: keys.library.list(input),
-            queryFn: () => api.library(input),
+            queryFn: ({signal}) => api.library(input, signal),
         }),
         streamAvailability: (partId: string) => queryOptions({
             queryKey: keys.streamAvailability(partId),
@@ -213,7 +216,7 @@ export const createFoyerQueries = (api: FoyerApi, cacheScope: string) => {
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: keys.library.all }),
                 queryClient.invalidateQueries({ queryKey: keys.media.detail(mediaId) }),
-                queryClient.invalidateQueries({ queryKey: keys.currentlyWatching }),
+                queryClient.invalidateQueries({ queryKey: keys.currentlyWatching.all }),
                 ...(includeFolders
                     ? [queryClient.invalidateQueries({ queryKey: keys.mediaFolders })]
                     : []),
@@ -225,7 +228,7 @@ export const createFoyerQueries = (api: FoyerApi, cacheScope: string) => {
                 queryClient.invalidateQueries({ queryKey: keys.library.all }),
                 queryClient.invalidateQueries({ queryKey: keys.mediaFolders }),
                 queryClient.invalidateQueries({ queryKey: keys.settings }),
-                queryClient.invalidateQueries({ queryKey: keys.currentlyWatching }),
+                queryClient.invalidateQueries({ queryKey: keys.currentlyWatching.all }),
                 queryClient.invalidateQueries({ queryKey: keys.mediaInfo.all }),
                 queryClient.invalidateQueries({ queryKey: keys.mediaFileInfo.all }),
             ]);
@@ -235,7 +238,7 @@ export const createFoyerQueries = (api: FoyerApi, cacheScope: string) => {
                 queryClient.invalidateQueries({ queryKey: keys.library.all }),
                 queryClient.invalidateQueries({ queryKey: keys.mediaFolders }),
                 queryClient.invalidateQueries({ queryKey: keys.media.detail(mediaId) }),
-                queryClient.invalidateQueries({ queryKey: keys.currentlyWatching }),
+                queryClient.invalidateQueries({ queryKey: keys.currentlyWatching.all }),
             ]);
         },
     };

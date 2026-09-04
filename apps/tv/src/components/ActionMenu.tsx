@@ -76,7 +76,7 @@ export function ActionMenu({
                         ? colors.primary
                         : colors.text
                   }
-                  size={19}
+                  size={21}
                 />
               )}
               <View style={styles.itemCopy}>
@@ -103,7 +103,7 @@ export function ActionMenu({
 const styles = StyleSheet.create({
   list: { gap: 6 },
   item: {
-    minHeight: 48,
+    minHeight: 58,
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 9,
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   itemDisabled: { opacity: 0.42 },
   itemPressed: { opacity: 0.76 },
   itemCopy: { flex: 1, gap: 2 },
-  itemLabel: { color: colors.text, fontSize: 12, fontWeight: "700" },
+  itemLabel: { color: colors.text, fontSize: 15, fontWeight: "700" },
   itemLabelDanger: { color: colors.danger },
-  itemDescription: { color: colors.muted, fontSize: 9, lineHeight: 13 },
+  itemDescription: { color: colors.muted, fontSize: 12, lineHeight: 17 },
 })

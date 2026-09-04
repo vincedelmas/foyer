@@ -1,14 +1,15 @@
 import {colors, spacing} from "../theme";
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useState} from "react";
 import {FocusButton} from "../components/FocusButton";
 import {IdentifyDialog} from "../components/IdentifyDialog";
 import {MediaInfoDialog} from "../components/MediaInfoDialog";
 import {FocusIconButton} from "../components/FocusIconButton";
 import {MediaActionsDialog} from "../components/MediaActionsDialog";
-import {useQuery} from "@tanstack/react-query";
+import {keepPreviousData, useQuery} from "@tanstack/react-query";
+import {Image} from "expo-image";
 import {CheckIcon, CircleXIcon, MoreVerticalIcon, PlayIcon, StarIcon} from "lucide-react-native";
 import {formatBytes, formatRuntime, MediaPart, MediaSummary, tmdbImage} from "@foyer/contracts";
-import {ActivityIndicator, BackHandler, FlatList, Image, ImageBackground, ScrollView, StyleSheet, Text, View} from "react-native";
+import {ActivityIndicator, BackHandler, FlatList, ScrollView, StyleSheet, Text, View} from "react-native";
 import {mediaOptions} from "../query-options";
 import {
     useClearMediaPartProgressMutation,
@@ -30,9 +31,23 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
     const [infoOpen, setInfoOpen] = useState(false);
     const [actionsOpen, setActionsOpen] = useState(false);
     const [identifyOpen, setIdentifyOpen] = useState(false);
-    const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
+    const [selectedSeason, setSelectedSeason] = useState<number | null>(
+        summary.kind === "movie" ? null : summary.nextPartSeasonNumber ?? 1
+    );
+    const [partsPage, setPartsPage] = useState<number | undefined>(undefined);
 
-    const media = useQuery(mediaOptions(server, summary.id));
+    const media = useQuery({
+        ...mediaOptions(server, summary.id, {
+            season: selectedSeason ?? undefined,
+            page: partsPage,
+            pageSize: 50,
+        }),
+        placeholderData: keepPreviousData,
+    });
+    const continuation = useQuery(mediaOptions(server, summary.id, {
+        season: media.data?.nextPartSeasonNumber ?? summary.nextPartSeasonNumber ?? undefined,
+        pageSize: 50,
+    }));
 
     useEffect(() => {
         const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -48,32 +63,12 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
     const watchSeason = useSetMediaSeasonWatchedMutation(server, summary.id);
     const clearPartProgress = useClearMediaPartProgressMutation(server, summary.id);
 
-    const seasons = useMemo(() => {
-        const grouped = new Map<number, MediaPart[]>();
-
-        for (const part of media.data?.parts ?? []) {
-            const season = part.seasonNumber ?? 1;
-            const bucket = grouped.get(season) ?? [];
-            bucket.push(part);
-            grouped.set(season, bucket);
-        }
-
-        return grouped;
-
-    }, [media.data?.parts]);
-
     useEffect(() => {
-        if (!seasons.size) return;
-
-        if (selectedSeason === null || !seasons.has(selectedSeason)) {
-            const continuationSeason = media.data?.nextPartSeasonNumber;
-            setSelectedSeason(
-                continuationSeason !== null && continuationSeason !== undefined && seasons.has(continuationSeason)
-                    ? continuationSeason
-                    : seasons.keys().next().value ?? 1
-            );
+        if (summary.kind === "movie" || !media.data?.partSeasons.length) return;
+        if (selectedSeason === null || !media.data.partSeasons.includes(selectedSeason)) {
+            setSelectedSeason(media.data.selectedPartSeason ?? media.data.partSeasons[0]);
         }
-    }, [media.data?.nextPartSeasonNumber, seasons, selectedSeason]);
+    }, [media.data, selectedSeason, summary.kind]);
 
     if (media.isPending) {
         return <CenteredMessage title="Opening title…"/>;
@@ -91,12 +86,13 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
     const item = media.data;
     const poster = tmdbImage(item.posterPath, "w500");
     const backdrop = tmdbImage(item.backdropPath, "w1280");
-    const nextPart = item.parts.find((part) => part.id === item.nextPartId) ?? item.parts[0];
+    const playbackParts = continuation.data?.parts ?? item.parts;
+    const nextPart = playbackParts.find((part) => part.id === item.nextPartId)
+        ?? (item.nextPartId ? undefined : playbackParts[0]);
 
-    const selectedParts = seasons.get(selectedSeason ?? 1) ?? [];
     const selectedSeasonWatched = item.watchedSeasons.includes(selectedSeason ?? 1);
-    const showPartList = item.kind !== "movie" || item.parts.length > 1;
-    const visibleParts = item.kind === "movie" ? item.parts : selectedParts;
+    const showPartList = item.kind !== "movie" || item.partCount > 1;
+    const visibleParts = item.parts;
 
     const rating = item.tmdbVoteAverage === null
         ? null
@@ -117,11 +113,16 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
                 removeClippedSubviews
                 ListHeaderComponent={
                     <>
-                        <ImageBackground
-                            style={styles.hero}
-                            imageStyle={styles.heroImage}
-                            source={backdrop ? { uri: backdrop } : undefined}
-                        >
+                        <View style={styles.hero}>
+                            {backdrop ? (
+                                <Image
+                                    style={styles.heroImage}
+                                    source={{uri: backdrop}}
+                                    contentFit="cover"
+                                    cachePolicy="memory-disk"
+                                    recyclingKey={`backdrop-${item.id}`}
+                                />
+                            ) : null}
                             <View style={styles.overlay}>
                                 <View style={styles.heroContent}>
                                     <View style={styles.poster}>
@@ -129,6 +130,9 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
                                             <Image
                                                 source={{ uri: poster }}
                                                 style={styles.posterImage}
+                                                contentFit="cover"
+                                                cachePolicy="memory-disk"
+                                                recyclingKey={`poster-${item.id}`}
                                             />
                                         }
                                     </View>
@@ -155,7 +159,7 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
                                             {item.year ? <Text style={styles.meta}>{item.year}</Text> : null}
                                             {item.runtimeMinutes ? <Text style={styles.meta}>{formatRuntime(item.runtimeMinutes)}</Text> : null}
                                             <Text style={styles.meta}>
-                                                {item.parts.length} {item.kind === "movie" ? (item.parts.length === 1 ? "file" : "files") : (item.parts.length === 1 ? "episode" : "episodes")}
+                                                {item.partCount} {item.kind === "movie" ? (item.partCount === 1 ? "file" : "files") : (item.partCount === 1 ? "episode" : "episodes")}
                                             </Text>
                                             {rating ? (
                                                 <View style={styles.rating}>
@@ -177,7 +181,7 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
                                                     }
                                                     icon={PlayIcon}
                                                     hasTVPreferredFocus
-                                                    onPress={() => onPlay(nextPart, item, item.parts)}
+                                                    onPress={() => onPlay(nextPart, item, playbackParts)}
                                                 />
                                             ) : null}
                                             <FocusIconButton
@@ -203,7 +207,7 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
                                     </View>
                                 </View>
                             </View>
-                        </ImageBackground>
+                        </View>
 
                         {showPartList ? (
                             <View style={styles.partsSection}>
@@ -211,13 +215,16 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
                                 {item.kind !== "movie" ? (
                                     <View style={styles.seasonControls}>
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.seasons}>
-                                            {[...seasons.keys()].map((season) => (
+                                            {item.partSeasons.map((season) => (
                                                 <FocusButton
                                                     key={season}
                                                     label={`Season ${season}`}
                                                     size="small"
                                                     variant={selectedSeason === season ? "primary" : "ghost"}
-                                                    onPress={() => setSelectedSeason(season)}
+                                                    onPress={() => {
+                                                        setSelectedSeason(season);
+                                                        setPartsPage(undefined);
+                                                    }}
                                                 />
                                             ))}
                                         </ScrollView>
@@ -244,7 +251,7 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
                 renderItem={({ item: part, index }) => (
                     <EpisodeRow
                         part={part}
-                        index={index}
+                        index={(item.partsPagination.page - 1) * item.partsPagination.pageSize + index}
                         first={index === 0}
                         last={index === visibleParts.length - 1}
                         clearProgressLabel={`Remove ${item.kind === "movie" ? "file" : "episode"} progress`}
@@ -261,37 +268,69 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
                     />
                 )}
                 ListFooterComponent={
-                    <View style={[styles.lowerContent, showPartList ? styles.lowerContentAfterParts : null]}>
-                        <View style={styles.detailsSection}>
-                            <Text style={styles.sectionTitle}>Details</Text>
-                            <View style={styles.detailsCard}>
-                                <DetailRow label="Original title" value={item.originalTitle}/>
-                                <DetailRow label="Language" value={item.originalLanguage?.toUpperCase()}/>
-                                <DetailRow label="Genres" value={item.genres.join(", ")}/>
-                                <DetailRow label="TMDB" value={item.tmdbId ? `#${item.tmdbId}` : "Not matched"}/>
-                            </View>
-                        </View>
-
-                        {item.cast.length ? (
-                            <View style={styles.castSection}>
-                                <Text style={styles.sectionTitle}>Cast</Text>
-                                <View style={styles.castGrid}>
-                                    {item.cast.map((person) => {
-                                        const profile = tmdbImage(person.profilePath, "w342")
-                                        return (
-                                            <View key={person.id} style={styles.person}>
-                                                <View style={styles.avatar}>
-                                                    {profile ? <Image source={{ uri: profile }} style={styles.avatarImage}/> : null}
-                                                </View>
-                                                <Text numberOfLines={1} style={styles.personName}>{person.name}</Text>
-                                                <Text numberOfLines={1} style={styles.character}>{person.character || "Cast"}</Text>
-                                            </View>
-                                        )
-                                    })}
-                                </View>
+                    <>
+                        {showPartList && item.partsPagination.totalPages > 1 ? (
+                            <View style={styles.pagination}>
+                                <FocusButton
+                                    label="Previous"
+                                    variant="secondary"
+                                    disabled={item.partsPagination.page <= 1}
+                                    onPress={() => setPartsPage(Math.max(1, item.partsPagination.page - 1))}
+                                />
+                                <Text style={styles.pageLabel}>
+                                    Page {item.partsPagination.page} of {item.partsPagination.totalPages}
+                                </Text>
+                                <FocusButton
+                                    label="Next"
+                                    variant="secondary"
+                                    disabled={item.partsPagination.page >= item.partsPagination.totalPages}
+                                    onPress={() => setPartsPage(Math.min(
+                                        item.partsPagination.totalPages,
+                                        item.partsPagination.page + 1
+                                    ))}
+                                />
                             </View>
                         ) : null}
-                    </View>
+                        <View style={[styles.lowerContent, showPartList ? styles.lowerContentAfterParts : null]}>
+                            <View style={styles.detailsSection}>
+                                <Text style={styles.sectionTitle}>Details</Text>
+                                <View style={styles.detailsCard}>
+                                    <DetailRow label="Original title" value={item.originalTitle}/>
+                                    <DetailRow label="Language" value={item.originalLanguage?.toUpperCase()}/>
+                                    <DetailRow label="Genres" value={item.genres.join(", ")}/>
+                                    <DetailRow label="TMDB" value={item.tmdbId ? `#${item.tmdbId}` : "Not matched"}/>
+                                </View>
+                            </View>
+
+                            {item.cast.length ? (
+                                <View style={styles.castSection}>
+                                    <Text style={styles.sectionTitle}>Cast</Text>
+                                    <View style={styles.castGrid}>
+                                        {item.cast.map((person) => {
+                                            const profile = tmdbImage(person.profilePath, "w342")
+                                            return (
+                                                <View key={person.id} style={styles.person}>
+                                                    <View style={styles.avatar}>
+                                                        {profile ? (
+                                                            <Image
+                                                                source={{uri: profile}}
+                                                                style={styles.avatarImage}
+                                                                contentFit="cover"
+                                                                cachePolicy="memory-disk"
+                                                                recyclingKey={`cast-${person.id}`}
+                                                            />
+                                                        ) : null}
+                                                    </View>
+                                                    <Text numberOfLines={1} style={styles.personName}>{person.name}</Text>
+                                                    <Text numberOfLines={1} style={styles.character}>{person.character || "Cast"}</Text>
+                                                </View>
+                                            )
+                                        })}
+                                    </View>
+                                </View>
+                            ) : null}
+                        </View>
+                    </>
                 }
             />
 
@@ -413,21 +452,21 @@ const styles = StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
     content: { paddingBottom: 54 },
     hero: { height: 430, backgroundColor: colors.surface },
-    heroImage: { opacity: 0.58 },
+    heroImage: { position: "absolute", inset: 0, opacity: 0.58 },
     overlay: { flex: 1, backgroundColor: "rgba(18,17,15,0.5)" },
     heroContent: { flex: 1, flexDirection: "row", alignItems: "flex-end", gap: 24, paddingHorizontal: spacing.page, paddingBottom: 28 },
     poster: { width: 140, height: 210, borderRadius: 9, overflow: "hidden", backgroundColor: colors.surfaceRaised, elevation: 10 },
     posterImage: { width: "100%", height: "100%" },
     copy: { flex: 1, maxWidth: 980, gap: 9 },
     badges: { flexDirection: "row", gap: 7 },
-    badge: { color: colors.primaryText, backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, fontSize: 8, fontWeight: "900" },
-    badgeOutline: { color: colors.text, borderColor: colors.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, fontSize: 8, fontWeight: "800" },
-    title: { color: colors.text, fontSize: 32, lineHeight: 35, fontWeight: "800", letterSpacing: -0.7 },
+    badge: { color: colors.primaryText, backgroundColor: colors.primary, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5, fontSize: 11, fontWeight: "900" },
+    badgeOutline: { color: colors.text, borderColor: colors.border, borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, fontSize: 11, fontWeight: "800" },
+    title: { color: colors.text, fontSize: 36, lineHeight: 40, fontWeight: "800", letterSpacing: -0.7 },
     metaRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-    meta: { color: colors.muted, fontSize: 10, fontWeight: "700" },
+    meta: { color: colors.muted, fontSize: 13, fontWeight: "700" },
     rating: { flexDirection: "row", alignItems: "center", gap: 7 },
-    ratingText: { color: colors.text, fontSize: 10, fontWeight: "700" },
-    overview: { color: colors.text, opacity: 0.82, fontSize: 11, lineHeight: 16, maxWidth: 850 },
+    ratingText: { color: colors.text, fontSize: 13, fontWeight: "700" },
+    overview: { color: colors.text, opacity: 0.84, fontSize: 14, lineHeight: 20, maxWidth: 850 },
     actions: { flexDirection: "row", alignItems: "center", gap: 9, marginTop: 3 },
     lowerContent: { paddingHorizontal: spacing.page, gap: 34, marginTop: 30 },
     lowerContentAfterParts: { marginTop: 34 },
@@ -435,29 +474,31 @@ const styles = StyleSheet.create({
     detailsSection: { maxWidth: 900, gap: 13 },
     castSection: { gap: 13 },
     castGrid: { flexDirection: "row", flexWrap: "wrap", gap: 18 },
-    sectionTitle: { color: colors.text, fontSize: 20, fontWeight: "800", letterSpacing: -0.3 },
+    sectionTitle: { color: colors.text, fontSize: 23, fontWeight: "800", letterSpacing: -0.3 },
     seasonControls: { flexDirection: "row", alignItems: "center", gap: 10 },
     seasons: { gap: 5, paddingBottom: 5 },
-    episode: { height: 60, marginHorizontal: spacing.page, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 11, borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+    episode: { height: 72, marginHorizontal: spacing.page, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 12, borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
     episodeFirst: { borderTopWidth: 1, borderTopLeftRadius: 11, borderTopRightRadius: 11 },
     episodeLast: { borderBottomLeftRadius: 11, borderBottomRightRadius: 11 },
     episodeNumber: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: colors.surfaceRaised },
-    episodeNumberText: { color: colors.text, fontSize: 10, fontWeight: "800" },
+    episodeNumberText: { color: colors.text, fontSize: 13, fontWeight: "800" },
     episodeCopy: { flex: 1, gap: 3 },
-    episodeTitle: { color: colors.text, fontSize: 12, fontWeight: "700" },
-    episodeMeta: { color: colors.muted, fontSize: 8 },
-    subtitleCount: { color: colors.muted, fontSize: 9, fontWeight: "700" },
+    episodeTitle: { color: colors.text, fontSize: 15, fontWeight: "700" },
+    episodeMeta: { color: colors.muted, fontSize: 11 },
+    subtitleCount: { color: colors.muted, fontSize: 12, fontWeight: "700" },
     detailsCard: { borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
     detailRow: { minHeight: 54, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: colors.border },
-    detailLabel: { width: 165, color: colors.muted, fontSize: 11 },
-    detailValue: { flex: 1, color: colors.text, fontSize: 12, fontWeight: "700" },
+    detailLabel: { width: 165, color: colors.muted, fontSize: 13 },
+    detailValue: { flex: 1, color: colors.text, fontSize: 14, fontWeight: "700" },
     person: { width: 116 },
     avatar: { width: 72, height: 72, borderRadius: 36, overflow: "hidden", backgroundColor: colors.surfaceRaised, marginBottom: 8 },
     avatarImage: { width: "100%", height: "100%" },
-    personName: { color: colors.text, fontSize: 10, fontWeight: "700" },
-    character: { color: colors.muted, fontSize: 8, marginTop: 3 },
+    personName: { color: colors.text, fontSize: 13, fontWeight: "700" },
+    character: { color: colors.muted, fontSize: 11, marginTop: 3 },
     centered: { flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center", gap: 18, padding: 60 },
     centeredTitle: { color: colors.text, fontSize: 30, fontWeight: "800" },
     centeredDescription: { color: colors.muted, fontSize: 14 },
-    errorText: { color: colors.danger, fontSize: 11 },
+    errorText: { color: colors.danger, fontSize: 14 },
+    pagination: { marginTop: 24, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 20 },
+    pageLabel: { color: colors.text, minWidth: 150, textAlign: "center", fontSize: 15, fontWeight: "700" },
 })

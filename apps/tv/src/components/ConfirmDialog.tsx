@@ -49,7 +49,7 @@ export function ConfirmDialog({
 
 const styles = StyleSheet.create({
   warning: { flexDirection: "row", alignItems: "flex-start", gap: 11 },
-  description: { flex: 1, color: colors.muted, fontSize: 10, lineHeight: 15 },
+  description: { flex: 1, color: colors.muted, fontSize: 14, lineHeight: 20 },
   actions: {
     marginTop: 18,
     flexDirection: "row",

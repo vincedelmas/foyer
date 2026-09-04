@@ -1,8 +1,9 @@
 import type { MediaSummary, TmdbCandidate } from "@foyer/contracts"
 import { tmdbImage } from "@foyer/contracts"
+import { Image } from "expo-image"
 import { CheckIcon, SearchIcon, XIcon } from "lucide-react-native"
 import { useEffect, useState } from "react"
-import { Image, Pressable, StyleSheet, Text, View } from "react-native"
+import { Pressable, StyleSheet, Text, View } from "react-native"
 
 import { useIdentifyMediaMutation, useSearchMetadataMutation } from "../query-mutations"
 import { colors } from "../theme"
@@ -117,7 +118,13 @@ export function IdentifyDialog({
             >
               <View style={styles.poster}>
                 {poster ? (
-                  <Image source={{ uri: poster }} style={styles.image} />
+                  <Image
+                    source={{ uri: poster }}
+                    style={styles.image}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    recyclingKey={`candidate-${candidate.id}`}
+                  />
                 ) : null}
               </View>
               <View style={styles.candidateCopy}>
@@ -152,8 +159,8 @@ export function IdentifyDialog({
 
 const styles = StyleSheet.create({
   sourceTitle: { marginBottom: 14, gap: 3 },
-  sourceLabel: { color: colors.muted, fontSize: 8, fontWeight: "900", letterSpacing: 0.8 },
-  sourceValue: { color: colors.text, fontSize: 14, fontWeight: "800" },
+  sourceLabel: { color: colors.muted, fontSize: 11, fontWeight: "900", letterSpacing: 0.8 },
+  sourceValue: { color: colors.text, fontSize: 17, fontWeight: "800" },
   searchRow: { flexDirection: "row", alignItems: "flex-end", gap: 10 },
   titleField: { width: 370, position: "relative" },
   titleInput: { width: "100%", paddingRight: 48 },
@@ -183,10 +190,10 @@ const styles = StyleSheet.create({
   },
   image: { width: "100%", height: "100%" },
   candidateCopy: { flex: 1, minWidth: 0, gap: 4 },
-  candidateTitle: { color: colors.text, flexShrink: 1, fontSize: 12, fontWeight: "800" },
-  candidateMeta: { color: colors.muted, fontSize: 8 },
-  overview: { color: colors.muted, fontSize: 9, lineHeight: 13 },
+  candidateTitle: { color: colors.text, flexShrink: 1, fontSize: 15, fontWeight: "800" },
+  candidateMeta: { color: colors.muted, fontSize: 11 },
+  overview: { color: colors.muted, fontSize: 12, lineHeight: 17 },
   choose: { marginTop: "auto", flexDirection: "row", alignItems: "center", gap: 7 },
-  chooseText: { color: colors.primary, fontSize: 10, fontWeight: "800" },
-  empty: { width: "100%", paddingVertical: 44, color: colors.muted, fontSize: 10, textAlign: "center" },
+  chooseText: { color: colors.primary, fontSize: 13, fontWeight: "800" },
+  empty: { width: "100%", paddingVertical: 44, color: colors.muted, fontSize: 13, textAlign: "center" },
 })

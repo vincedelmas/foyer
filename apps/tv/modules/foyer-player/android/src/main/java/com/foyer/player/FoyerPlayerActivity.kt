@@ -91,6 +91,7 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
   private var lastSavedAt = 0L
   private var playbackError: String? = null
   private var finishedWithResult = false
+  private var suppressPauseSave = false
   private var resumeWhenForegrounded = false
   private var pendingCompletedPart: Pair<String, Long>? = null
 
@@ -102,10 +103,10 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
         val position = player.currentPosition.coerceAtLeast(0)
         if (duration > 0) lastDurationMs = duration
         lastPositionMs = position
-        updateTimeline(position, lastDurationMs)
+        if (controlsVisible) updateTimeline(position, lastDurationMs)
 
         val now = System.currentTimeMillis()
-        if (now - lastSavedAt >= PROGRESS_SAVE_INTERVAL_MS) {
+        if (player.isPlaying && now - lastSavedAt >= PROGRESS_SAVE_INTERVAL_MS) {
           saveProgress()
           lastSavedAt = now
         }
@@ -133,6 +134,7 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
     try {
       createPlayer()
       startPlayback(savedInstanceState)
+      lastSavedAt = System.currentTimeMillis()
       handler.post(progressRunnable)
     } catch (error: Throwable) {
       playbackError = "The native player could not be initialized: ${error.message ?: error.javaClass.simpleName}"
@@ -153,7 +155,7 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
 
     val platformRenderers = DefaultRenderersFactory(this)
       .setEnableDecoderFallback(true)
-      .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+      .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
 
     val libassHandler = AssHandler(
       AssRenderType.OVERLAY_OPEN_GL,
@@ -287,6 +289,11 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
 
   override fun onIsPlayingChanged(isPlaying: Boolean) {
     updatePlayButton()
+    if (!isPlaying && suppressPauseSave) {
+      suppressPauseSave = false
+    } else if (!isPlaying && !finishedWithResult && player.playbackState == Player.STATE_READY) {
+      saveProgress()
+    }
     if (isPlaying) scheduleControlsHide() else cancelControlsHide()
   }
 
@@ -653,6 +660,7 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
 
   override fun onResume() {
     super.onResume()
+    suppressPauseSave = false
     hideSystemUi()
     if (
       resumeWhenForegrounded &&
@@ -684,8 +692,8 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
     if (::player.isInitialized) {
       resumeWhenForegrounded =
         player.playWhenReady && player.playbackState != Player.STATE_ENDED
-      saveProgress()
-      progressReporter.flush()
+      suppressPauseSave = player.isPlaying
+      if (!finishedWithResult) saveProgress()
       player.pause()
     }
     super.onStop()
@@ -694,7 +702,6 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
   override fun onDestroy() {
     handler.removeCallbacksAndMessages(null)
     if (::player.isInitialized) {
-      saveProgress()
       playerView.player = null
       if (::mediaSession.isInitialized) mediaSession.release()
       player.release()
@@ -720,10 +727,7 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
   private fun finishWithResult(reason: String, error: String? = null) {
     if (finishedWithResult) return
     finishedWithResult = true
-    if (::player.isInitialized) {
-      saveProgress()
-      progressReporter.flush()
-    }
+    if (::player.isInitialized) snapshotPlayback()
     val result = Intent().apply {
       putExtra(RESULT_REASON, reason)
       putExtra(RESULT_PART_ID, currentPart?.id)
@@ -1038,7 +1042,7 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
     private const val SEEK_INTERVAL_MS = 10_000L
     private const val CONTROLS_TIMEOUT_MS = 6_000L
     private const val PROGRESS_SAVE_INTERVAL_MS = 10_000L
-    private const val TIMELINE_UPDATE_INTERVAL_MS = 500L
+    private const val TIMELINE_UPDATE_INTERVAL_MS = 1_000L
     private const val TIMELINE_MAX = 1_000
     private const val STATE_PART_ID = "foyer.player.part-id"
     private const val STATE_POSITION_MS = "foyer.player.position-ms"

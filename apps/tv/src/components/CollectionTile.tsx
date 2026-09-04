@@ -1,27 +1,28 @@
 import type { MediaFolderSummary } from "@foyer/contracts"
 import { tmdbImage } from "@foyer/contracts"
+import { Image } from "expo-image"
 import { FilmIcon, TvIcon } from "lucide-react-native"
-import { Image, Pressable, StyleSheet, Text, View } from "react-native"
-import { useRef, useState } from "react"
+import { memo, useRef, useState } from "react"
+import { Pressable, StyleSheet, Text, View } from "react-native"
 
 import { colors } from "../theme"
 
-export function CollectionTile({
+export const CollectionTile = memo(function CollectionTile({
   folder,
   onOpen,
   onOpenActions,
   hasTVPreferredFocus = false,
 }: {
   folder: MediaFolderSummary
-  onOpen: () => void
-  onOpenActions: () => void
+  onOpen: (folder: MediaFolderSummary) => void
+  onOpenActions: (folder: MediaFolderSummary) => void
   hasTVPreferredFocus?: boolean
 }) {
   const [focused, setFocused] = useState(false)
   const longPressed = useRef(false)
   const TypeIcon = folder.kind === "movies" ? FilmIcon : TvIcon
   const artwork = Array.from({ length: 5 }, (_, index) =>
-    tmdbImage(folder.posterPaths[index], "w500")
+    tmdbImage(folder.posterPaths[index], "w342")
   )
 
   return (
@@ -34,14 +35,14 @@ export function CollectionTile({
         delayLongPress={550}
         onLongPress={() => {
           longPressed.current = true
-          onOpenActions()
+          onOpenActions(folder)
         }}
         onPress={() => {
           if (longPressed.current) {
             longPressed.current = false
             return
           }
-          onOpen()
+          onOpen(folder)
         }}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
@@ -65,7 +66,13 @@ export function CollectionTile({
               ]}
             >
               {uri ? (
-                <Image source={{ uri }} style={styles.image} resizeMode="cover" />
+                <Image
+                  source={{ uri }}
+                  style={styles.image}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  recyclingKey={`${folder.id}-${index}`}
+                />
               ) : (
                 <View style={styles.placeholder}>
                   <TypeIcon color={colors.muted} size={25} />
@@ -89,18 +96,13 @@ export function CollectionTile({
             {folder.titleCount} {folder.titleCount === 1 ? "title" : "titles"}
           </Text>
         </View>
-        {focused ? (
-          <View style={styles.hintBadge}>
-            <Text style={styles.hint}>Hold Select for options</Text>
-          </View>
-        ) : null}
       </Pressable>
     </View>
   )
-}
+})
 
 const styles = StyleSheet.create({
-  container: { width: 244, height: 143, position: "relative" },
+  container: { width: 280, height: 164, position: "relative" },
   card: {
     flex: 1,
     overflow: "hidden",
@@ -152,17 +154,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: "rgba(40,36,31,0.94)",
   },
-  badgeText: { color: colors.text, fontSize: 8, fontWeight: "800" },
-  title: { color: colors.text, fontSize: 19, lineHeight: 22, fontWeight: "800" },
-  meta: { color: colors.muted, fontSize: 9, fontWeight: "600" },
-  hintBadge: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    paddingHorizontal: 7,
-    paddingVertical: 5,
-    borderRadius: 5,
-    backgroundColor: "rgba(18,17,15,0.9)",
-  },
-  hint: { color: colors.primary, fontSize: 8, fontWeight: "800" },
+  badgeText: { color: colors.text, fontSize: 10, fontWeight: "800" },
+  title: { color: colors.text, fontSize: 22, lineHeight: 26, fontWeight: "800" },
+  meta: { color: colors.muted, fontSize: 12, fontWeight: "600" },
 })

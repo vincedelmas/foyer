@@ -1,4 +1,4 @@
-import type {MediaDeleteResult, TmdbCandidate} from "@foyer/contracts";
+import type {LibraryQueryInput, LibraryResponse, MediaDeleteResult, MediaSummary, TmdbCandidate} from "@foyer/contracts";
 import {useMutation, useQueryClient} from "@tanstack/react-query";
 
 import {tvQueries} from "./queries";
@@ -18,8 +18,49 @@ export const useSetMediaWatchedMutation = (server: string, mediaId: string, afte
 
     return useMutation({
         ...queries.mutations.setMediaWatched(mediaId),
-        onSuccess: async () => {
-            await queries.invalidate.media(queryClient, mediaId);
+        onSuccess: async (_, watched) => {
+            for (const [queryKey, data] of queryClient.getQueriesData<LibraryResponse>({
+                queryKey: queries.keys.library.all,
+            })) {
+                if (!data) continue;
+                const input = queryKey.at(-1) as LibraryQueryInput;
+                const excludesItem = input.watch === (watched ? "unwatched" : "watched");
+                const items = excludesItem
+                    ? data.items.filter((item) => item.id !== mediaId)
+                    : data.items.map((item) => item.id === mediaId
+                        ? {
+                            ...item,
+                            watched,
+                            hasProgress: watched ? item.hasProgress : false,
+                            progress: watched ? item.progress : null,
+                            unwatchedPartCount: watched ? 0 : item.partCount,
+                        }
+                        : item);
+                const removed = data.items.length - items.length;
+                queryClient.setQueryData<LibraryResponse>(queryKey, {
+                    ...data,
+                    items,
+                    pagination: removed
+                        ? {
+                            ...data.pagination,
+                            totalItems: data.pagination.totalItems - removed,
+                            totalPages: Math.max(1, Math.ceil(
+                                (data.pagination.totalItems - removed) / data.pagination.pageSize
+                            )),
+                        }
+                        : data.pagination,
+                });
+            }
+            if (watched) {
+                queryClient.setQueriesData<MediaSummary[]>({
+                    queryKey: queries.keys.currentlyWatching.all,
+                }, (items) => items?.filter((item) => item.id !== mediaId));
+            }
+            await Promise.all([
+                queryClient.invalidateQueries({queryKey: queries.keys.library.all, refetchType: "none"}),
+                queryClient.invalidateQueries({queryKey: queries.keys.media.detail(mediaId)}),
+                queryClient.invalidateQueries({queryKey: queries.keys.currentlyWatching.all}),
+            ]);
             await afterSuccess?.();
         },
     });

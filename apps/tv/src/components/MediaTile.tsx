@@ -1,24 +1,36 @@
-import type { MediaSummary } from "@foyer/contracts"
+import type { MediaDetail, MediaSummary } from "@foyer/contracts"
 import { formatRuntime, tmdbImage } from "@foyer/contracts"
+import { useQueryClient } from "@tanstack/react-query"
+import { Image } from "expo-image"
 import { CheckIcon, FilmIcon } from "lucide-react-native"
-import { Image, Pressable, StyleSheet, Text, View } from "react-native"
-import { useEffect, useRef, useState } from "react"
+import { memo, useEffect, useRef, useState } from "react"
+import { Pressable, StyleSheet, Text, View } from "react-native"
 
+import { mediaOptions } from "../query-options"
 import { colors } from "../theme"
 
-export function MediaTile({
+export const MEDIA_TILE_WIDTH = 130
+export const MEDIA_TILE_ROW_HEIGHT = 254
+
+export const MediaTile = memo(function MediaTile({
+  server,
   item,
   onOpen,
   onOpenActions,
+  onFocusItem,
   hasTVPreferredFocus = false,
 }: {
+  server: string
   item: MediaSummary
-  onOpen: () => void
-  onOpenActions: () => void
+  onOpen: (item: MediaSummary) => void
+  onOpenActions: (item: MediaSummary) => void
+  onFocusItem?: (item: MediaSummary) => void
   hasTVPreferredFocus?: boolean
 }) {
-  const poster = tmdbImage(item.posterPath, "w500")
+  const poster = tmdbImage(item.posterPath, "w342")
   const posterRef = useRef<View & { requestTVFocus: () => void }>(null)
+  const prefetchTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const queryClient = useQueryClient()
   const episodeProgress =
     item.kind !== "movie" && item.progress?.positionSeconds && !item.progress.completed
       ? [
@@ -47,6 +59,13 @@ export function MediaTile({
     if (hasTVPreferredFocus) posterRef.current?.requestTVFocus()
   }, [hasTVPreferredFocus])
 
+  useEffect(
+    () => () => {
+      clearTimeout(prefetchTimer.current)
+    },
+    []
+  )
+
   return (
     <View style={styles.container}>
       <Pressable
@@ -58,17 +77,40 @@ export function MediaTile({
         delayLongPress={550}
         onLongPress={() => {
           longPressed.current = true
-          onOpenActions()
+          onOpenActions(item)
         }}
         onPress={() => {
           if (longPressed.current) {
             longPressed.current = false
             return
           }
-          onOpen()
+          onOpen(item)
         }}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+        onFocus={() => {
+          setFocused(true)
+          onFocusItem?.(item)
+          clearTimeout(prefetchTimer.current)
+          prefetchTimer.current = setTimeout(() => {
+            const options = mediaOptions(server, item.id, {
+              season: item.nextPartSeasonNumber ?? undefined,
+              pageSize: 50,
+            })
+            void queryClient.prefetchQuery(options).then(() => {
+              const detail = queryClient.getQueryData<MediaDetail>(
+                options.queryKey
+              )
+              const artwork = [
+                tmdbImage(detail?.posterPath, "w500"),
+                tmdbImage(detail?.backdropPath, "w1280"),
+              ].filter((uri): uri is string => Boolean(uri))
+              if (artwork.length) void Image.prefetch(artwork, "memory-disk")
+            })
+          }, 220)
+        }}
+        onBlur={() => {
+          setFocused(false)
+          clearTimeout(prefetchTimer.current)
+        }}
         style={({ pressed }) => [
           styles.poster,
           focused && styles.focused,
@@ -79,7 +121,9 @@ export function MediaTile({
           <Image
             source={{ uri: poster }}
             style={styles.image}
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            recyclingKey={item.id}
           />
         ) : (
           <View style={styles.placeholder}>
@@ -108,11 +152,6 @@ export function MediaTile({
             <CheckIcon color={colors.primaryText} size={11} strokeWidth={3} />
           </View>
         ) : null}
-        {focused ? (
-          <View style={styles.hintBadge}>
-            <Text style={styles.hintText}>Hold Select for options</Text>
-          </View>
-        ) : null}
       </Pressable>
       <Text numberOfLines={1} style={styles.title}>
         {item.title}
@@ -129,15 +168,12 @@ export function MediaTile({
       </Text>
     </View>
   )
-}
-
-const tileWidth = 112
+})
 
 const styles = StyleSheet.create({
   container: {
-    width: tileWidth,
-    marginRight: 12,
-    marginBottom: 18,
+    width: MEDIA_TILE_WIDTH,
+    height: MEDIA_TILE_ROW_HEIGHT,
     position: "relative",
   },
   focused: {
@@ -147,8 +183,8 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.75 },
   poster: {
-    height: 163,
-    borderRadius: 6,
+    height: 190,
+    borderRadius: 8,
     overflow: "hidden",
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -156,8 +192,8 @@ const styles = StyleSheet.create({
   },
   image: { width: "100%", height: "100%" },
   placeholder: { flex: 1, alignItems: "center", justifyContent: "center" },
-  title: { color: colors.text, fontSize: 11, fontWeight: "700", marginTop: 7 },
-  meta: { color: colors.muted, fontSize: 8, marginTop: 2 },
+  title: { color: colors.text, fontSize: 14, lineHeight: 18, fontWeight: "700", marginTop: 8 },
+  meta: { color: colors.muted, fontSize: 11, lineHeight: 15, marginTop: 3 },
   progressTrack: {
     position: "absolute",
     left: 6,
@@ -179,17 +215,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.primary,
   },
-  hintBadge: {
-    position: "absolute",
-    left: 7,
-    right: 7,
-    bottom: 14,
-    paddingHorizontal: 6,
-    paddingVertical: 5,
-    borderRadius: 5,
-    backgroundColor: "rgba(18,17,15,0.9)",
-  },
-  hintText: { color: colors.text, fontSize: 8, fontWeight: "800", textAlign: "center" },
   unmatchedBadge: {
     position: "absolute",
     right: 7,
@@ -199,5 +224,5 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: "rgba(40,36,31,0.94)",
   },
-  unmatchedText: { color: colors.text, fontSize: 8, fontWeight: "800" },
+  unmatchedText: { color: colors.text, fontSize: 10, fontWeight: "800" },
 })

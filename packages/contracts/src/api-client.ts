@@ -109,11 +109,15 @@ export const createFoyerApi = (baseUrl = "") => {
 
     return {
         absoluteUrl,
-        currentlyWatching: () => request<MediaSummary[]>("/api/v1/progress"),
-        mediaInfo: (id: string) => request<MediaInfo>(`/api/v1/media/${id}?view=info`),
-        mediaFileInfo: (mediaId: string, partId: string) =>
-            request<MediaFileInfo>(`/api/v1/media/${mediaId}?view=info&partId=${encodeURIComponent(partId)}`),
-        mediaFolders: () => request<MediaFolderSummary[]>("/api/v1/libraries"),
+        currentlyWatching: (limit?: number, signal?: AbortSignal) => {
+            const query = limit ? `?limit=${limit}` : "";
+            return request<MediaSummary[]>(`/api/v1/progress${query}`, {signal});
+        },
+        mediaInfo: (id: string, signal?: AbortSignal) =>
+            request<MediaInfo>(`/api/v1/media/${id}?view=info`, {signal}),
+        mediaFileInfo: (mediaId: string, partId: string, signal?: AbortSignal) =>
+            request<MediaFileInfo>(`/api/v1/media/${mediaId}?view=info&partId=${encodeURIComponent(partId)}`, {signal}),
+        mediaFolders: (signal?: AbortSignal) => request<MediaFolderSummary[]>("/api/v1/libraries", {signal}),
         health: async () => {
             const result = healthResponseSchema.safeParse(await request<unknown>("/api/v1/"));
             if (!result.success) {
@@ -121,12 +125,12 @@ export const createFoyerApi = (baseUrl = "") => {
             }
             return result.data;
         },
-        media: (id: string, input: MediaQueryInput = {}) => {
+        media: (id: string, input: MediaQueryInput = {}, signal?: AbortSignal) => {
             const query = mediaQuery(input);
-            return request<MediaDetail>(`/api/v1/media/${id}${query ? `?${query}` : ""}`);
+            return request<MediaDetail>(`/api/v1/media/${id}${query ? `?${query}` : ""}`, {signal});
         },
-        library: (input: LibraryQueryInput = {}) => {
-            return request<LibraryResponse>(`/api/v1/library?${libraryQuery(input)}`);
+        library: (input: LibraryQueryInput = {}, signal?: AbortSignal) => {
+            return request<LibraryResponse>(`/api/v1/library?${libraryQuery(input)}`, {signal});
         },
         setMediaWatched: (id: string, watched: boolean) =>
             request<{ watched: boolean; updatedParts: number }>(`/api/v1/media/${id}`, {
@@ -163,8 +167,8 @@ export const createFoyerApi = (baseUrl = "") => {
                 method: "DELETE",
                 body: JSON.stringify({ partId }),
             }),
-        settings: () =>
-            request<{ libraries: LibraryRecord[]; scans: ScanRecord[] }>("/api/v1/settings/overview"),
+        settings: (signal?: AbortSignal) =>
+            request<{ libraries: LibraryRecord[]; scans: ScanRecord[] }>("/api/v1/settings/overview", {signal}),
         createLibrary: (input: { name: string; path: string; kind: LibraryKind }) =>
             request<LibraryRecord>("/api/v1/settings/libraries", {
                 method: "POST",

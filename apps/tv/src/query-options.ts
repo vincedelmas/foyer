@@ -1,5 +1,6 @@
+import {keepPreviousData} from "@tanstack/react-query";
 import {tvQueries} from "./queries";
-import type {LibraryQueryInput, MediaFileInfo} from "@foyer/contracts";
+import type {LibraryQueryInput, MediaFileInfo, MediaQueryInput} from "@foyer/contracts";
 
 
 export const mediaFoldersOptions = (server: string) => {
@@ -8,12 +9,12 @@ export const mediaFoldersOptions = (server: string) => {
 
 
 export const currentlyWatchingOptions = (server: string) => {
-    return tvQueries(server).options.currentlyWatching();
+    return tvQueries(server).options.currentlyWatching(20);
 };
 
 
-export const mediaOptions = (server: string, mediaId: string) => {
-    return tvQueries(server).options.media(mediaId);
+export const mediaOptions = (server: string, mediaId: string, input?: MediaQueryInput) => {
+    return tvQueries(server).options.media(mediaId, input);
 };
 
 
@@ -33,5 +34,8 @@ export const settingsOptions = (server: string) => {
 
 
 export const libraryOptions = (server: string, input: LibraryQueryInput = {}) => {
-    return tvQueries(server).options.library(input);
+    return {
+        ...tvQueries(server).options.library(input),
+        placeholderData: keepPreviousData,
+    };
 };

@@ -11,7 +11,10 @@ import { useEffect, useState } from "react"
 import { ActivityIndicator, StyleSheet, View } from "react-native"
 
 import { TvUpdateProvider } from "./src/components/TvUpdateProvider"
-import { CollectionScreen } from "./src/screens/CollectionScreen"
+import {
+  type CollectionBrowseState,
+  CollectionScreen,
+} from "./src/screens/CollectionScreen"
 import { DetailScreen } from "./src/screens/DetailScreen"
 import { HomeScreen } from "./src/screens/HomeScreen"
 import { PlayerScreen } from "./src/screens/PlayerScreen"
@@ -27,11 +30,15 @@ const queryClient = new QueryClient({
 
 type ReturnScreen =
   | { name: "home" }
-  | { name: "collection"; folder: MediaFolderSummary }
+  | {
+      name: "collection"
+      folder: MediaFolderSummary
+      browseState?: CollectionBrowseState
+    }
 
 type Screen =
   | ReturnScreen
-  | { name: "settings" }
+  | { name: "settings"; returnTo: ReturnScreen }
   | { name: "detail"; media: MediaSummary; returnTo: ReturnScreen }
   | {
       name: "player"
@@ -87,27 +94,43 @@ export default function App() {
             onOpenMedia={(media) =>
               setScreen({ name: "detail", media, returnTo: { name: "home" } })
             }
-            onOpenSettings={() => setScreen({ name: "settings" })}
+            onOpenSettings={() =>
+              setScreen({ name: "settings", returnTo: { name: "home" } })
+            }
           />
         ) : screen.name === "collection" ? (
           <CollectionScreen
             server={server}
             initialFolder={screen.folder}
+            initialBrowseState={screen.browseState}
             onHome={() => setScreen({ name: "home" })}
-            onOpenMedia={(media) =>
+            onOpenMedia={(media, browseState) =>
               setScreen({
                 name: "detail",
                 media,
-                returnTo: { name: "collection", folder: screen.folder },
+                returnTo: {
+                  name: "collection",
+                  folder: screen.folder,
+                  browseState,
+                },
               })
             }
-            onOpenSettings={() => setScreen({ name: "settings" })}
+            onOpenSettings={(browseState) =>
+              setScreen({
+                name: "settings",
+                returnTo: {
+                  name: "collection",
+                  folder: screen.folder,
+                  browseState,
+                },
+              })
+            }
           />
         ) : screen.name === "settings" ? (
           <SettingsScreen
             initialServer={server}
             onSave={saveServer}
-            onBack={() => setScreen({ name: "home" })}
+            onBack={() => setScreen(screen.returnTo)}
           />
         ) : screen.name === "detail" ? (
           <DetailScreen

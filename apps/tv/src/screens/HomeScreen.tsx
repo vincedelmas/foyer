@@ -39,48 +39,10 @@ export function HomeScreen({
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.section}>
           <View style={styles.headingCopy}>
-            <Text style={styles.eyebrow}>YOUR SHELVES</Text>
-            <Text style={styles.heading}>My media</Text>
-          </View>
-
-          {folders.isPending ? (
-            <ActivityIndicator color={colors.primary} size="large" />
-          ) : null}
-          {folders.isError ? (
-            <EmptyState
-              icon={FoldersIcon}
-              title="Could not open your collections"
-              description={folders.error.message}
-            />
-          ) : null}
-          {folders.data?.length ? (
-            <View style={styles.collections}>
-              {folders.data.map((folder, index) => (
-                <CollectionTile
-                  key={folder.id}
-                  folder={folder}
-                  hasTVPreferredFocus={index === 0}
-                  onOpen={() => onOpenCollection(folder)}
-                  onOpenActions={() => setCollectionActions(folder)}
-                />
-              ))}
-            </View>
-          ) : null}
-          {folders.data && !folders.data.length ? (
-            <EmptyState
-              icon={FoldersIcon}
-              title="No collections yet"
-              description="Create and scan your first collection from the Foyer web app."
-            />
-          ) : null}
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.headingCopy}>
             <Text style={styles.eyebrow}>PICK UP WHERE YOU LEFT OFF</Text>
-            <Text style={styles.subheading}>Currently watching</Text>
+            <Text style={styles.heading}>Currently watching</Text>
             <Text style={styles.description}>
-              Unfinished movies and shows, with the latest progress first.
+              Your latest unfinished movies and shows. Hold Select on a title for options.
             </Text>
           </View>
           {watching.isPending ? (
@@ -98,10 +60,11 @@ export function HomeScreen({
               {watching.data.map((item, index) => (
                 <MediaTile
                   key={item.id}
+                  server={server}
                   item={item}
-                  hasTVPreferredFocus={!folders.data?.length && index === 0}
-                  onOpen={() => onOpenMedia(item)}
-                  onOpenActions={() => mediaDialogs.openActions(item)}
+                  hasTVPreferredFocus={index === 0}
+                  onOpen={onOpenMedia}
+                  onOpenActions={mediaDialogs.openActions}
                 />
               ))}
             </View>
@@ -111,6 +74,46 @@ export function HomeScreen({
               icon={PlayIcon}
               title="Nothing in progress"
               description="Start a title and it will appear here automatically."
+            />
+          ) : null}
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.headingCopy}>
+            <Text style={styles.eyebrow}>YOUR SHELVES</Text>
+            <Text style={styles.subheading}>My media</Text>
+            <Text style={styles.description}>
+              Open a collection to browse. Hold Select on a shelf for collection options.
+            </Text>
+          </View>
+          {folders.isPending ? (
+            <ActivityIndicator color={colors.primary} size="large" />
+          ) : null}
+          {folders.isError ? (
+            <EmptyState
+              icon={FoldersIcon}
+              title="Could not open your collections"
+              description={folders.error.message}
+            />
+          ) : null}
+          {folders.data?.length ? (
+            <View style={styles.collections}>
+              {folders.data.map((folder, index) => (
+                <CollectionTile
+                  key={folder.id}
+                  folder={folder}
+                  hasTVPreferredFocus={!watching.data?.length && index === 0}
+                  onOpen={onOpenCollection}
+                  onOpenActions={setCollectionActions}
+                />
+              ))}
+            </View>
+          ) : null}
+          {folders.data && !folders.data.length ? (
+            <EmptyState
+              icon={FoldersIcon}
+              title="No collections yet"
+              description="Create and scan your first collection from the Foyer web app."
             />
           ) : null}
         </View>
@@ -150,12 +153,12 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.page, paddingBottom: 56, gap: 46 },
   section: { gap: 18 },
   headingCopy: { gap: 4, maxWidth: 760 },
-  eyebrow: { color: colors.primary, fontSize: 8, fontWeight: "900", letterSpacing: 1.5 },
-  heading: { color: colors.text, fontSize: 29, lineHeight: 33, fontWeight: "800", letterSpacing: -0.7 },
-  subheading: { color: colors.text, fontSize: 24, lineHeight: 27, fontWeight: "800", letterSpacing: -0.4 },
-  description: { color: colors.muted, fontSize: 10, lineHeight: 15 },
+  eyebrow: { color: colors.primary, fontSize: 11, fontWeight: "900", letterSpacing: 1.7 },
+  heading: { color: colors.text, fontSize: 32, lineHeight: 37, fontWeight: "800", letterSpacing: -0.7 },
+  subheading: { color: colors.text, fontSize: 27, lineHeight: 32, fontWeight: "800", letterSpacing: -0.4 },
+  description: { color: colors.muted, fontSize: 14, lineHeight: 20 },
   collections: { flexDirection: "row", flexWrap: "wrap", gap: 16 },
-  mediaGrid: { flexDirection: "row", flexWrap: "wrap" },
+  mediaGrid: { flexDirection: "row", flexWrap: "wrap", gap: 14 },
   empty: {
     minHeight: 150,
     alignItems: "center",
@@ -167,6 +170,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
-  emptyTitle: { color: colors.text, fontSize: 15, fontWeight: "800" },
-  emptyDescription: { color: colors.muted, fontSize: 10, textAlign: "center" },
+  emptyTitle: { color: colors.text, fontSize: 19, fontWeight: "800" },
+  emptyDescription: { color: colors.muted, fontSize: 14, lineHeight: 20, textAlign: "center" },
 })
