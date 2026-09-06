@@ -141,7 +141,7 @@ function FileCard({ server, mediaId, file }: { server: string; mediaId: string; 
                 </Text>
             }
 
-            {details.streams.length &&
+            {details.streams.length > 0 &&
                 <View style={styles.streams}>
                     <Text style={styles.subheading}>
                         Embedded streams
@@ -155,7 +155,7 @@ function FileCard({ server, mediaId, file }: { server: string; mediaId: string; 
                 </View>
             }
 
-            {file.externalSubtitles.length &&
+            {file.externalSubtitles.length > 0 &&
                 <View style={styles.streams}>
                     <Text style={styles.subheading}>
                         External subtitles

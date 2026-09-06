@@ -23,7 +23,7 @@ interface DetailScreenProps {
     server: string;
     onBack: () => void;
     summary: MediaSummary;
-    onPlay: (part: MediaPart, media: MediaSummary, parts: MediaPart[]) => void;
+    onPlay: (part: MediaPart, media: MediaSummary) => void;
 }
 
 
@@ -181,7 +181,7 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
                                                     }
                                                     icon={PlayIcon}
                                                     hasTVPreferredFocus
-                                                    onPress={() => onPlay(nextPart, item, playbackParts)}
+                                                    onPress={() => onPlay(nextPart, item)}
                                                 />
                                             ) : null}
                                             <FocusIconButton
@@ -264,7 +264,7 @@ export function DetailScreen({ server, summary, onBack, onPlay }: DetailScreenPr
                                 watched: part.progress?.completed !== true,
                             })
                         }}
-                        onPlay={() => onPlay(part, item, item.parts)}
+                        onPlay={() => onPlay(part, item)}
                     />
                 )}
                 ListFooterComponent={

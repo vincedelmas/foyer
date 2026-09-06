@@ -18,14 +18,12 @@ export function PlayerScreen({
   mediaId,
   mediaTitle,
   part,
-  parts,
   onBack,
 }: {
   server: string
   mediaId: string
   mediaTitle: string
   part: MediaPart
-  parts: MediaPart[]
   onBack: () => void
 }) {
   const launched = useRef(false)
@@ -40,44 +38,48 @@ export function PlayerScreen({
     if (launched.current) return
     launched.current = true
 
-    const nativeParts: FoyerPlayerPart[] = parts.map((candidate) => {
-      const streamUrl = new URL(
-        tvApi(server).absoluteUrl(candidate.streamUrl)
-      )
-      streamUrl.searchParams.set("compat", "android-tv")
-
-      return {
-        id: candidate.id,
-        title: partTitle(candidate),
-        fileName: candidate.fileName,
-        streamUrl: streamUrl.toString(),
-        resumePositionSeconds:
-          candidate.progress && !candidate.progress.completed
-            ? candidate.progress.positionSeconds
-            : 0,
-        subtitles: candidate.subtitles.map((subtitle) => {
-          const subtitleUrl = new URL(
-            tvApi(server).absoluteUrl(subtitle.url)
+    // Playback needs every part, including other seasons and browsing pages.
+    void tvApi(server).media(mediaId)
+      .then(({ parts }) => {
+        const nativeParts: FoyerPlayerPart[] = parts.map((candidate) => {
+          const streamUrl = new URL(
+            tvApi(server).absoluteUrl(candidate.streamUrl)
           )
-          subtitleUrl.searchParams.set("compat", "android-tv")
-          return {
-            id: subtitle.id,
-            label: subtitle.label,
-            language: subtitle.language,
-            format: subtitle.format,
-            url: subtitleUrl.toString(),
-            isDefault: subtitle.isDefault,
-          }
-        }),
-      }
-    })
+          streamUrl.searchParams.set("compat", "android-tv")
 
-    void playNativeMedia({
-      serverUrl: server,
-      mediaTitle,
-      startPartId: part.id,
-      parts: nativeParts,
-    })
+          return {
+            id: candidate.id,
+            title: partTitle(candidate),
+            fileName: candidate.fileName,
+            streamUrl: streamUrl.toString(),
+            resumePositionSeconds:
+              candidate.progress && !candidate.progress.completed
+                ? candidate.progress.positionSeconds
+                : 0,
+            subtitles: candidate.subtitles.map((subtitle) => {
+              const subtitleUrl = new URL(
+                tvApi(server).absoluteUrl(subtitle.url)
+              )
+              subtitleUrl.searchParams.set("compat", "android-tv")
+              return {
+                id: subtitle.id,
+                label: subtitle.label,
+                language: subtitle.language,
+                format: subtitle.format,
+                url: subtitleUrl.toString(),
+                isDefault: subtitle.isDefault,
+              }
+            }),
+          }
+        })
+
+        return playNativeMedia({
+          serverUrl: server,
+          mediaTitle,
+          startPartId: part.id,
+          parts: nativeParts,
+        })
+      })
       .then(async (result) => {
         if (
           result.partId &&
@@ -102,7 +104,7 @@ export function PlayerScreen({
             : "The native Android TV player could not be opened."
         )
       })
-  }, [mediaId, mediaTitle, part.id, parts, queries, queryClient, saveProgress, server])
+  }, [mediaId, mediaTitle, part.id, queries, queryClient, saveProgress, server])
 
   return (
     <View style={styles.screen}>
