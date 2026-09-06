@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.1](https://github.com/vincedelmas/foyer/compare/v1.3.0...v1.3.1) (2026-09-06)
+
+
+### Bug Fixes
+
+* **tv:** correct media info, watched state, and playback queues ([f25182b](https://github.com/vincedelmas/foyer/commit/f25182bb839672967de676e3503a3eafe6554d91))
+
+
+### Performance
+
+* **tv:** optimize browsing, artwork, and playback ([4a2ccb9](https://github.com/vincedelmas/foyer/commit/4a2ccb9d7f0fa1394333ea6c7c1b6a073786d733))
+
 ## [1.3.0](https://github.com/vincedelmas/foyer/compare/v1.2.0...v1.3.0) (2026-09-01)
 
 
