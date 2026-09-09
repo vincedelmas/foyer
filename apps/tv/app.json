@@ -2,7 +2,7 @@
   "expo": {
     "name": "Foyer TV",
     "slug": "foyer-tv",
-    "version": "1.3.0",
+    "version": "1.3.1",
     "orientation": "landscape",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#12110f",
