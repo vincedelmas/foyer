@@ -24,6 +24,6 @@ let migrated = false;
 
 export const ensureDatabase = () => {
     if (migrated) return;
-    migrate(db, { migrationsFolder: resolve("./drizzle") });
+    migrate(db, { migrationsFolder: resolve(process.env.FOYER_MIGRATIONS_PATH ?? "./drizzle") });
     migrated = true;
 }

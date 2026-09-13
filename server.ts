@@ -40,6 +40,7 @@ function errorMessage(error: unknown) {
 
 
 async function loadStartHandler() {
+    process.env.FOYER_MIGRATIONS_PATH = resolve(DIST_DIRECTORY, "../drizzle");
     const serverModule = await import(SERVER_ENTRY_POINT) as {default?: StartHandler};
 
     if (typeof serverModule.default?.fetch !== "function") {
