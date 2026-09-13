@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.2](https://github.com/vincedelmas/foyer/compare/v1.3.1...v1.3.2) (2026-09-13)
+
+
+### Bug Fixes
+
+* resolve prod migrations relative to server entry ([39661ba](https://github.com/vincedelmas/foyer/commit/39661bae37300fc28a9e7cff82df6bd0f7f57851))
+
 ## [1.3.1](https://github.com/vincedelmas/foyer/compare/v1.3.0...v1.3.1) (2026-09-06)
 
 
