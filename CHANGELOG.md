@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.4.0](https://github.com/vincedelmas/foyer/compare/v1.3.1...v1.4.0) (2026-10-23)
+
+
+### Features
+
+* add docker for server ([97f541a](https://github.com/vincedelmas/foyer/commit/97f541a6e203013780d13545337e986f7e52a69d))
+
+
+### Bug Fixes
+
+* resolve prod migrations relative to server entry ([39661ba](https://github.com/vincedelmas/foyer/commit/39661bae37300fc28a9e7cff82df6bd0f7f57851))
+
+
+### Continuous Integration
+
+* add release target selection using PR labels ([939c8b2](https://github.com/vincedelmas/foyer/commit/939c8b2bb5e6fd702bd722c9a72110f0dbf950fb))
+* publish Foyer Docker images for server releases ([a30aede](https://github.com/vincedelmas/foyer/commit/a30aede0bb90084002bda3766e58795e7770c4da))
+
 ## [1.3.1](https://github.com/vincedelmas/foyer/compare/v1.3.0...v1.3.1) (2026-09-06)
 
 
