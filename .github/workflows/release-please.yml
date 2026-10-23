@@ -14,11 +14,45 @@ jobs:
   release-please:
     name: Prepare or publish release
     runs-on: ubuntu-latest
+
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
       version: ${{ steps.release.outputs.version }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      build_tv: ${{ steps.targets.outputs.build_tv }}
+      build_server: ${{ steps.targets.outputs.build_server }}
+      release_created: ${{ steps.release.outputs.release_created }}
+
     steps:
+      - name: Determine release targets
+        id: targets
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({ owner, repo, commit_sha: context.sha });
+            
+            const releasePr = prs.find(pr => pr.merged_at && pr.base.ref === "main" && pr.head.ref.startsWith("release-please--"));
+            const labels = new Set(releasePr?.labels.map(label => label.name) ?? []);
+
+            const tvOnly = labels.has("tv-only");
+            const serverOnly = labels.has("server-only");
+
+            if (serverOnly && tvOnly) {
+              core.setFailed("Choose either server-only or tv-only, not both.");
+              return;
+            }
+
+            // No label = build both.
+            const buildServer = !tvOnly;
+            const buildTv = !serverOnly;
+
+            core.setOutput("build_server", String(buildServer));
+            core.setOutput("build_tv", String(buildTv));
+
+            core.info(`Release PR: ${releasePr?.number ?? "none"}`);
+            core.info(`Build server: ${buildServer}`);
+            core.info(`Build Android TV: ${buildTv}`);
+
       - name: Run Release Please
         id: release
         uses: googleapis/release-please-action@v4
@@ -30,7 +64,11 @@ jobs:
   android-tv:
     name: Publish Android TV APK
     needs: release-please
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    if: >-
+      ${{
+        needs.release-please.outputs.release_created == 'true' &&
+        needs.release-please.outputs.build_tv == 'true'
+      }}
     uses: ./.github/workflows/android-tv-apk.yml
     with:
       version: ${{ needs.release-please.outputs.version }}
