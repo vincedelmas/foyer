@@ -2,7 +2,7 @@ import {routeTree} from "./routeTree.gen";
 import {Button} from "@/components/ui/button";
 import {Spinner} from "@/components/ui/spinner";
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
-import {createRouter as createTanStackRouter} from "@tanstack/react-router";
+import {createRouter as createTanStackRouter, type ErrorComponentProps} from "@tanstack/react-router";
 
 
 export function getRouter() {
@@ -43,7 +43,7 @@ function RoutePending() {
 }
 
 
-function RouteError({ error, reset }: { error: Error, reset: () => void }) {
+function RouteError({ error, reset }: ErrorComponentProps) {
     return (
         <main className="grid min-h-svh place-items-center px-6">
             <div className="flex max-w-md flex-col items-center gap-5 text-center">
@@ -52,7 +52,7 @@ function RouteError({ error, reset }: { error: Error, reset: () => void }) {
                         Could not open this page
                     </h1>
                     <p className="text-muted-foreground">
-                        {error.message}
+                        {error instanceof Error ? error.message : String(error)}
                     </p>
                 </div>
                 <Button onClick={reset}>

@@ -6,11 +6,9 @@ RUN bun install --frozen-lockfile
 RUN bun run build
 
 
-FROM oven/bun:${BUN_VERSION} AS runtime
+FROM oven/bun:${BUN_VERSION}-alpine AS runtime
 WORKDIR /app
-RUN apt-get update  \
-    && apt-get install -y --no-install-recommends ca-certificates ffmpeg  \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache ca-certificates ffmpeg
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=3000 \
@@ -19,7 +17,6 @@ ENV NODE_ENV=production \
 
 COPY --from=build --chown=bun:bun /app/dist ./dist
 COPY --from=build --chown=bun:bun /app/drizzle ./drizzle
-COPY --from=build --chown=bun:bun /app/node_modules ./node_modules
 RUN mkdir -p /data/database /data/cache && chown -R bun:bun /data
 USER bun
 EXPOSE 3000
