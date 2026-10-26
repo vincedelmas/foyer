@@ -23,7 +23,7 @@ fun ConnectionScreen(model: AppModel) {
         Modifier.fillMaxSize().padding(horizontal = 100.dp, vertical = 60.dp),
         verticalArrangement = Arrangement.spacedBy(22.dp),
     ) {
-        Heading("Find your home server", "WELCOME TO FOYER TV")
+        Heading("Find your home server", "WELCOME TO FOYER TV", large = true)
         Note(
             "Enter the LAN address of the computer running Foyer, for example http://192.168.1.10:3000."
         )
@@ -100,12 +100,12 @@ fun SettingsScreen(model: AppModel) {
         }
     val dialogs = remember { DialogController() }
     LazyColumn(
-        contentPadding = PaddingValues(start = 32.dp, end = 32.dp, top = 12.dp, bottom = 36.dp),
+        contentPadding = PaddingValues(start = 48.dp, end = 48.dp, top = 12.dp, bottom = 36.dp),
         verticalArrangement = Arrangement.spacedBy(22.dp),
     ) {
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Heading("Settings", "FOYER SERVER")
+                Heading("Settings", large = true)
                 TvButton(
                     "Scan all collections",
                     Modifier.preferredFocus(),
@@ -157,20 +157,12 @@ fun SettingsScreen(model: AppModel) {
             LoadNotice(settings)
         }
         items(settings.value?.libraries.orEmpty(), key = { it.id }) { folder ->
-            Row(
-                Modifier.fillMaxWidth()
-                    .border(1.dp, Palette.border, RoundedCornerShape(12.dp))
-                    .background(Palette.surface, RoundedCornerShape(12.dp))
-                    .padding(20.dp),
-                horizontalArrangement = Arrangement.spacedBy(18.dp),
-            ) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    Text(folder.name)
-                    Note(folder.path)
-                    Note(if (folder.kind == "movies") "Movies" else "TV shows")
-                }
-                TvButton("Manage", onClick = { dialogs.current = Overlay.CollectionMenu(folder) })
-            }
+            TvMenuItem(
+                folder.name,
+                description =
+                    "${if (folder.kind == "movies") "Movies" else "TV shows"} · ${folder.path}",
+                onClick = { dialogs.current = Overlay.CollectionMenu(folder) },
+            )
         }
         item {
             Column(

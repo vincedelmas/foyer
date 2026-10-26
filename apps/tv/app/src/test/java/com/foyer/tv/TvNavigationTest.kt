@@ -32,6 +32,7 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowDialog
 
+@OptIn(ExperimentalTestApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [30], qualifiers = "w960dp-h540dp-land")
 @LooperMode(LooperMode.Mode.PAUSED)
@@ -41,6 +42,7 @@ class TvNavigationTest {
     private val server = MockWebServer()
     private val paths = CopyOnWriteArrayList<String>()
     private val mutations = CopyOnWriteArrayList<String>()
+    private val continueWatching = CopyOnWriteArrayList<Media>()
 
     @Before
     fun startServer() {
@@ -100,7 +102,8 @@ class TvNavigationTest {
                                             )
                                             .toString()
                                 }
-                                request.path!!.startsWith("/api/v1/progress") -> "[]"
+                                request.path!!.startsWith("/api/v1/progress") ->
+                                    Api.json.encodeToString(continueWatching.toList())
                                 else -> "{}"
                             }
                         )
@@ -130,6 +133,7 @@ class TvNavigationTest {
         compose.onNodeWithContentDescription("Search titles").assertIsFocused()
         compose.onNodeWithText("Search").select()
         compose.onNodeWithText("All titles").select()
+        compose.onNodeWithContentDescription("Selected").assertExists()
         compose.onNodeWithText("Unwatched", useUnmergedTree = false).select()
         compose.waitUntil(10_000) {
             compose.onAllNodesWithText("Unwatched").fetchSemanticsNodes().size == 1
@@ -147,6 +151,29 @@ class TvNavigationTest {
         }
         compose.onNodeWithText("Unwatched").assertExists()
         compose.onNodeWithText("A show").assertIsFocused()
+    }
+
+    @Test
+    fun `home shelves support horizontal navigation and restore collection focus`() {
+        val first =
+            Api.json.decodeFromString<Media>(
+                javaClass.getResource("/media-detail.json")!!.readText()
+            )
+        continueWatching.addAll(
+            listOf(first, first.copy(id = "another-show", title = "Another show"))
+        )
+        connect()
+        compose.onNodeWithText("A show").assertIsFocused()
+        compose.onNodeWithText("A show").performKeyInput { pressKey(Key.DirectionRight) }
+        compose.onNodeWithText("Another show").assertIsFocused()
+        compose.onNodeWithText("Another show").performKeyInput { pressKey(Key.DirectionDown) }
+        compose.onNodeWithText("My collection").assertIsFocused()
+        compose.onNodeWithText("My collection").select()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("All titles").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("Back").select()
+        compose.onNodeWithText("My collection").assertIsFocused()
     }
 
     @Test
@@ -174,8 +201,11 @@ class TvNavigationTest {
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Season 2"))
         compose.onNodeWithText("Season 2").select()
         compose.waitUntil(10_000) {
-            compose.onAllNodesWithText("S02E01").fetchSemanticsNodes().isNotEmpty()
+            paths.any { it.contains("season=2") } &&
+                compose.onAllNodesWithText("Loading…").fetchSemanticsNodes().isEmpty()
         }
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("S02E01"))
+        compose.onNodeWithText("S02E01").assertExists()
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Resume · 10%"))
         compose.onNodeWithText("Resume · 10%").select()
         var playback: Intent? = null
@@ -280,6 +310,12 @@ class TvNavigationTest {
         }
         compose.onNodeWithText("Mark as watched").assertIsFocused()
         assertTrue(mutations.isEmpty())
+        compose.onNodeWithText("Mark as watched").performKeyInput { pressKey(Key.DirectionDown) }
+        compose.onNodeWithText("Remove episode progress").assertIsFocused()
+        compose.onNodeWithText("Remove episode progress").performKeyInput {
+            pressKey(Key.DirectionDown)
+        }
+        compose.onNodeWithText("Identify").assertIsFocused()
         compose.onNodeWithText("Mark as watched").select()
         compose.waitUntil(10_000) { mutations.contains("PUT /api/v1/media/show") }
         compose.onNodeWithText("Mark as watched").assertDoesNotExist()

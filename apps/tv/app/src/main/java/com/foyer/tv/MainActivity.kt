@@ -201,34 +201,29 @@ fun FoyerApp(model: AppModel = viewModel()) {
             ConnectionScreen(model)
         } else {
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 18.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 48.dp, vertical = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    androidx.tv.material3.Text(
-                        "foyer",
-                        fontSize = 30.sp,
-                        fontFamily = FontFamily.Serif,
-                        fontWeight = FontWeight.Bold,
-                        color = Palette.primary,
-                    )
-                    androidx.tv.material3.Text(
-                        "YOUR HOME CINEMA",
-                        color = Palette.muted,
-                        fontSize = 9.sp,
-                        letterSpacing = 2.sp,
-                    )
-                }
+                androidx.tv.material3.Text(
+                    "foyer",
+                    modifier = Modifier.weight(1f),
+                    fontSize = 28.sp,
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                    color = Palette.primary,
+                )
                 TvButton(
                     "Home",
                     selected = model.route == "home",
+                    quiet = true,
                     onClick = { model.navigate("home") },
                 )
-                if (model.stack.size > 1) TvButton("Back", onClick = model::back)
+                if (model.stack.size > 1) TvButton("Back", quiet = true, onClick = model::back)
                 TvButton(
                     "Settings",
                     selected = model.route == "settings",
+                    quiet = true,
                     onClick = { model.navigate("settings") },
                 )
             }

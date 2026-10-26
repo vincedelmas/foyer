@@ -10,6 +10,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +20,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -98,6 +101,8 @@ fun TvButton(
     selected: Boolean = false,
     danger: Boolean = false,
     primary: Boolean = false,
+    quiet: Boolean = false,
+    icon: ImageVector? = null,
     onClick: () -> Unit,
 ) {
     Button(
@@ -106,26 +111,91 @@ fun TvButton(
         enabled = enabled,
         colors =
             ButtonDefaults.colors(
-                containerColor = if (selected || primary) Palette.primary else Palette.raised,
+                containerColor =
+                    when {
+                        quiet -> if (selected) Palette.raised else Color.Transparent
+                        selected || primary -> Palette.primary
+                        else -> Palette.raised
+                    },
                 contentColor =
-                    if (selected || primary) Palette.primaryText
+                    if (quiet && selected) Palette.primary
+                    else if (selected || primary) Palette.primaryText
                     else if (danger) Palette.danger else Palette.text,
                 focusedContainerColor = if (danger) Palette.danger else Palette.text,
                 focusedContentColor = Palette.background,
+                disabledContainerColor = Palette.raised,
+                disabledContentColor = Palette.muted,
             ),
         shape = ButtonDefaults.shape(shape = RoundedCornerShape(10.dp)),
         scale = ButtonDefaults.scale(focusedScale = 1.04f),
         border =
             ButtonDefaults.border(
                 border =
-                    Border(BorderStroke(1.dp, Palette.border), shape = RoundedCornerShape(10.dp)),
+                    if (quiet) Border.None
+                    else
+                        Border(
+                            BorderStroke(1.dp, Palette.border),
+                            shape = RoundedCornerShape(10.dp),
+                        ),
                 focusedBorder =
                     Border(BorderStroke(2.dp, Palette.primary), shape = RoundedCornerShape(10.dp)),
             ),
         contentPadding = PaddingValues(horizontal = 18.dp, vertical = 11.dp),
     ) {
+        icon?.let {
+            Icon(it, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+        }
         Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
+}
+
+@Composable
+fun TvMenuItem(
+    label: String,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    description: String? = null,
+    selected: Boolean = false,
+    enabled: Boolean = true,
+    danger: Boolean = false,
+    onClick: () -> Unit,
+) {
+    DenseListItem(
+        selected = selected,
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp),
+        headlineContent = { Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium) },
+        supportingContent =
+            description?.let {
+                { Text(it, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+            },
+        leadingContent =
+            icon?.let { { Icon(it, contentDescription = null, modifier = Modifier.size(22.dp)) } },
+        trailingContent =
+            if (selected) {
+                {
+                    Icon(
+                        Icons.Outlined.Check,
+                        contentDescription = "Selected",
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            } else null,
+        shape = ListItemDefaults.shape(shape = RoundedCornerShape(8.dp)),
+        scale = ListItemDefaults.scale(focusedScale = 1.015f),
+        colors =
+            ListItemDefaults.colors(
+                containerColor = Color.Transparent,
+                contentColor = if (danger) Palette.danger else Palette.text,
+                focusedContainerColor = if (danger) Palette.danger else Palette.text,
+                focusedContentColor = Palette.background,
+                selectedContainerColor = Palette.raised,
+                selectedContentColor = Palette.primary,
+                disabledContentColor = Palette.muted,
+            ),
+    )
 }
 
 // Keep the whole Select gesture on the card. Opening a new focus window while
@@ -169,21 +239,17 @@ fun TvCard(
         shape = CardDefaults.shape(shape = RoundedCornerShape(12.dp)),
         colors =
             CardDefaults.colors(
-                containerColor = Palette.surface,
+                containerColor = Color.Transparent,
                 contentColor = Palette.text,
-                focusedContainerColor = Palette.raised,
+                focusedContainerColor = Color.Transparent,
                 focusedContentColor = Palette.text,
             ),
         scale = CardDefaults.scale(focusedScale = if (heldKey != null) 1.015f else 1.035f),
         border =
             CardDefaults.border(
-                border =
-                    Border(
-                        BorderStroke(1.dp, Palette.border.copy(alpha = .55f)),
-                        shape = RoundedCornerShape(12.dp),
-                    ),
+                border = Border.None,
                 focusedBorder =
-                    Border(BorderStroke(2.dp, Palette.primary), shape = RoundedCornerShape(12.dp)),
+                    Border(BorderStroke(3.dp, Palette.primary), shape = RoundedCornerShape(12.dp)),
             ),
         content = content,
     )
@@ -196,10 +262,15 @@ private val AndroidKeyEvent.isSelect: Boolean
             keyCode == AndroidKeyEvent.KEYCODE_NUMPAD_ENTER
 
 @Composable
-fun Heading(text: String, eyebrow: String? = null) {
+fun Heading(text: String, eyebrow: String? = null, large: Boolean = false) {
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         eyebrow?.let { Text(it, color = Palette.primary, fontSize = 11.sp, letterSpacing = 1.sp) }
-        Text(text, fontSize = 28.sp, fontWeight = FontWeight.Bold, lineHeight = 34.sp)
+        Text(
+            text,
+            fontSize = if (large) 32.sp else 22.sp,
+            fontWeight = FontWeight.SemiBold,
+            lineHeight = if (large) 38.sp else 28.sp,
+        )
     }
 }
 
@@ -253,6 +324,8 @@ fun TvDialog(
     title: String,
     onClose: () -> Unit,
     busy: Boolean = false,
+    sidebar: (@Composable ColumnScope.() -> Unit)? = null,
+    menu: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var heldSelect by remember { mutableStateOf<Int?>(null) }
@@ -261,8 +334,8 @@ fun TvDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Column(
-            Modifier.widthIn(max = 680.dp)
-                .fillMaxWidth(0.88f)
+            Modifier.widthIn(max = if (sidebar == null) 640.dp else 800.dp)
+                .fillMaxWidth(0.94f)
                 .heightIn(max = 460.dp)
                 .onPreviewKeyEvent { event ->
                     val key = event.nativeKeyEvent
@@ -304,14 +377,23 @@ fun TvDialog(
                 TvButton("Close", enabled = !busy, onClick = onClose)
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(Palette.border))
-            Column(
-                Modifier.weight(1f, fill = false)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(4.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                content = content,
-            )
+            Row(
+                Modifier.weight(1f, fill = false).fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(28.dp),
+            ) {
+                sidebar?.let {
+                    Column(
+                        Modifier.width(180.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        content = it,
+                    )
+                }
+                Column(
+                    Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (menu) 2.dp else 14.dp),
+                    content = content,
+                )
+            }
         }
     }
 }

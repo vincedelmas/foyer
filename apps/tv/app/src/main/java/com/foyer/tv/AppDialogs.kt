@@ -4,11 +4,15 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
@@ -52,19 +56,46 @@ fun AppDialogs(
         null -> Unit
         is Overlay.MediaMenu -> {
             val item = overlay.item
-            TvDialog(item.title, close, model.busy) {
-                TvButton(
+            TvDialog(
+                "Media options",
+                close,
+                model.busy,
+                menu = true,
+                sidebar = {
+                    Artwork(
+                        item.posterPath,
+                        Modifier.width(120.dp).height(180.dp).clip(RoundedCornerShape(8.dp)),
+                    )
+                    Text(
+                        item.title,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Note(
+                        listOfNotNull(
+                                item.year?.toString(),
+                                if (item.kind == "movie") "Movie" else "TV show",
+                                item.runtimeLabel,
+                            )
+                            .joinToString(" · ")
+                    )
+                },
+            ) {
+                TvMenuItem(
                     if (item.watched) "Mark as unwatched" else "Mark as watched",
-                    Modifier.fillMaxWidth().preferredFocus(),
+                    Modifier.preferredFocus(),
+                    icon = Icons.Outlined.CheckCircle,
                     enabled = !model.busy,
                 ) {
                     model.action(close) { model.api.watchMedia(item.id, !item.watched) }
                 }
                 if (item.progress?.let { it.positionSeconds > 0 && !it.completed } == true) {
                     val episode = item.kind != "movie" && item.nextPartId != null
-                    TvButton(
+                    TvMenuItem(
                         if (episode) "Remove episode progress" else "Remove watch progress",
-                        modifier = Modifier.fillMaxWidth(),
+                        icon = Icons.Outlined.Clear,
                         enabled = !model.busy,
                     ) {
                         model.action(close) {
@@ -75,28 +106,34 @@ fun AppDialogs(
                         }
                     }
                 }
-                TvButton(
+                TvMenuItem(
                     "Identify",
-                    modifier = Modifier.fillMaxWidth(),
+                    icon = Icons.Outlined.Search,
                     enabled = !model.busy,
                     onClick = { controller.current = Overlay.Identify(item) },
                 )
-                TvButton(
+                TvMenuItem(
                     "Media info",
-                    modifier = Modifier.fillMaxWidth(),
+                    icon = Icons.Outlined.Info,
                     enabled = !model.busy,
                     onClick = { controller.current = Overlay.Info(item) },
                 )
-                TvButton(
+                TvMenuItem(
                     "Refresh metadata",
-                    modifier = Modifier.fillMaxWidth(),
+                    icon = Icons.Outlined.Refresh,
                     enabled = !model.busy && item.metadataStatus != "unmatched",
                 ) {
                     model.action(close) { model.api.refresh(item.id) }
                 }
-                TvButton(
+                Box(
+                    Modifier.fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                        .height(1.dp)
+                        .background(Palette.border)
+                )
+                TvMenuItem(
                     "Delete media from server",
-                    Modifier.fillMaxWidth(),
+                    icon = Icons.Outlined.Delete,
                     danger = true,
                     enabled = !model.busy,
                 ) {
@@ -113,26 +150,65 @@ fun AppDialogs(
         }
         is Overlay.CollectionMenu -> {
             val folder = overlay.folder
-            TvDialog(folder.name, close, model.busy) {
-                Note("${if (folder.kind == "movies") "Movies" else "TV shows"} · ${folder.path}")
-                TvButton(
+            TvDialog(
+                "Collection options",
+                close,
+                model.busy,
+                menu = true,
+                sidebar = {
+                    Row(Modifier.fillMaxWidth().height(124.dp).clip(RoundedCornerShape(8.dp))) {
+                        folder.posterPaths.take(3).forEach {
+                            Artwork(it, Modifier.weight(1f).fillMaxHeight())
+                        }
+                    }
+                    Text(
+                        folder.name,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Note(
+                        "${folder.titleCount} titles · ${if (folder.kind == "movies") "Movies" else "TV shows"}"
+                    )
+                    Text(
+                        folder.path,
+                        color = Palette.muted,
+                        fontSize = 12.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+            ) {
+                TvMenuItem(
                     "Edit collection",
-                    Modifier.fillMaxWidth().preferredFocus(),
+                    Modifier.preferredFocus(),
+                    icon = Icons.Outlined.Edit,
                     enabled = !model.busy,
                     onClick = { controller.current = Overlay.EditCollection(folder) },
                 )
-                TvButton(
+                TvMenuItem(
                     "Rescan media folder",
-                    modifier = Modifier.fillMaxWidth(),
+                    icon = Icons.Outlined.Refresh,
                     enabled = !model.busy,
                     onClick = { model.scanCollection(folder.id, close) },
                 )
-                TvButton("Refresh all metadata", Modifier.fillMaxWidth(), enabled = !model.busy) {
+                TvMenuItem(
+                    "Refresh all metadata",
+                    icon = Icons.Outlined.Refresh,
+                    enabled = !model.busy,
+                ) {
                     model.action(close) { model.api.refresh(folder.id, collection = true) }
                 }
-                TvButton(
+                Box(
+                    Modifier.fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                        .height(1.dp)
+                        .background(Palette.border)
+                )
+                TvMenuItem(
                     "Delete collection",
-                    Modifier.fillMaxWidth(),
+                    icon = Icons.Outlined.Delete,
                     danger = true,
                     enabled = !model.busy,
                 ) {
