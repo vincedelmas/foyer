@@ -76,7 +76,10 @@ signing secrets before merging the first Release Please PR.
 
 Android's `versionCode` is derived from SemVer (`0.2.1` becomes `2001`) rather than a workflow counter. The standalone Gradle project
 is built directly, without Node dependencies or Expo prebuild. The Gradle cache is retained between workflow runs. Release APKs include only 32-bit ARM (`armeabi-v7a`) for the NVIDIA Shield TV 2019 Tube running Android 11.
-The workflow runs Kotlin unit tests and Android release lint before publishing.
+The workflow runs release-variant unit tests, release lint, and APK assembly in one Gradle invocation, sharing compiled Kotlin and resources.
+It uses the preinstalled Android SDK on the pinned Ubuntu 24.04 runner. The TV build and release packaging require only JDK 17 and Gradle; there is no Node.js, Bun, npm, or JavaScript helper to install or run.
+The `prepareReleaseAssets` Gradle task builds the APK and writes `foyer-tv.apk`, `foyer-tv.apk.sha256`, and `update.json` under `apps/tv/app/build/outputs/release`.
+Gradle's enhanced cache restores dependencies, transforms, build task outputs, and Robolectric's Android framework JARs. The framework JARs are stored under `~/.gradle/caches/robolectric` instead of a separate Maven cache.
 The Android workflow remains manually runnable as a recovery mechanism, but its version/tag must already exist as a Release Please release.
 The APK is attached directly to that release rather than also being stored as a duplicate short-lived Actions artifact.
 
@@ -100,6 +103,8 @@ The TV build needs JDK 17 and Android SDK platform 36 / build tools 35.0.0. It r
 
 For a local signed release, export the existing `FOYER_TV_KEYSTORE_PATH`, `FOYER_TV_KEYSTORE_PASSWORD`, `FOYER_TV_KEY_ALIAS`, and `FOYER_TV_KEY_PASSWORD` values, then run `./gradlew assembleRelease` in `apps/tv`. No signing secrets are stored in the source tree. Without these variables Gradle produces an unsigned release for inspection; `installDebug` uses a separate `.debug` application ID.
 
-Gradle reads the default version from `apps/tv/package.json` (which Release Please maintains). `FOYER_TV_VERSION` and `FOYER_TV_VERSION_CODE` override it in CI. The update manifest and stable `foyer-tv.apk` asset name are unchanged.
+Gradle reads the default `foyerVersion` from `apps/tv/gradle.properties`; Release Please maintains the annotated version block. CI supplies `FOYER_TV_VERSION` for the release being built. Gradle derives Android's `versionCode` from that same version and uses it in both the APK and update manifest.
+
+To prepare all three release assets locally, run `./gradlew prepareReleaseAssets` in `apps/tv`. This automatically builds the release APK. Configure the permanent signing variables to produce an installable update; without them the copied APK remains unsigned. `FOYER_TV_RELEASE_TAG` defaults to `v<version>` and, when supplied, must match the version. The update schema and stable asset names are unchanged.
 
 The first Kotlin release must retain `com.foyer.tv`, the permanent signing key, and a greater version code. On first launch it imports the existing AsyncStorage `RKStorage` database into native preferences. Server-side collections, metadata, and playback progress remain on the Foyer server. Follow the [native migration checklist](android-tv-native.md) on the Shield before publishing.

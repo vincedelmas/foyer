@@ -11,7 +11,7 @@
 
 API models mirror `packages/contracts/src/index.ts`. Keep them in sync when changing the JSON API. Successful mutations invalidate the native request cache; returning from playback saves the final position before refreshing the catalog. Artwork uses bounded memory and disk caches, and collections prefetch the next page and its posters.
 
-Build from `apps/tv` itself with the checked-in Gradle wrapper. No generated platform project is needed.
+Build from `apps/tv` itself with the checked-in Gradle wrapper. Versioning lives in `gradle.properties`; `./gradlew prepareReleaseAssets` generates the APK, update manifest, and checksum. The TV toolchain requires no Bun, Node.js, npm, or JavaScript helper.
 
 ## Feature parity
 

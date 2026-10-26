@@ -5,7 +5,6 @@
     "type": "module",
     "packageManager": "bun@1.4.0",
     "workspaces": [
-        "apps/*",
         "packages/*"
     ],
     "scripts": {
@@ -15,19 +14,15 @@
         "build:entry": "bun build ./server.ts --target=bun --outfile=./dist/server.js",
         "build": "bun run build:server && bun run build:entry",
         "typecheck": "tsc --noEmit",
-        "tv": "bun --cwd apps/tv android",
         "db:studio": "drizzle-kit studio",
         "db:migrate": "drizzle-kit migrate",
         "db:generate": "drizzle-kit generate",
         "start": "bun dist/server.js",
         "dev": "bun --bun vite dev --port 3000",
-        "tv:android": "bun --cwd apps/tv android",
         "lint": "oxlint --type-aware --type-check",
         "preview": "bun run build && bun run start",
         "lint:fix": "oxlint --type-aware --type-check --fix",
-        "verify": "bun run typecheck && bun run tv:check && bun run lint && bun run knip && bun run test && bun run build",
-        "tv:build": "bun --cwd apps/tv build",
-        "tv:check": "bun --cwd apps/tv check"
+        "verify": "bun run typecheck && bun run lint && bun run knip && bun run test && bun run build"
     },
     "dependencies": {
         "@base-ui/react": "^1.9.0",

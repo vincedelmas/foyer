@@ -115,7 +115,7 @@ cd apps/tv
 
 Without signing environment variables, this produces `app/build/outputs/apk/release/app-release-unsigned.apk`. Signed builds use the existing `com.foyer.tv` application ID and release key, and can upgrade the RN app in place. The first native launch imports the saved server address, collection watched filters, and update preferences from its AsyncStorage database.
 
-Run Android checks with `./gradlew testDebugUnitTest lintDebug`, or `bun run tv:check` from the repository root. See the [feature parity and device verification checklist](docs/android-tv-native.md) before publishing a migration release.
+Run Android checks with `./gradlew testDebugUnitTest lintDebug` from `apps/tv`. The TV build and release packaging use only Gradle and the JDK; they do not require Bun, Node.js, or npm. See the [feature parity and device verification checklist](docs/android-tv-native.md) before publishing a migration release.
 
 The repository also includes a GitHub Actions workflow for permanently signed release APKs and in-app updates. The one-time signing setup is documented in the [Android TV release guide](docs/android-tv-releases.md). Native playback licenses and source links are listed in [third-party notices](apps/tv/THIRD_PARTY_NOTICES.md).
 
@@ -143,10 +143,9 @@ Useful commands:
 ```bash
 bun run test          # Vitest suite
 bun run typecheck     # web and server TypeScript
-bun run tv:check      # Android TV unit tests and lint
 bun run lint          # Oxlint
 bun run db:studio     # inspect the SQLite database
-bun run verify        # all checks plus a production build
+bun run verify       # web/server checks plus a production build
 ```
 
 If you change `src/server/db/schema.ts`, generate and apply a migration with:

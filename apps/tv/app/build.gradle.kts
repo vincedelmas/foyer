@@ -1,4 +1,6 @@
-import groovy.json.JsonSlurper
+import com.android.build.api.artifact.SingleArtifact
+import java.security.MessageDigest
+import java.time.Instant
 
 plugins {
     id("com.android.application")
@@ -7,13 +9,16 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-val releaseVersion = System.getenv("FOYER_TV_VERSION")
-    ?: (JsonSlurper().parse(rootProject.file("package.json")) as Map<*, *>)["version"] as String
-val versionParts = releaseVersion.split('.').map(String::toInt)
-require(versionParts.size == 3 && versionParts[1] in 0..999 && versionParts[2] in 0..999)
-val releaseVersionCode = System.getenv("FOYER_TV_VERSION_CODE")?.toInt()
-    ?: (versionParts[0] * 1_000_000 + versionParts[1] * 1_000 + versionParts[2])
+val releaseVersion = providers.environmentVariable("FOYER_TV_VERSION")
+    .orElse(providers.gradleProperty("foyerVersion")).get()
+require(releaseVersion.matches(Regex("\\d+\\.\\d+\\.\\d+"))) { "TV version must look like 1.4.1" }
+val (major, minor, patch) = releaseVersion.split('.').map(String::toInt)
+require(major in 0..2100 && minor in 0..999 && patch in 0..999)
+val releaseVersionCode = major * 1_000_000 + minor * 1_000 + patch
 require(releaseVersionCode in 1..2_100_000_000)
+val updateRepository = providers.environmentVariable("GITHUB_REPOSITORY").getOrElse("vincedelmas/foyer")
+require(updateRepository.matches(Regex("[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")))
+val releaseTag = providers.environmentVariable("FOYER_TV_RELEASE_TAG").orElse("v$releaseVersion")
 val releaseKeystore = System.getenv("FOYER_TV_KEYSTORE_PATH")
 
 android {
@@ -27,9 +32,7 @@ android {
         versionCode = releaseVersionCode
         versionName = releaseVersion
         ndk { abiFilters += "armeabi-v7a" }
-        val repository = System.getenv("GITHUB_REPOSITORY") ?: "vincedelmas/foyer"
-        require(repository.matches(Regex("[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")))
-        buildConfigField("String", "UPDATE_REPOSITORY", "\"$repository\"")
+        buildConfigField("String", "UPDATE_REPOSITORY", "\"$updateRepository\"")
     }
 
     signingConfigs {
@@ -96,5 +99,63 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.16.1")
     testImplementation("androidx.test:core:1.7.0")
     testImplementation("androidx.compose.ui:ui-test-junit4")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
+}
+
+// Keep Robolectric's Android framework JARs in the same cache restored by setup-gradle.
+tasks.withType<Test>().configureEach {
+    systemProperty("maven.repo.local", gradle.gradleUserHomeDir.resolve("caches/robolectric").path)
+}
+
+androidComponents {
+    onVariants(selector().withBuildType("release")) { variant ->
+        val apkDirectory = variant.artifacts.get(SingleArtifact.APK)
+        val artifactsLoader = variant.artifacts.getBuiltArtifactsLoader()
+        val releaseAssets = layout.buildDirectory.dir("outputs/release")
+
+        tasks.register("prepareReleaseAssets") {
+            group = "distribution"
+            description = "Build the release APK and prepare its update manifest and SHA-256 checksum."
+            inputs.dir(apkDirectory)
+            inputs.property("version", releaseVersion)
+            inputs.property("versionCode", releaseVersionCode)
+            inputs.property("repository", updateRepository)
+            inputs.property("tag", releaseTag)
+            outputs.dir(releaseAssets)
+            // Refresh the publication timestamp without invalidating cached compilation tasks.
+            outputs.upToDateWhen { false }
+
+            doLast {
+                val tag = releaseTag.get()
+                require(tag == "v$releaseVersion") { "Release tag must be v$releaseVersion" }
+                // The Shield build emits exactly one ARM32 APK, signed when signing is configured.
+                val artifact = artifactsLoader.load(apkDirectory.get())!!.elements.single()
+                val directory = releaseAssets.get().asFile.apply { mkdirs() }
+                val apk = file(artifact.outputFile).copyTo(directory.resolve("foyer-tv.apk"), overwrite = true)
+                val digest = MessageDigest.getInstance("SHA-256")
+                apk.inputStream().use { input ->
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count == -1) break
+                        digest.update(buffer, 0, count)
+                    }
+                }
+                val sha256 = digest.digest().joinToString("") { "%02x".format(it) }
+                directory.resolve("foyer-tv.apk.sha256").writeText("$sha256  foyer-tv.apk\n")
+                directory.resolve("update.json").writeText(
+                    """
+                    {
+                      "schemaVersion": 1,
+                      "version": "$releaseVersion",
+                      "versionCode": $releaseVersionCode,
+                      "apkUrl": "https://github.com/$updateRepository/releases/download/$tag/foyer-tv.apk",
+                      "sha256": "$sha256",
+                      "size": ${apk.length()},
+                      "publishedAt": "${Instant.now()}"
+                    }
+                    """.trimIndent() + "\n"
+                )
+            }
+        }
+    }
 }

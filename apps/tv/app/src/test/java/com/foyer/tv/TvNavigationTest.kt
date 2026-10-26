@@ -37,6 +37,12 @@ class TvNavigationTest {
 
     @Before
     fun startServer() {
+        // Keep UI tests independent of the public release feed in both build variants.
+        ApplicationProvider.getApplicationContext<FoyerApplication>()
+            .preferences
+            .edit()
+            .putString("foyer.tv-updates.last-check", System.currentTimeMillis().toString())
+            .apply()
         val media = javaClass.getResource("/media-detail.json")!!.readText()
         server.dispatcher =
             object : Dispatcher() {
@@ -107,6 +113,14 @@ class TvNavigationTest {
         compose.waitUntil(10_000) {
             compose.onAllNodesWithText("A show").fetchSemanticsNodes().isNotEmpty()
         }
+        compose.onNodeWithText("Search").select()
+        compose.onNodeWithContentDescription("Search titles").performTextReplacement("A")
+        compose.waitUntil(10_000) {
+            paths.any { it.contains("search=A") } &&
+                compose.onAllNodesWithText("Loading…").fetchSemanticsNodes().isEmpty()
+        }
+        compose.onNodeWithContentDescription("Search titles").assertIsFocused()
+        compose.onNodeWithText("Search").select()
         compose.onNodeWithText("All titles").select()
         compose.onNodeWithText("Unwatched", useUnmergedTree = false).select()
         compose.waitUntil(10_000) {

@@ -48,10 +48,6 @@
         "vitest": "^4.1.12",
       },
     },
-    "apps/tv": {
-      "name": "@foyer/tv",
-      "version": "1.4.1",
-    },
     "packages/contracts": {
       "name": "@foyer/contracts",
       "version": "0.1.0",
@@ -242,8 +238,6 @@
     "@foyer/contracts": ["@foyer/contracts@workspace:packages/contracts"],
 
     "@foyer/query": ["@foyer/query@workspace:packages/query"],
-
-    "@foyer/tv": ["@foyer/tv@workspace:apps/tv"],
 
     "@hono/node-server": ["@hono/node-server@2.1.5", "", { "peerDependencies": { "hono": "^4 || ^5.0.0-0" } }, "sha512-MgP/I06GdvsilDspMk/qmRzpk8LOUStP6jFAbSRi40W09DhoyUn+Mj7eyKICPqeYKybOjVFLVIAQzvu1bfIa7Q=="],
 

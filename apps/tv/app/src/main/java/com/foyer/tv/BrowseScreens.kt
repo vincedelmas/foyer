@@ -323,7 +323,9 @@ fun CollectionScreen(model: AppModel, collectionId: String) {
             items(items, key = { it.id }) { item ->
                 MediaTile(
                     item,
-                    Modifier.preferredFocus(restoring && !library.loading && item.id == focusTarget)
+                    Modifier.preferredFocus(
+                            restoring && !searchOpen && !library.loading && item.id == focusTarget
+                        )
                         .onFocusChanged {
                             if (it.hasFocus) {
                                 focused = item.id
