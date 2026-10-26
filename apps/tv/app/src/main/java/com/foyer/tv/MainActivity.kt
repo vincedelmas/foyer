@@ -14,7 +14,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
@@ -185,20 +189,37 @@ fun FoyerApp(model: AppModel = viewModel()) {
     LaunchedEffect(model.route, model.server, model.revision) {
         if (model.server.isNotEmpty() && model.route == "home") model.updater.checkAutomatically()
     }
-    Column(Modifier.fillMaxSize().background(Palette.background)) {
+    Column(
+        Modifier.fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(Palette.surface, Palette.background, Palette.background)
+                )
+            )
+    ) {
         if (model.server.isEmpty()) {
             ConnectionScreen(model)
         } else {
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 16.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 18.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                androidx.tv.material3.Text(
-                    "foyer",
-                    fontSize = 25.sp,
-                    modifier = Modifier.weight(1f),
-                    color = Palette.primary,
-                )
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    androidx.tv.material3.Text(
+                        "foyer",
+                        fontSize = 30.sp,
+                        fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.Bold,
+                        color = Palette.primary,
+                    )
+                    androidx.tv.material3.Text(
+                        "YOUR HOME CINEMA",
+                        color = Palette.muted,
+                        fontSize = 9.sp,
+                        letterSpacing = 2.sp,
+                    )
+                }
                 TvButton(
                     "Home",
                     selected = model.route == "home",

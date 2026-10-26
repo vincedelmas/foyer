@@ -1,9 +1,11 @@
 package com.foyer.tv
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -125,13 +127,14 @@ fun SettingsScreen(model: AppModel) {
         }
         item {
             Column(
-                Modifier.fillMaxWidth().background(Palette.surface).padding(20.dp),
+                Modifier.fillMaxWidth()
+                    .border(1.dp, Palette.border, RoundedCornerShape(14.dp))
+                    .background(Palette.surface, RoundedCornerShape(14.dp))
+                    .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Heading("App updates")
-                Note(
-                    "Foyer TV ${BuildConfig.VERSION_NAME} · build ${BuildConfig.VERSION_CODE}"
-                )
+                Note("Foyer TV ${BuildConfig.VERSION_NAME} · build ${BuildConfig.VERSION_CODE}")
                 Note(model.updater.description, error = model.updater.status == UpdateStatus.Error)
                 TvButton(
                     if (model.updater.update == null) "Check for updates" else "View update",
@@ -155,7 +158,10 @@ fun SettingsScreen(model: AppModel) {
         }
         items(settings.value?.libraries.orEmpty(), key = { it.id }) { folder ->
             Row(
-                Modifier.fillMaxWidth().background(Palette.surface).padding(16.dp),
+                Modifier.fillMaxWidth()
+                    .border(1.dp, Palette.border, RoundedCornerShape(12.dp))
+                    .background(Palette.surface, RoundedCornerShape(12.dp))
+                    .padding(20.dp),
                 horizontalArrangement = Arrangement.spacedBy(18.dp),
             ) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -168,7 +174,10 @@ fun SettingsScreen(model: AppModel) {
         }
         item {
             Column(
-                Modifier.fillMaxWidth().background(Palette.surface).padding(20.dp),
+                Modifier.fillMaxWidth()
+                    .border(1.dp, Palette.border, RoundedCornerShape(14.dp))
+                    .background(Palette.surface, RoundedCornerShape(14.dp))
+                    .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Heading("Server connection")
@@ -178,7 +187,10 @@ fun SettingsScreen(model: AppModel) {
         item { Heading("Recent scans") }
         items(settings.value?.scans.orEmpty(), key = { "scan-${it.id}" }) { scan ->
             Column(
-                Modifier.fillMaxWidth().background(Palette.surface).padding(16.dp),
+                Modifier.fillMaxWidth()
+                    .border(1.dp, Palette.border, RoundedCornerShape(12.dp))
+                    .background(Palette.surface, RoundedCornerShape(12.dp))
+                    .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(

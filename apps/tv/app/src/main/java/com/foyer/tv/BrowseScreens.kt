@@ -15,7 +15,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -42,52 +44,62 @@ fun Artwork(path: String?, modifier: Modifier, size: String = "w342") {
 
 @Composable
 fun MediaTile(item: Media, modifier: Modifier, onOpen: () -> Unit, onActions: () -> Unit) {
-    Card(onClick = onOpen, onLongClick = onActions, modifier = modifier) {
+    TvCard(onClick = onOpen, onLongClick = onActions, modifier = modifier) {
         Box {
             Artwork(item.posterPath, Modifier.fillMaxWidth().aspectRatio(2f / 3f))
-            if (item.watched)
+            if (item.posterPath == null) {
                 Text(
-                    "✓",
-                    Modifier.align(Alignment.TopEnd)
-                        .padding(7.dp)
-                        .background(Palette.background)
-                        .padding(4.dp),
-                    color = Palette.primary,
-                )
-            else if (item.kind != "movie" && item.unwatchedPartCount != null) {
-                Text(
-                    "${item.unwatchedPartCount} left",
-                    Modifier.align(Alignment.TopEnd)
-                        .padding(7.dp)
-                        .background(Palette.background)
-                        .padding(4.dp),
-                    fontSize = 11.sp,
+                    item.title,
+                    Modifier.align(Alignment.Center).padding(18.dp),
+                    color = Palette.muted,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
-        }
-        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text(
-                item.title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Note(
-                listOfNotNull(
-                        item.year?.toString(),
-                        item.runtimeLabel,
-                        item.tmdbVoteAverage?.let { "★ %.1f".format(it) },
+            Box(
+                Modifier.matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Transparent,
+                                Color.Transparent,
+                                Color.Black.copy(alpha = .65f),
+                            )
+                        )
                     )
-                    .joinToString(" · ")
             )
+            if (item.watched || (item.kind != "movie" && item.unwatchedPartCount != null)) {
+                Text(
+                    if (item.watched) "✓ Watched" else "${item.unwatchedPartCount} left",
+                    Modifier.align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .background(Palette.background.copy(alpha = .92f), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 7.dp, vertical = 4.dp),
+                    color = if (item.watched) Palette.primary else Palette.text,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+            item.tmdbVoteAverage?.let { rating ->
+                Text(
+                    "★ %.1f".format(rating),
+                    Modifier.align(Alignment.BottomStart).padding(10.dp),
+                    color = Palette.primary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
             item.progress
                 ?.takeUnless { it.completed }
                 ?.let { progress ->
-                    Note(
-                        "Resume · ${progress.percentage.toInt()}%${item.nextPartTitle?.let { " · $it" } ?: ""}"
-                    )
-                    Box(Modifier.fillMaxWidth().height(3.dp).background(Palette.border)) {
+                    Box(
+                        Modifier.align(Alignment.BottomStart)
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .background(Palette.border)
+                    ) {
                         Box(
                             Modifier.fillMaxWidth(
                                     (progress.percentage / 100).toFloat().coerceIn(0f, 1f)
@@ -97,6 +109,37 @@ fun MediaTile(item: Media, modifier: Modifier, onOpen: () -> Unit, onActions: ()
                         )
                     }
                 }
+        }
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text(
+                item.title,
+                fontSize = 15.sp,
+                lineHeight = 19.sp,
+                fontWeight = FontWeight.SemiBold,
+                minLines = 2,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                listOfNotNull(item.year?.toString(), item.runtimeLabel).joinToString(" · "),
+                color = Palette.muted,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                item.progress
+                    ?.takeUnless { it.completed }
+                    ?.let {
+                        "Resume · ${it.percentage.toInt()}%${item.nextPartTitle?.let { title -> " · $title" } ?: ""}"
+                    }
+                    ?: if (item.kind == "movie") "Movie"
+                    else "TV show · ${item.partCount} episodes",
+                color = if (item.progress?.completed == false) Palette.primary else Palette.muted,
+                fontSize = 11.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -116,7 +159,7 @@ fun HomeScreen(model: AppModel) {
                 folders.value.orEmpty().any { it.id == id }
         } ?: first
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(145.dp),
+        columns = GridCells.Adaptive(130.dp),
         state = rememberLazyGridState(),
         contentPadding = PaddingValues(start = 32.dp, end = 32.dp, top = 12.dp, bottom = 36.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp),
@@ -125,7 +168,8 @@ fun HomeScreen(model: AppModel) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Heading("Currently watching", "PICK UP WHERE YOU LEFT OFF")
         }
-        item(span = { GridItemSpan(maxLineSpan) }) { LoadNotice(watching) }
+        if (watching.loading || watching.error != null)
+            item(span = { GridItemSpan(maxLineSpan) }) { LoadNotice(watching) }
         if (watching.value?.isEmpty() == true)
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Note("Nothing in progress. Start a title and it will appear here automatically.")
@@ -146,12 +190,16 @@ fun HomeScreen(model: AppModel) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Heading("My media", "YOUR SHELVES")
-                Note("Hold Select on a title or collection for options.")
+                Note("Hold Select on a title or collection, then release for options.")
                 LoadNotice(folders)
             }
         }
-        items(folders.value.orEmpty(), key = { "folder-${it.id}" }) { folder ->
-            Card(
+        items(
+            folders.value.orEmpty(),
+            key = { "folder-${it.id}" },
+            span = { GridItemSpan(minOf(2, maxLineSpan)) },
+        ) { folder ->
+            TvCard(
                 onClick = { model.navigate("collection/${folder.id}") },
                 onLongClick = { dialogs.current = Overlay.CollectionMenu(folder) },
                 modifier =
@@ -163,12 +211,31 @@ fun HomeScreen(model: AppModel) {
                             }
                         },
             ) {
-                Row(Modifier.fillMaxWidth().height(100.dp)) {
-                    folder.posterPaths.take(3).forEach {
-                        Artwork(it, Modifier.weight(1f).fillMaxHeight())
+                Box(Modifier.fillMaxWidth().height(132.dp).background(Palette.raised)) {
+                    Row(Modifier.matchParentSize()) {
+                        folder.posterPaths.take(3).forEach {
+                            Artwork(it, Modifier.weight(1f).fillMaxHeight())
+                        }
                     }
+                    Box(
+                        Modifier.matchParentSize()
+                            .background(
+                                Brush.verticalGradient(listOf(Color.Transparent, Palette.surface))
+                            )
+                    )
+                    Text(
+                        if (folder.kind == "movies") "MOVIES" else "TV SHOWS",
+                        Modifier.align(Alignment.BottomStart).padding(14.dp),
+                        color = Palette.primary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp,
+                    )
                 }
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Column(
+                    Modifier.padding(start = 14.dp, end = 14.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
                     Text(folder.name, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Note(
                         "${folder.titleCount} titles · ${if (folder.kind == "movies") "Movies" else "TV shows"}"
@@ -313,7 +380,7 @@ fun CollectionScreen(model: AppModel, collectionId: String) {
             LoadNotice(library)
         }
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(145.dp),
+            columns = GridCells.Adaptive(130.dp),
             state = grid,
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(32.dp),
@@ -416,19 +483,57 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            Box(Modifier.fillMaxWidth()) {
+            Box(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.surface)
+            ) {
                 item.backdropPath?.let {
-                    Artwork(it, Modifier.fillMaxWidth().height(285.dp), "w1280")
+                    Artwork(it, Modifier.matchParentSize(), "w1280")
                 }
+                Box(
+                    Modifier.matchParentSize()
+                        .background(
+                            Brush.horizontalGradient(
+                                0f to Palette.background.copy(alpha = .98f),
+                                .6f to Palette.background.copy(alpha = .9f),
+                                1f to Palette.background.copy(alpha = .65f),
+                            )
+                        )
+                )
+                Box(
+                    Modifier.matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Palette.background.copy(alpha = .6f))
+                            )
+                        )
+                )
                 Row(
-                    Modifier.fillMaxWidth()
-                        .background(Palette.background.copy(alpha = .88f))
-                        .padding(22.dp),
+                    Modifier.fillMaxWidth().padding(28.dp),
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
-                    Artwork(item.posterPath, Modifier.width(135.dp).height(202.dp), "w500")
+                    Artwork(
+                        item.posterPath,
+                        Modifier.width(142.dp).height(213.dp).clip(RoundedCornerShape(10.dp)),
+                        "w500",
+                    )
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Heading(item.title, if (item.kind == "movie") "MOVIE" else "TV SHOW")
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                if (item.kind == "movie") "MOVIE" else "TV SHOW",
+                                color = Palette.primary,
+                                fontSize = 11.sp,
+                                letterSpacing = 2.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                item.title,
+                                fontSize = 34.sp,
+                                lineHeight = 39.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                         Note(
                             listOfNotNull(
                                     item.year?.toString(),
@@ -446,6 +551,7 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
                             Text(
                                 it,
                                 fontSize = 14.sp,
+                                lineHeight = 21.sp,
                                 maxLines = 4,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -461,6 +567,7 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
                                         "Resume · ${item.progress.percentage.toInt()}%"
                                     else "Play",
                                     Modifier.preferredFocus(),
+                                    primary = true,
                                     onClick = { play(item.id, partId) },
                                 )
                             }
@@ -514,7 +621,10 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
             }
             items(item.parts, key = { it.id }) { part ->
                 Column(
-                    Modifier.fillMaxWidth().background(Palette.surface).padding(14.dp),
+                    Modifier.fillMaxWidth()
+                        .border(1.dp, Palette.border, RoundedCornerShape(12.dp))
+                        .background(Palette.surface, RoundedCornerShape(12.dp))
+                        .padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(part.displayTitle, fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -570,23 +680,47 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
                         item.cast.forEach { person ->
                             var focused by remember { mutableStateOf(false) }
                             Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                colors =
+                                    SurfaceDefaults.colors(
+                                        containerColor = Palette.surface,
+                                        contentColor = Palette.text,
+                                    ),
                                 modifier =
-                                    Modifier.width(100.dp)
+                                    Modifier.width(110.dp)
                                         .onFocusChanged { focused = it.hasFocus }
                                         .border(
                                             2.dp,
                                             if (focused) Palette.primary else Color.Transparent,
                                             RoundedCornerShape(8.dp),
                                         )
-                                        .focusable()
+                                        .focusable(),
                             ) {
                                 Column {
                                     Artwork(
                                         person.profilePath,
                                         Modifier.fillMaxWidth().height(120.dp),
                                     )
-                                    Text(person.name, fontSize = 13.sp, maxLines = 2)
-                                    Note(person.character.ifBlank { "Cast" })
+                                    Column(
+                                        Modifier.padding(10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    ) {
+                                        Text(
+                                            person.name,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            minLines = 2,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                        Text(
+                                            person.character.ifBlank { "Cast" },
+                                            color = Palette.muted,
+                                            fontSize = 11.sp,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
                                 }
                             }
                         }

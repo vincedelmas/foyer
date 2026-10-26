@@ -1,7 +1,9 @@
 package com.foyer.tv
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -9,8 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.tv.material3.Surface
-import androidx.tv.material3.Text
+import androidx.tv.material3.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -63,6 +64,7 @@ fun AppDialogs(
                     val episode = item.kind != "movie" && item.nextPartId != null
                     TvButton(
                         if (episode) "Remove episode progress" else "Remove watch progress",
+                        modifier = Modifier.fillMaxWidth(),
                         enabled = !model.busy,
                     ) {
                         model.action(close) {
@@ -75,21 +77,29 @@ fun AppDialogs(
                 }
                 TvButton(
                     "Identify",
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = !model.busy,
                     onClick = { controller.current = Overlay.Identify(item) },
                 )
                 TvButton(
                     "Media info",
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = !model.busy,
                     onClick = { controller.current = Overlay.Info(item) },
                 )
                 TvButton(
                     "Refresh metadata",
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = !model.busy && item.metadataStatus != "unmatched",
                 ) {
                     model.action(close) { model.api.refresh(item.id) }
                 }
-                TvButton("Delete media from server", danger = true, enabled = !model.busy) {
+                TvButton(
+                    "Delete media from server",
+                    Modifier.fillMaxWidth(),
+                    danger = true,
+                    enabled = !model.busy,
+                ) {
                     controller.current =
                         Overlay.Confirm(
                             "Delete “${item.title}” permanently?",
@@ -107,19 +117,25 @@ fun AppDialogs(
                 Note("${if (folder.kind == "movies") "Movies" else "TV shows"} · ${folder.path}")
                 TvButton(
                     "Edit collection",
-                    Modifier.preferredFocus(),
+                    Modifier.fillMaxWidth().preferredFocus(),
                     enabled = !model.busy,
                     onClick = { controller.current = Overlay.EditCollection(folder) },
                 )
                 TvButton(
                     "Rescan media folder",
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = !model.busy,
                     onClick = { model.scanCollection(folder.id, close) },
                 )
-                TvButton("Refresh all metadata", enabled = !model.busy) {
+                TvButton("Refresh all metadata", Modifier.fillMaxWidth(), enabled = !model.busy) {
                     model.action(close) { model.api.refresh(folder.id, collection = true) }
                 }
-                TvButton("Delete collection", danger = true, enabled = !model.busy) {
+                TvButton(
+                    "Delete collection",
+                    Modifier.fillMaxWidth(),
+                    danger = true,
+                    enabled = !model.busy,
+                ) {
                     controller.current =
                         Overlay.Confirm(
                             "Delete “${folder.name}”?",
@@ -242,6 +258,23 @@ private fun IdentifyDialog(model: AppModel, item: Media, close: () -> Unit) {
                 onClick = { model.action(close) { model.api.identify(item.id, candidate.id) } },
                 enabled = !model.busy,
                 modifier = Modifier.fillMaxWidth(),
+                shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(12.dp)),
+                colors =
+                    ClickableSurfaceDefaults.colors(
+                        containerColor = Palette.raised,
+                        contentColor = Palette.text,
+                        focusedContainerColor = Palette.raised,
+                        focusedContentColor = Palette.text,
+                    ),
+                scale = ClickableSurfaceDefaults.scale(focusedScale = 1.02f),
+                border =
+                    ClickableSurfaceDefaults.border(
+                        focusedBorder =
+                            Border(
+                                BorderStroke(2.dp, Palette.primary),
+                                shape = RoundedCornerShape(12.dp),
+                            )
+                    ),
             ) {
                 Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Artwork(candidate.posterPath, Modifier.width(75.dp).height(112.dp))

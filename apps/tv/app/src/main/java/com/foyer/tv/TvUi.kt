@@ -1,5 +1,7 @@
 package com.foyer.tv
 
+import android.view.KeyEvent as AndroidKeyEvent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -9,18 +11,21 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -33,7 +38,7 @@ object Palette {
     val surface = Color(0xff1d1b18)
     val raised = Color(0xff28241f)
     val text = Color(0xfff1ece2)
-    val muted = Color(0xffa59d91)
+    val muted = Color(0xffbeb5a7)
     val primary = Color(0xffe69a37)
     val primaryText = Color(0xff21170d)
     val border = Color(0xff3a342c)
@@ -54,8 +59,22 @@ fun FoyerTheme(content: @Composable () -> Unit) {
                 surfaceVariant = Palette.raised,
                 onSurfaceVariant = Palette.muted,
                 error = Palette.danger,
+                border = Palette.border,
+                borderVariant = Palette.primary,
             ),
-        content = content,
+        content = {
+            // A color scheme alone does not set Text's inherited content color.
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                colors =
+                    SurfaceDefaults.colors(
+                        containerColor = Palette.background,
+                        contentColor = Palette.text,
+                    ),
+            ) {
+                content()
+            }
+        },
     )
 }
 
@@ -78,6 +97,7 @@ fun TvButton(
     enabled: Boolean = true,
     selected: Boolean = false,
     danger: Boolean = false,
+    primary: Boolean = false,
     onClick: () -> Unit,
 ) {
     Button(
@@ -86,24 +106,100 @@ fun TvButton(
         enabled = enabled,
         colors =
             ButtonDefaults.colors(
-                containerColor = if (selected) Palette.primary else Palette.raised,
+                containerColor = if (selected || primary) Palette.primary else Palette.raised,
                 contentColor =
-                    if (selected) Palette.primaryText
+                    if (selected || primary) Palette.primaryText
                     else if (danger) Palette.danger else Palette.text,
                 focusedContainerColor = if (danger) Palette.danger else Palette.text,
                 focusedContentColor = Palette.background,
             ),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp),
+        shape = ButtonDefaults.shape(shape = RoundedCornerShape(10.dp)),
+        scale = ButtonDefaults.scale(focusedScale = 1.04f),
+        border =
+            ButtonDefaults.border(
+                border =
+                    Border(BorderStroke(1.dp, Palette.border), shape = RoundedCornerShape(10.dp)),
+                focusedBorder =
+                    Border(BorderStroke(2.dp, Palette.primary), shape = RoundedCornerShape(10.dp)),
+            ),
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 11.dp),
     ) {
-        Text(label, fontSize = 13.sp)
+        Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
 }
+
+// Keep the whole Select gesture on the card. Opening a new focus window while
+// Select is held sends its remaining repeats/release to the first menu button.
+@Composable
+fun TvCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    onLongClick: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    var heldKey by remember { mutableStateOf<Int?>(null) }
+    var longPress by remember { mutableStateOf(false) }
+    Card(
+        onClick = onClick,
+        onLongClick = onLongClick,
+        modifier =
+            modifier
+                .onFocusChanged { if (!it.hasFocus) heldKey = null }
+                .onPreviewKeyEvent { event ->
+                    val key = event.nativeKeyEvent
+                    if (!key.isSelect) return@onPreviewKeyEvent false
+                    when (key.action) {
+                        AndroidKeyEvent.ACTION_DOWN -> {
+                            if (key.repeatCount == 0) {
+                                heldKey = key.keyCode
+                                longPress = false
+                            } else if (heldKey == key.keyCode) longPress = true
+                        }
+                        AndroidKeyEvent.ACTION_UP -> {
+                            if (heldKey == key.keyCode) {
+                                heldKey = null
+                                if (!key.isCanceled) {
+                                    if (longPress) onLongClick() else onClick()
+                                }
+                            }
+                        }
+                    }
+                    true
+                },
+        shape = CardDefaults.shape(shape = RoundedCornerShape(12.dp)),
+        colors =
+            CardDefaults.colors(
+                containerColor = Palette.surface,
+                contentColor = Palette.text,
+                focusedContainerColor = Palette.raised,
+                focusedContentColor = Palette.text,
+            ),
+        scale = CardDefaults.scale(focusedScale = if (heldKey != null) 1.015f else 1.035f),
+        border =
+            CardDefaults.border(
+                border =
+                    Border(
+                        BorderStroke(1.dp, Palette.border.copy(alpha = .55f)),
+                        shape = RoundedCornerShape(12.dp),
+                    ),
+                focusedBorder =
+                    Border(BorderStroke(2.dp, Palette.primary), shape = RoundedCornerShape(12.dp)),
+            ),
+        content = content,
+    )
+}
+
+private val AndroidKeyEvent.isSelect: Boolean
+    get() =
+        keyCode == AndroidKeyEvent.KEYCODE_DPAD_CENTER ||
+            keyCode == AndroidKeyEvent.KEYCODE_ENTER ||
+            keyCode == AndroidKeyEvent.KEYCODE_NUMPAD_ENTER
 
 @Composable
 fun Heading(text: String, eyebrow: String? = null) {
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         eyebrow?.let { Text(it, color = Palette.primary, fontSize = 11.sp, letterSpacing = 1.sp) }
-        Text(text, fontSize = 27.sp, fontWeight = FontWeight.Bold)
+        Text(text, fontSize = 28.sp, fontWeight = FontWeight.Bold, lineHeight = 34.sp)
     }
 }
 
@@ -114,6 +210,7 @@ fun Note(text: String, modifier: Modifier = Modifier, error: Boolean = false) {
         modifier = modifier,
         color = if (error) Palette.danger else Palette.muted,
         fontSize = 13.sp,
+        lineHeight = 19.sp,
     )
 }
 
@@ -158,29 +255,57 @@ fun TvDialog(
     busy: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    var heldSelect by remember { mutableStateOf<Int?>(null) }
     Dialog(
         onDismissRequest = { if (!busy) onClose() },
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Column(
-            Modifier.fillMaxWidth(0.86f)
-                .fillMaxHeight(0.9f)
+            Modifier.widthIn(max = 680.dp)
+                .fillMaxWidth(0.88f)
+                .heightIn(max = 460.dp)
+                .onPreviewKeyEvent { event ->
+                    val key = event.nativeKeyEvent
+                    if (!key.isSelect) return@onPreviewKeyEvent false
+                    // TV Material buttons accept orphan key-up events as clicks.
+                    // Require a fresh press inside this dialog before accepting one.
+                    when (key.action) {
+                        AndroidKeyEvent.ACTION_DOWN -> {
+                            if (key.repeatCount == 0) heldSelect = key.keyCode
+                            heldSelect != key.keyCode
+                        }
+                        AndroidKeyEvent.ACTION_UP -> {
+                            val accept = heldSelect == key.keyCode && !key.isCanceled
+                            heldSelect = null
+                            !accept
+                        }
+                        else -> false
+                    }
+                }
+                .border(1.dp, Palette.border, RoundedCornerShape(14.dp))
                 .background(Palette.surface, RoundedCornerShape(14.dp))
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
                     title,
                     fontSize = 21.sp,
                     fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(Modifier.width(16.dp))
                 TvButton("Close", enabled = !busy, onClick = onClose)
             }
+            Box(Modifier.fillMaxWidth().height(1.dp).background(Palette.border))
             Column(
-                Modifier.weight(1f)
+                Modifier.weight(1f, fill = false)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(4.dp),

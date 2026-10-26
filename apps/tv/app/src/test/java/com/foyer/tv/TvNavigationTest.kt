@@ -1,6 +1,11 @@
 package com.foyer.tv
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.os.SystemClock
+import android.view.KeyEvent as AndroidKeyEvent
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
@@ -25,6 +30,7 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.LooperMode
+import org.robolectric.shadows.ShadowDialog
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [30], qualifiers = "w960dp-h540dp-land")
@@ -34,6 +40,7 @@ class TvNavigationTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
     private val server = MockWebServer()
     private val paths = CopyOnWriteArrayList<String>()
+    private val mutations = CopyOnWriteArrayList<String>()
 
     @Before
     fun startServer() {
@@ -48,6 +55,7 @@ class TvNavigationTest {
             object : Dispatcher() {
                 override fun dispatch(request: RecordedRequest): MockResponse {
                     paths.add(request.path!!)
+                    if (request.method != "GET") mutations.add("${request.method} ${request.path}")
                     return MockResponse()
                         .setBody(
                             when {
@@ -182,6 +190,104 @@ class TvNavigationTest {
         assertEquals("episode-2", options.getValue("startPartId").jsonPrimitive.content)
         assertEquals(3, options.getValue("parts").jsonArray.size)
         assertTrue(paths.contains("/api/v1/media/show"))
+    }
+
+    @Test
+    fun `screen headings render light text on the dark background`() {
+        connect()
+        val heading = compose.onNodeWithText("My media").fetchSemanticsNode().boundsInWindow
+        lateinit var bitmap: Bitmap
+        compose.runOnIdle {
+            val view = compose.activity.window.decorView
+            bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+            view.draw(Canvas(bitmap))
+        }
+        assertTrue(
+            (heading.left.toInt() until heading.right.toInt()).any { x ->
+                (heading.top.toInt() until heading.bottom.toInt()).any { y ->
+                    val color = bitmap.getPixel(x, y)
+                    Color.red(color) > 200 && Color.green(color) > 200 && Color.blue(color) > 180
+                }
+            }
+        )
+    }
+
+    @Test
+    fun `holding Select opens options on release and does not activate the first action`() {
+        connect()
+        compose.onNodeWithText("My collection").select()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("A show").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("A show").performSemanticsAction(SemanticsActions.RequestFocus) {
+            it()
+        }
+        val downTime = SystemClock.uptimeMillis()
+        compose.runOnIdle {
+            compose.activity.dispatchKeyEvent(
+                AndroidKeyEvent(
+                    downTime,
+                    downTime,
+                    AndroidKeyEvent.ACTION_DOWN,
+                    AndroidKeyEvent.KEYCODE_DPAD_CENTER,
+                    0,
+                )
+            )
+            compose.activity.dispatchKeyEvent(
+                AndroidKeyEvent(
+                    downTime,
+                    downTime + 600,
+                    AndroidKeyEvent.ACTION_DOWN,
+                    AndroidKeyEvent.KEYCODE_DPAD_CENTER,
+                    1,
+                )
+            )
+        }
+        compose.onNodeWithText("Mark as watched").assertDoesNotExist()
+        compose.runOnIdle {
+            compose.activity.dispatchKeyEvent(
+                AndroidKeyEvent(
+                    downTime,
+                    downTime + 700,
+                    AndroidKeyEvent.ACTION_UP,
+                    AndroidKeyEvent.KEYCODE_DPAD_CENTER,
+                    0,
+                )
+            )
+        }
+        compose.onNodeWithText("Mark as watched").assertIsFocused()
+        val dialog = ShadowDialog.getLatestDialog()
+        // Some remotes send more repeats or an extra release after focus changes.
+        compose.runOnIdle {
+            dialog.dispatchKeyEvent(
+                AndroidKeyEvent(
+                    downTime,
+                    downTime + 750,
+                    AndroidKeyEvent.ACTION_DOWN,
+                    AndroidKeyEvent.KEYCODE_DPAD_CENTER,
+                    2,
+                )
+            )
+            dialog.dispatchKeyEvent(
+                AndroidKeyEvent(
+                    downTime,
+                    downTime + 800,
+                    AndroidKeyEvent.ACTION_UP,
+                    AndroidKeyEvent.KEYCODE_DPAD_CENTER,
+                    0,
+                )
+            )
+        }
+        compose.onNodeWithText("Mark as watched").assertIsFocused()
+        assertTrue(mutations.isEmpty())
+        compose.onNodeWithText("Mark as watched").select()
+        compose.waitUntil(10_000) { mutations.contains("PUT /api/v1/media/show") }
+        compose.onNodeWithText("Mark as watched").assertDoesNotExist()
+        // A second short press on the card must still open the detail screen.
+        compose.onNodeWithText("A show").select()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("Episodes").fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     private fun connect() {
