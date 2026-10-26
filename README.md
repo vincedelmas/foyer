@@ -1,25 +1,33 @@
 # Foyer
 
-**Your media, at home.**
+Your movies and TV shows, at home.
+I made Foyer for my own home network. Add your media folders. Let it find the posters. Then watch your files in a browser or on Android TV.
 
-Foyer is the home media server I wanted for myself: point it at a few folders, let it find the artwork, and watch the original files from a browser or Android TV.
+## About the code
 
-It is intentionally small and opinionated. There are no accounts, plugins, live TV, sharing features, or server-side transcoding. If you need a full Plex or Jellyfin replacement, this probably is not it. If you want a simple direct-play library for a trusted home network, it may be useful to you too.
+- The web app was built with help from AI agents.
+- The Android TV app was fully vibe coded with **gpt-6.1-sol**.
+
+I want to be clear about how this project was made.
 
 ## What it does
 
-- Scans movie, series, and anime folders into separate collections
-- Matches titles against TMDB, with manual identify and refresh tools when a match is wrong
-- Streams the original files with HTTP range support for seeking
-- Remembers playback position and watched status
-- Finds external SRT, VTT, ASS, and SSA subtitles next to a video
-- Provides a web app and a D-pad-friendly Android TV app
-- Shows detailed codec and stream information when `ffprobe` is available
-- Can permanently delete a title's source files, but only after explicit confirmation
+- Movies, TV shows, and anime collections.
+- Posters and title details from TMDB.
+- Manual search when Foyer finds the wrong title.
+- Watch progress and watched status.
+- SRT, VTT, ASS, and SSA subtitles.
+- Collection scans and media file details.
+- File deletion, with a confirmation first.
 
-## Getting started
+Foyer plays the original files. It does not convert video or audio on the server. Your device needs to support the file format.
+There are no accounts, plugins, live TV, or sharing features. This is a small app for home use.
 
-You need [Bun 1.4 or newer](https://bun.sh/). A [TMDB v4 read access token](https://www.themoviedb.org/settings/api) is optional, but without one Foyer cannot download titles, posters, or other metadata.
+**Use it on your local network. There is no login. Do not expose it to the public internet.**
+
+## Start the server
+
+You need [Bun 1.4 or newer](https://bun.sh/).
 
 ```bash
 git clone https://github.com/vincedelmas/foyer.git
@@ -29,138 +37,92 @@ bun install
 bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), go to **Settings**, add an absolute path from the machine running Foyer, and scan it. SQLite data is stored in `./data/foyer.sqlite` by default, and migrations run automatically.
+Open [http://localhost:3000](http://localhost:3000).
 
-For optional stream inspection and Android TV compatibility remuxing, install FFmpeg so that both `ffmpeg` and `ffprobe` are on your `PATH`.
+Go to **Settings**. Add a folder path from the machine running Foyer.
+Use a full path, like `/srv/media/movies`. Then scan the folder.
+For posters and title details, add a [TMDB read access token](https://www.themoviedb.org/settings/api) to `.env`:
 
-### Configuration
-
-The defaults in `.env.example` are enough for a local setup.
-
-| Variable | What it changes |
-| --- | --- |
-| `TMDB_READ_ACCESS_TOKEN` | Enables automatic and manual TMDB matching |
-| `FOYER_DATABASE_PATH` | SQLite database path; defaults to `./data/foyer.sqlite` |
-| `FOYER_CACHE_PATH` | Cache used for Android TV AVI remuxes; defaults to `./data/cache` |
-| `FOYER_CORS_ORIGIN` | Allows one separate browser origin; the built-in web app and TV app do not need it |
-| `HOST` | Production bind address; defaults to `0.0.0.0` |
-| `PORT` | Production port; defaults to `3000` |
-
-## Organizing media
-
-Movies can be flat or placed in their own folders. Including the release year gives TMDB a better chance of finding the right title.
-
-```text
-/media/movies/
-  Perfect Days.2023.mkv
-  Dune Part Two (2024)/Dune.Part.Two.2024.mp4
+```dotenv
+TMDB_READ_ACCESS_TOKEN=your_token
 ```
 
-For series, a top-level folder per show is the clearest layout:
+You can use Foyer without this token. It will not download TMDB data.
+
+Install FFmpeg if you want file details and AVI playback support on the TV.
+Foyer needs both `ffmpeg` and `ffprobe` in your `PATH`.
+AVI support changes the file container, but does not convert the video or audio.
+
+The database is saved in `data/foyer.sqlite`. See [.env.example](.env.example) for the other settings.
+
+## Name your files
+
+Put movies in one folder or in their own folders. Add the year when you can.
 
 ```text
-/media/series/The Bear/
-  Season 03/The.Bear.S03E01.Tomorrow.mkv
-  Season 03/The.Bear.S03E02.Next.mkv
+/media/movies/Perfect Days.2023.mkv
+/media/movies/Dune Part Two (2024)/Dune.Part.Two.2024.mp4
 ```
 
-Flat series folders work too, as long as the show name and episode marker are present in each filename:
+For TV shows, use the show name and episode number.
 
 ```text
-/media/series/
-  The.Bear.S03E01.Tomorrow.mkv
-  The.Bear.S03E02.Next.mkv
+/media/series/The Bear/Season 03/The.Bear.S03E01.mkv
 ```
 
-Foyer recognizes `S01E02`, `1x02`, and common anime names ending in ` - 02`.
-
-External subtitles belong beside the video and must start with the same filename stem:
+Foyer also reads episode names like `1x02` and anime names ending in ` - 02`.
+Put subtitle files next to the video. Start with the same file name.
 
 ```text
-The.Bear.S03E01.Tomorrow.mkv
-The.Bear.S03E01.Tomorrow.en.srt
-The.Bear.S03E01.Tomorrow.fr.default.ass
+The.Bear.S03E01.mkv
+The.Bear.S03E01.en.srt
+The.Bear.S03E01.fr.default.ass
 ```
-
-SRT, VTT, ASS, and SSA files are supported. Browser playback receives WebVTT; the Android TV client keeps ASS/SSA styling through libass. Embedded subtitle tracks are played by compatible clients but are not extracted into separate files.
-
-## Direct play and format support
-
-Foyer does not transcode video or audio. That keeps the server simple, but the device doing the playback must understand the file.
-
-- Browsers are most reliable with MP4 containing H.264 and AAC. HEVC support depends on the browser and operating system, and MKV support varies considerably.
-- The Android TV player uses AndroidX Media3 (ExoPlayer), hardware video decoding, a local FFmpeg audio decoder fallback for formats such as AC3, E-AC3, and DTS, and libass for styled subtitles.
-- AVI files requested by the TV app can be remuxed to MKV with FFmpeg. This is a cached stream copy, not a video or audio transcode.
-- A file may scan successfully even when the current playback device cannot decode it.
 
 ## Android TV
 
-The TV app lives in `apps/tv` and is a standalone Kotlin / Jetpack Compose for TV app for the **NVIDIA Shield TV 2019 Tube** (Android 11, 32-bit ARM). It packages only `armeabi-v7a`; there is no React Native, Expo, JavaScript runtime, or prebuild step. On first launch, enter the Foyer server's LAN address, for example `http://192.168.1.10:3000`.
+The TV app is made for the **NVIDIA Shield TV 2019 Tube**. It needs Android 11. The APK is **32-bit ARM only**.
+Download `foyer-tv.apk` from [Releases](https://github.com/vincedelmas/foyer/releases).
 
-Install JDK 17 and the Android SDK (platform 36 and build tools 35.0.0), then set `JAVA_HOME` and `ANDROID_HOME` or configure them in Android Studio. Build and install a development APK on a connected Shield:
+Install it on your TV. On first launch, enter the server's local address. For example: `http://192.168.1.10:3000`.
+You can get the next version from **Settings → App updates**. Updates use Android's install screen.
+
+The app was created in Kotlin and Compose for TV.
+To build it yourself, install JDK 17 and the Android SDK.
+You need platform 36 and build tools 35.0.0. Set `JAVA_HOME` and `ANDROID_HOME`.
 
 ```bash
 cd apps/tv
 ./gradlew installDebug
 ```
 
-Development installs use `com.foyer.tv.debug` so they can coexist with the permanently signed app. The APK is in `app/build/outputs/apk/debug/app-debug.apk`.
+This installs a separate dev app. For release builds and signing, see the [TV release guide](docs/android-tv-releases.md).
+More TV details: [features and device checks](docs/android-tv-native.md), [third-party licenses](apps/tv/THIRD_PARTY_NOTICES.md).
 
-Build a release APK with:
-
-```bash
-cd apps/tv
-./gradlew assembleRelease
-```
-
-Without signing environment variables, this produces `app/build/outputs/apk/release/app-release-unsigned.apk`. Signed builds use the existing `com.foyer.tv` application ID and release key, and can upgrade the RN app in place. The first native launch imports the saved server address, collection watched filters, and update preferences from its AsyncStorage database.
-
-Run Android checks with `./gradlew testDebugUnitTest lintDebug` from `apps/tv`. The TV build and release packaging use only Gradle and the JDK; they do not require Bun, Node.js, or npm. See the [feature parity and device verification checklist](docs/android-tv-native.md) before publishing a migration release.
-
-The repository also includes a GitHub Actions workflow for permanently signed release APKs and in-app updates. The one-time signing setup is documented in the [Android TV release guide](docs/android-tv-releases.md). Native playback licenses and source links are listed in [third-party notices](apps/tv/THIRD_PARTY_NOTICES.md).
-
-## Running a production build
+## Run a production build
 
 ```bash
 bun run build
 bun run start
 ```
 
-The build produces browser assets in `dist/client`, the TanStack Start handler in `dist/server`, and a bundled Bun entry at `dist/server.js`. A minimal deployment needs `dist`, `drizzle`, and Bun. FFmpeg/ffprobe remain optional.
+The server uses port `3000` by default.
 
-For example, with PM2:
+## Checks
 
-```bash
-pm2 start dist/server.js --name foyer --interpreter bun
-```
-
-## Development
-
-The main pieces are a TanStack Start/React web app, a Bun server, SQLite with Drizzle, shared Zod contracts, and a native Kotlin Android TV client. The Kotlin API models mirror `packages/contracts`; the web client continues to use the shared TypeScript API/query packages.
-
-Useful commands:
+Web and server:
 
 ```bash
-bun run test          # Vitest suite
-bun run typecheck     # web and server TypeScript
-bun run lint          # Oxlint
-bun run db:studio     # inspect the SQLite database
-bun run verify       # web/server checks plus a production build
+bun run typecheck
+bun run lint
+bun run test
 ```
 
-If you change `src/server/db/schema.ts`, generate and apply a migration with:
+Android TV:
 
 ```bash
-bun run db:generate
-bun run db:migrate
+cd apps/tv
+./gradlew testReleaseUnitTest lintRelease
 ```
 
-The versioned JSON API is under `/api/v1`. Its schemas and the web client live in `packages/contracts` and `packages/query`; the TV client implements the same JSON contracts in Kotlin.
-
-## Security
-
-Foyer has no authentication and assumes it is running on a trusted home network. Do not expose it directly to the public internet. Use an authenticated reverse proxy or a VPN if you need remote access.
-
-`FOYER_CORS_ORIGIN` accepts one exact browser origin. Wildcard origins are deliberately ignored.
-
-Foyer uses the TMDB API but is not endorsed or certified by TMDB.
+Foyer uses the TMDB API. TMDB does not endorse or certify this project.
