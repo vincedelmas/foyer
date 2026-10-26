@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.4.2](https://github.com/vincedelmas/foyer/compare/v1.4.1...v1.4.2) (2026-10-26)
+
+
+### Bug Fixes
+
+* **tv:** remove React Native leftovers and clean up native app ([b93cbd1](https://github.com/vincedelmas/foyer/commit/b93cbd1ab2098123fdd6dc22ec76163070594fd5))
+
+
+### Refactors
+
+* **tv:** make the Android toolchain Gradle-only ([2c22ba1](https://github.com/vincedelmas/foyer/commit/2c22ba1ee7680034e92d5437d61b98e89de78f0d))
+
+
+### Documentation
+
+* simplify README and disclose AI use ([95749ac](https://github.com/vincedelmas/foyer/commit/95749ac5aa649959ae88da495310cf251e14e916))
+
 ## [1.4.1](https://github.com/vincedelmas/foyer/compare/v1.4.0...v1.4.1) (2026-10-24)
 
 
