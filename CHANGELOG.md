@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/vincedelmas/foyer/compare/v1.5.0...v1.5.1) (2026-10-26)
+
+
+### Bug Fixes
+
+* **tv:** refine episode layouts and cached navigation ([1031104](https://github.com/vincedelmas/foyer/commit/10311047e4b4af2aa589740dbde0e0e6267ea227))
+
 ## [1.5.0](https://github.com/vincedelmas/foyer/compare/v1.4.2...v1.5.0) (2026-10-26)
 
 
