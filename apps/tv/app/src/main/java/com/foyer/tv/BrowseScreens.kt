@@ -55,6 +55,8 @@ fun MediaTile(
     onOpen: () -> Unit,
     onActions: () -> Unit,
 ) {
+    val resume = item.progress?.takeIf { it.positionSeconds > 0 && !it.completed }
+    val metadata = listOfNotNull(item.year?.toString(), item.runtimeLabel).joinToString(" · ")
     TvCard(onClick = onOpen, onLongClick = onActions, modifier = modifier) {
         Box {
             Artwork(
@@ -62,6 +64,7 @@ fun MediaTile(
                 Modifier.fillMaxWidth()
                     .aspectRatio(if (wide) 16f / 9f else 2f / 3f)
                     .clip(RoundedCornerShape(8.dp)),
+                size = if (wide && item.backdropPath != null) "w780" else "w342",
             )
             if (item.posterPath == null && (!wide || item.backdropPath == null)) {
                 Text(
@@ -107,24 +110,12 @@ fun MediaTile(
                     fontWeight = FontWeight.Bold,
                 )
             }
-            item.progress
-                ?.takeUnless { it.completed }
-                ?.let { progress ->
-                    Box(
-                        Modifier.align(Alignment.BottomStart)
-                            .fillMaxWidth()
-                            .height(4.dp)
-                            .background(Palette.border)
-                    ) {
-                        Box(
-                            Modifier.fillMaxWidth(
-                                    (progress.percentage / 100).toFloat().coerceIn(0f, 1f)
-                                )
-                                .fillMaxHeight()
-                                .background(Palette.primary)
-                        )
-                    }
-                }
+            resume?.let {
+                ProgressTrack(
+                    (it.percentage / 100).toFloat(),
+                    Modifier.align(Alignment.BottomStart),
+                )
+            }
         }
         Column(
             Modifier.padding(horizontal = 4.dp, vertical = 10.dp),
@@ -139,24 +130,23 @@ fun MediaTile(
                 maxLines = if (wide) 1 else 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                listOfNotNull(item.year?.toString(), item.runtimeLabel).joinToString(" · "),
-                color = Palette.muted,
-                fontSize = 12.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            item.progress
-                ?.takeUnless { it.completed }
-                ?.let {
-                    Text(
-                        "Resume · ${it.percentage.toInt()}%${item.nextPartTitle?.let { title -> " · $title" } ?: ""}",
-                        color = Palette.primary,
-                        fontSize = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+            if (metadata.isNotEmpty())
+                Text(
+                    metadata,
+                    color = Palette.muted,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            resume?.let {
+                Text(
+                    "Resume · ${it.percentage.toInt()}%${item.nextPartTitle?.let { title -> " · $title" } ?: ""}",
+                    color = Palette.primary,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -178,23 +168,20 @@ fun HomeScreen(model: AppModel) {
     LazyColumn(
         state = rememberLazyListState(),
         contentPadding = PaddingValues(top = 12.dp, bottom = 36.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        item {
-            Column(
-                Modifier.padding(horizontal = 48.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Heading("Currently watching")
-                LoadNotice(watching)
-                if (watching.value?.isEmpty() == true)
-                    Note(
-                        "Start a title and it will appear here. Your progress is saved automatically."
-                    )
+        if (watching.loading || watching.error != null || watching.value?.isNotEmpty() == true)
+            item(key = "watching-heading") {
+                Column(
+                    Modifier.padding(horizontal = 48.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Heading("Currently watching")
+                    LoadNotice(watching)
+                }
             }
-        }
         if (watching.value?.isNotEmpty() == true)
-            item {
+            item(key = "watching-shelf") {
                 LazyRow(
                     state = rememberLazyListState(),
                     modifier = Modifier.focusGroup(),
@@ -204,7 +191,7 @@ fun HomeScreen(model: AppModel) {
                     items(watching.value.orEmpty(), key = { it.id }) { item ->
                         MediaTile(
                             item,
-                            Modifier.width(268.dp)
+                            Modifier.width(240.dp)
                                 .preferredFocus(restoring && ready && item.id == target)
                                 .onFocusChanged {
                                     if (it.hasFocus) {
@@ -219,92 +206,103 @@ fun HomeScreen(model: AppModel) {
                     }
                 }
             }
-        item {
+        item(key = "collections-heading") {
             Column(
                 Modifier.padding(horizontal = 48.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Heading("My media")
-                Note("Hold Select, then release for options.")
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Heading("My media")
+                    if (folders.value?.isNotEmpty() == true)
+                        Note("Hold Select, then release for options.")
+                }
                 LoadNotice(folders)
             }
         }
-        item {
-            LazyRow(
-                state = rememberLazyListState(),
-                modifier = Modifier.focusGroup(),
-                contentPadding = PaddingValues(horizontal = 48.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(20.dp),
-            ) {
-                items(folders.value.orEmpty(), key = { it.id }) { folder ->
-                    TvCard(
-                        onClick = { model.navigate("collection/${folder.id}") },
-                        onLongClick = { dialogs.current = Overlay.CollectionMenu(folder) },
-                        modifier =
-                            Modifier.width(268.dp)
-                                .preferredFocus(restoring && ready && folder.id == target)
-                                .onFocusChanged {
-                                    if (it.hasFocus) {
-                                        focused = folder.id
-                                        restoring = false
-                                    }
-                                },
-                    ) {
-                        Box(
-                            Modifier.fillMaxWidth()
-                                .height(144.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Palette.raised)
+        if (folders.value?.isNotEmpty() == true)
+            item(key = "collections-shelf") {
+                LazyRow(
+                    state = rememberLazyListState(),
+                    modifier = Modifier.focusGroup(),
+                    contentPadding = PaddingValues(horizontal = 48.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    items(folders.value.orEmpty(), key = { it.id }) { folder ->
+                        TvCard(
+                            onClick = { model.navigate("collection/${folder.id}") },
+                            onLongClick = { dialogs.current = Overlay.CollectionMenu(folder) },
+                            modifier =
+                                Modifier.width(268.dp)
+                                    .preferredFocus(restoring && ready && folder.id == target)
+                                    .onFocusChanged {
+                                        if (it.hasFocus) {
+                                            focused = folder.id
+                                            restoring = false
+                                        }
+                                    },
                         ) {
-                            Row(Modifier.matchParentSize()) {
-                                folder.posterPaths.take(3).forEach {
-                                    Artwork(it, Modifier.weight(1f).fillMaxHeight())
-                                }
-                            }
                             Box(
-                                Modifier.matchParentSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                Color.Transparent,
-                                                Palette.background.copy(alpha = .9f),
+                                Modifier.fillMaxWidth()
+                                    .height(112.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Palette.raised)
+                            ) {
+                                Row(Modifier.matchParentSize()) {
+                                    folder.posterPaths.take(3).forEach {
+                                        Artwork(it, Modifier.weight(1f).fillMaxHeight())
+                                    }
+                                }
+                                Box(
+                                    Modifier.matchParentSize()
+                                        .background(
+                                            Brush.verticalGradient(
+                                                listOf(
+                                                    Color.Transparent,
+                                                    Palette.background.copy(alpha = .9f),
+                                                )
                                             )
                                         )
+                                )
+                                Column(
+                                    Modifier.align(Alignment.BottomStart).padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
+                                    Text(
+                                        folder.name,
+                                        color = Palette.text,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
                                     )
-                            )
-                            Text(
-                                if (folder.kind == "movies") "MOVIES" else "TV SHOWS",
-                                Modifier.align(Alignment.BottomStart).padding(14.dp),
-                                color = Palette.primary,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp,
-                            )
-                        }
-                        Column(
-                            Modifier.padding(horizontal = 4.dp, vertical = 12.dp),
-                            verticalArrangement = Arrangement.spacedBy(5.dp),
-                        ) {
-                            Text(
-                                folder.name,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Note("${folder.titleCount} titles")
+                                    Text(
+                                        "${folder.titleCount} titles · ${if (folder.kind == "movies") "Movies" else "TV shows"}",
+                                        color = Palette.muted,
+                                        fontSize = 12.sp,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
-        }
         if (folders.value?.isEmpty() == true)
-            item {
-                TvButton(
-                    "Create your first collection",
-                    Modifier.padding(horizontal = 48.dp).preferredFocus(),
-                    onClick = { dialogs.current = Overlay.EditCollection(null) },
-                )
+            item(key = "empty-library") {
+                TvPanel(Modifier.padding(horizontal = 48.dp)) {
+                    Heading("Your library starts here")
+                    Note("Add a folder from your server to see your films and shows.")
+                    TvButton(
+                        "Create your first collection",
+                        Modifier.preferredFocus(),
+                        primary = true,
+                        icon = Icons.Outlined.Add,
+                        onClick = { dialogs.current = Overlay.EditCollection(null) },
+                    )
+                }
             }
     }
     AppDialogs(model, dialogs)
@@ -463,7 +461,16 @@ fun CollectionScreen(model: AppModel, collectionId: String) {
                 )
             }
             if (library.value?.items?.isEmpty() == true)
-                item(span = { GridItemSpan(maxLineSpan) }) { Note("No titles found.") }
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    TvPanel {
+                        Heading("No titles found")
+                        Note(
+                            if (search.isNotEmpty() || watch != "all")
+                                "Try a different search or watch filter."
+                            else "Scan this collection to find media in its server folder."
+                        )
+                    }
+                }
             library.value?.pagination?.let { pagination ->
                 if (pagination.totalPages > 1)
                     item(span = { GridItemSpan(maxLineSpan) }) {
@@ -676,18 +683,21 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
                 }
             }
             items(item.parts, key = { it.id }) { part ->
-                Column(
-                    Modifier.padding(horizontal = 48.dp)
-                        .fillMaxWidth()
-                        .border(1.dp, Palette.border, RoundedCornerShape(12.dp))
-                        .background(Palette.surface, RoundedCornerShape(12.dp))
-                        .padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
+                TvPanel(Modifier.padding(horizontal = 48.dp)) {
                     Text(part.displayTitle, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    Note(
-                        "${part.fileName} · ${formatBytes(part.size)}${part.progress?.let { " · ${if (it.completed) "Watched" else "${it.percentage.toInt()}%"}" } ?: ""}"
+                    Text(
+                        part.fileName,
+                        color = Palette.muted,
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
+                    Note(
+                        "${formatBytes(part.size)}${part.progress?.let { " · ${if (it.completed) "Watched" else "${it.percentage.toInt()}% watched"}" } ?: ""}"
+                    )
+                    part.progress
+                        ?.takeIf { it.positionSeconds > 0 && !it.completed }
+                        ?.let { ProgressTrack((it.percentage / 100).toFloat()) }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         TvButton("Play", onClick = { play(item.id, part.id) })
                         TvButton(

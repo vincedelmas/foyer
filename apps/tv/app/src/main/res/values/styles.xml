@@ -5,7 +5,10 @@
     <item name="android:windowFullscreen">true</item>
     <item name="android:windowNoTitle">true</item>
     <item name="android:windowBackground">#000000</item>
-    <item name="android:colorAccent">#E88752</item>
+    <item name="android:colorAccent">#E69A37</item>
+    <item name="android:colorBackgroundFloating">#1D1B18</item>
+    <item name="android:textColorPrimary">#F1ECE2</item>
+    <item name="android:textColorSecondary">#BEB5A7</item>
     <item name="android:fontFamily">sans</item>
     <item name="android:navigationBarColor">#000000</item>
     <item name="android:windowLightNavigationBar">false</item>

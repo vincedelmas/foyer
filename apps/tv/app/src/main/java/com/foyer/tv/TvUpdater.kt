@@ -306,11 +306,13 @@ fun UpdateDialog(updater: TvUpdater) {
     TvDialog("Foyer TV update", onClose = updater::dismiss, busy = updater.busy) {
         updater.update?.let { Text("Foyer TV ${BuildConfig.VERSION_NAME} → ${it.version}") }
         Note(updater.description, error = updater.status == UpdateStatus.Error)
+        if (updater.status == UpdateStatus.Downloading) ProgressTrack(updater.progress)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TvButton("Later", enabled = !updater.busy, onClick = updater::dismiss)
             TvButton(
                 if (updater.status == UpdateStatus.Error) "Try again" else "Install update",
                 Modifier.preferredFocus(),
+                primary = true,
                 enabled = !updater.busy,
                 onClick = updater::install,
             )

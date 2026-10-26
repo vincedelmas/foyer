@@ -824,7 +824,7 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
     controlsView = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
       gravity = Gravity.BOTTOM
-      setPadding(dp(32), dp(18), dp(32), dp(18))
+      setPadding(dp(48), dp(24), dp(48), dp(24))
       background = GradientDrawable(
         GradientDrawable.Orientation.BOTTOM_TOP,
         intArrayOf(
@@ -839,8 +839,13 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
       FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM),
     )
 
-    mediaTitleView = textView(options.mediaTitle, 20f, Color.WHITE, Typeface.BOLD)
+    mediaTitleView = textView(options.mediaTitle, 22f, Color.WHITE, Typeface.BOLD).apply {
+      maxLines = 2
+      ellipsize = android.text.TextUtils.TruncateAt.END
+    }
     partTitleView = textView("", 14f, MUTED_TEXT, Typeface.NORMAL).apply {
+      maxLines = 1
+      ellipsize = android.text.TextUtils.TruncateAt.END
       setPadding(0, dp(1), 0, dp(6))
     }
     controlsView.addView(mediaTitleView)
@@ -929,11 +934,11 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
 
   private fun controlIconTint() = ColorStateList(
     arrayOf(
-      intArrayOf(android.R.attr.state_focused),
       intArrayOf(-android.R.attr.state_enabled),
+      intArrayOf(android.R.attr.state_focused),
       intArrayOf(),
     ),
-    intArrayOf(Color.rgb(33, 23, 13), DIM_TEXT, Color.WHITE),
+    intArrayOf(DIM_TEXT, Color.rgb(33, 23, 13), Color.WHITE),
   )
 
   private fun textActionButton(label: String, onClick: () -> Unit) = Button(this).apply {
@@ -941,7 +946,7 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
     text = label
     textSize = 14f
     isAllCaps = false
-    setTextColor(Color.WHITE)
+    setTextColor(controlIconTint())
     setTypeface(typeface, Typeface.BOLD)
     setPadding(dp(16), dp(7), dp(16), dp(7))
     minWidth = dp(92)
@@ -957,12 +962,12 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
 
   private fun focusBackground(radius: Float) = StateListDrawable().apply {
     addState(
-      intArrayOf(android.R.attr.state_focused),
-      roundedBackground(ACCENT, radius),
-    )
-    addState(
       intArrayOf(-android.R.attr.state_enabled),
       roundedBackground(Color.argb(110, 40, 39, 37), radius),
+    )
+    addState(
+      intArrayOf(android.R.attr.state_focused),
+      roundedBackground(ACCENT, radius),
     )
     addState(
       intArrayOf(),
@@ -1063,7 +1068,7 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
       "jpn" to "ja",
       "kor" to "ko",
     )
-    private val ACCENT = Color.rgb(232, 135, 82)
+    private val ACCENT = Color.rgb(230, 154, 55)
     private val MUTED_TEXT = Color.rgb(215, 211, 205)
     private val DIM_TEXT = Color.rgb(155, 151, 145)
   }

@@ -273,6 +273,8 @@ private fun EditCollectionDialog(model: AppModel, folder: Collection?, close: ()
         }
         TvButton(
             if (model.busy) "Saving…" else "Save collection",
+            primary = true,
+            icon = Icons.Outlined.Check,
             enabled = name.isNotBlank() && path.isNotBlank() && !model.busy,
         ) {
             model.action(close) {
@@ -396,11 +398,13 @@ private fun FileInfo(model: AppModel, mediaId: String, file: MediaFile) {
     var inspected by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    Column(
-        Modifier.fillMaxWidth().background(Palette.background).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(9.dp),
-    ) {
-        Text(file.fileName, fontWeight = FontWeight.Bold)
+    TvPanel {
+        Text(
+            file.fileName,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
         Note(file.path)
         Note("${file.container.uppercase()} · ${file.mimeType} · ${formatBytes(file.size)}")
         Note("Format: ${details.formatName ?: file.container}")

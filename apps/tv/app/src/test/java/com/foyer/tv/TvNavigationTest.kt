@@ -53,6 +53,8 @@ class TvNavigationTest {
             .putString("foyer.tv-updates.last-check", System.currentTimeMillis().toString())
             .apply()
         val media = javaClass.getResource("/media-detail.json")!!.readText()
+        val folders =
+            """[{"id":"movies","name":"My collection","path":"/media","kind":"movies","titleCount":1,"posterPaths":[]}]"""
         server.dispatcher =
             object : Dispatcher() {
                 override fun dispatch(request: RecordedRequest): MockResponse {
@@ -61,8 +63,9 @@ class TvNavigationTest {
                     return MockResponse()
                         .setBody(
                             when {
-                                request.path == "/api/v1/libraries" ->
-                                    """[{"id":"movies","name":"My collection","path":"/media","kind":"movies","titleCount":1,"posterPaths":[]}]"""
+                                request.path == "/api/v1/libraries" -> folders
+                                request.path == "/api/v1/settings/overview" ->
+                                    """{"libraries":$folders,"scans":[]}"""
                                 request.path!!.startsWith("/api/v1/library?") ->
                                     """{"stats":{"anime":0,"titles":1,"movies":0,"series":1,"unmatched":0,"inProgress":1},"items":[$media],"pagination":{"page":1,"pageSize":50,"totalItems":1,"totalPages":1}}"""
                                 request.path!!.startsWith("/api/v1/media/show") -> {
@@ -180,10 +183,31 @@ class TvNavigationTest {
     fun `new collections initially focus their name instead of the disabled save button`() {
         connect()
         compose.onNodeWithText("Settings").select()
-        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Create collection"))
+        compose.onNode(hasText("Collections") and hasClickAction()).select()
         compose.onNodeWithText("Create collection").select()
         compose.onNodeWithContentDescription("Collection name").assertIsFocused()
         compose.onNodeWithText("Save collection").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `settings keep server edits when switching panels and restore focus after a dialog`() {
+        connect()
+        compose.onNodeWithText("Settings").select()
+        compose.onNodeWithText("Overview").assertIsFocused()
+        compose.onNode(hasText("Server connection") and hasClickAction()).select()
+        val draft = server.url("/draft").toString()
+        compose.onNodeWithContentDescription("Server URL").performTextReplacement(draft)
+        compose.onNode(hasText("App updates") and hasClickAction()).select()
+        compose.onNodeWithText("Check for updates").assertExists()
+        compose.onNode(hasText("Server connection") and hasClickAction()).select()
+        compose.onNodeWithContentDescription("Server URL").assertTextEquals(draft)
+        compose.onNode(hasText("Recent scans") and hasClickAction()).select()
+        compose.onNodeWithText("No scans yet. Scan a collection to find its media.").assertExists()
+        compose.onNode(hasText("Collections") and hasClickAction()).select()
+        compose.onNodeWithText("Create collection").select()
+        compose.onNodeWithText("Close").select()
+        compose.onNodeWithText("Create collection").assertIsFocused()
+        assertTrue(mutations.isEmpty())
     }
 
     @Test

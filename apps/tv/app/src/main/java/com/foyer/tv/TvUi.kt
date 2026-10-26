@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,7 +23,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -79,6 +82,37 @@ fun FoyerTheme(content: @Composable () -> Unit) {
             }
         },
     )
+}
+
+@Composable
+fun TvPanel(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .border(1.dp, Palette.border, RoundedCornerShape(12.dp))
+            .background(Palette.surface, RoundedCornerShape(12.dp))
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        content = content,
+    )
+}
+
+@Composable
+fun ProgressTrack(fraction: Float, modifier: Modifier = Modifier) {
+    val progress = fraction.coerceIn(0f, 1f)
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(4.dp)
+            .semantics { progressBarRangeInfo = ProgressBarRangeInfo(progress, 0f..1f) }
+            .background(Palette.border, RoundedCornerShape(2.dp))
+    ) {
+        Box(
+            Modifier.fillMaxWidth(progress)
+                .fillMaxHeight()
+                .background(Palette.primary, RoundedCornerShape(2.dp))
+        )
+    }
 }
 
 @Composable
@@ -166,7 +200,15 @@ fun TvMenuItem(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.fillMaxWidth().heightIn(min = 48.dp),
-        headlineContent = { Text(label, fontSize = 16.sp, fontWeight = FontWeight.Medium) },
+        headlineContent = {
+            Text(
+                label,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
         supportingContent =
             description?.let {
                 { Text(it, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
@@ -374,7 +416,13 @@ fun TvDialog(
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(Modifier.width(16.dp))
-                TvButton("Close", enabled = !busy, onClick = onClose)
+                TvButton(
+                    "Close",
+                    enabled = !busy,
+                    quiet = true,
+                    icon = Icons.Outlined.Close,
+                    onClick = onClose,
+                )
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(Palette.border))
             Row(
