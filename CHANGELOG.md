@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.2](https://github.com/vincedelmas/foyer/compare/v1.5.1...v1.5.2) (2026-10-26)
+
+
+### Bug Fixes
+
+* **tv:** correct detail scrolling and long press behavior ([f0c9f0e](https://github.com/vincedelmas/foyer/commit/f0c9f0e75ed57417bd75729085f390b5bb117434))
+
 ## [1.5.1](https://github.com/vincedelmas/foyer/compare/v1.5.0...v1.5.1) (2026-10-26)
 
 
