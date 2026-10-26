@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.0](https://github.com/vincedelmas/foyer/compare/v1.4.2...v1.5.0) (2026-10-26)
+
+
+### Features
+
+* **tv:** polish home, settings, and player UI ([1431fa6](https://github.com/vincedelmas/foyer/commit/1431fa67447d51c350e0eb613694c5c03708cc47))
+* **tv:** redesign browsing and action menus ([e828c0c](https://github.com/vincedelmas/foyer/commit/e828c0cd0faeef5c52572e33976b29c325b2575d))
+
+
+### Bug Fixes
+
+* **tv:** improve UI contrast and long-press menus ([d024fcb](https://github.com/vincedelmas/foyer/commit/d024fcb1a1b0a1d8923a18599a5720290d1be6d1))
+
 ## [1.4.2](https://github.com/vincedelmas/foyer/compare/v1.4.1...v1.4.2) (2026-10-26)
 
 
