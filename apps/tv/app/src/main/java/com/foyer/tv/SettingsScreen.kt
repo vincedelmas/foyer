@@ -124,12 +124,14 @@ private enum class SettingsSection(val label: String) {
 
 @Composable
 fun SettingsScreen(model: AppModel) {
-    val settings =
-        load(model.api, model.revision) { model.api.get<Settings>("/api/v1/settings/overview") }
+    val settings = load<Settings>(model.api, "/api/v1/settings/overview", revision = model.revision)
     val library =
-        load(model.api, model.revision) {
-            model.api.library(mapOf("page" to "1", "pageSize" to "1"))
-        }
+        load<Library>(
+            model.api,
+            "/api/v1/library",
+            mapOf("page" to "1", "pageSize" to "1"),
+            model.revision,
+        )
     val dialogs = remember { DialogController() }
     var section by rememberSaveable { mutableStateOf(SettingsSection.Overview) }
     val panels = rememberSaveableStateHolder()

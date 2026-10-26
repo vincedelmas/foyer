@@ -148,6 +148,43 @@ class ApiTest {
         }
 
     @Test
+    fun `fresh data is reused and stale data stays available while revalidating`() = runBlocking {
+        var now = 0L
+        val cachedApi = Api(server.url("/").toString().trimEnd('/')) { now }
+        server.enqueue(MockResponse().setBody("first"))
+        assertEquals("first", cachedApi.request("/cached"))
+        now += TimeUnit.SECONDS.toNanos(119)
+        assertEquals("first", cachedApi.request("/cached"))
+        assertEquals(1, server.requestCount)
+        now += TimeUnit.SECONDS.toNanos(2)
+        assertEquals("first", cachedApi.cached("/cached"))
+        server.enqueue(MockResponse().setBody("updated"))
+        assertEquals("updated", cachedApi.request("/cached"))
+        assertEquals(2, server.requestCount)
+        now += TimeUnit.MINUTES.toNanos(11)
+        assertNull(cachedApi.cached("/cached"))
+    }
+
+    @Test
+    fun `query parameter order does not create duplicate cache entries`() = runBlocking {
+        server.enqueue(MockResponse().setBody("[]"))
+        api.request("/cached", query = linkedMapOf("a" to "1", "b" to "2"))
+        api.request("/cached", query = linkedMapOf("b" to "2", "a" to "1"))
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test
+    fun `metadata search is read only and does not discard library data`() = runBlocking {
+        server.enqueue(MockResponse().setBody("[]"))
+        api.folders()
+        server.enqueue(MockResponse().setBody("{\"candidates\":[]}"))
+        api.searchMetadata("show", "A show", null)
+        assertNotNull(api.cached("/api/v1/libraries"))
+        api.folders()
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test
     fun `server errors reach the TV interface`() = runBlocking {
         server.enqueue(
             MockResponse().setResponseCode(409).setBody("{\"error\":\"Scan already running\"}")

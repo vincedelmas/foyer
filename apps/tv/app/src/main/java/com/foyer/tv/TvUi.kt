@@ -120,7 +120,6 @@ fun Modifier.preferredFocus(enabled: Boolean = true): Modifier {
     val requester = remember { FocusRequester() }
     if (enabled) {
         LaunchedEffect(Unit) {
-            withFrameNanos {}
             requester.requestFocus()
         }
     }
@@ -195,49 +194,62 @@ fun TvMenuItem(
     danger: Boolean = false,
     onClick: () -> Unit,
 ) {
-    DenseListItem(
+    Surface(
         selected = selected,
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp),
-        headlineContent = {
-            Text(
-                label,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        supportingContent =
-            description?.let {
-                { Text(it, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-            },
-        leadingContent =
-            icon?.let { { Icon(it, contentDescription = null, modifier = Modifier.size(22.dp)) } },
-        trailingContent =
-            if (selected) {
-                {
-                    Icon(
-                        Icons.Outlined.Check,
-                        contentDescription = "Selected",
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            } else null,
-        shape = ListItemDefaults.shape(shape = RoundedCornerShape(8.dp)),
-        scale = ListItemDefaults.scale(focusedScale = 1.015f),
+        modifier = modifier.fillMaxWidth(),
+        shape = SelectableSurfaceDefaults.shape(shape = RoundedCornerShape(8.dp)),
+        scale = SelectableSurfaceDefaults.scale(focusedScale = 1.015f),
         colors =
-            ListItemDefaults.colors(
+            SelectableSurfaceDefaults.colors(
                 containerColor = Color.Transparent,
                 contentColor = if (danger) Palette.danger else Palette.text,
                 focusedContainerColor = if (danger) Palette.danger else Palette.text,
                 focusedContentColor = Palette.background,
                 selectedContainerColor = Palette.raised,
                 selectedContentColor = Palette.primary,
+                focusedSelectedContainerColor = Palette.text,
+                focusedSelectedContentColor = Palette.background,
                 disabledContentColor = Palette.muted,
             ),
-    )
+    ) {
+        // Size the content row, so extra height is distributed around its contents.
+        Row(
+            Modifier.fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            icon?.let { Icon(it, contentDescription = null, modifier = Modifier.size(22.dp)) }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    label,
+                    fontSize = 16.sp,
+                    lineHeight = 22.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                description?.let {
+                    Text(
+                        it,
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            if (selected)
+                Icon(
+                    Icons.Outlined.Check,
+                    contentDescription = "Selected",
+                    modifier = Modifier.size(20.dp),
+                )
+        }
+    }
 }
 
 // Keep the whole Select gesture on the card. Opening a new focus window while
@@ -447,20 +459,34 @@ fun TvDialog(
 }
 
 @Stable
-class LoadState<T> {
-    var value by mutableStateOf<T?>(null)
-    var loading by mutableStateOf(true)
+class LoadState<T>(initial: T? = null) {
+    var value by mutableStateOf(initial)
+    var loading by mutableStateOf(initial == null)
     var error by mutableStateOf<String?>(null)
 }
 
 @Composable
-fun <T> load(vararg keys: Any?, request: suspend () -> T): LoadState<T> {
-    val state = remember { LoadState<T>() }
-    LaunchedEffect(*keys) {
+inline fun <reified T> load(
+    api: Api,
+    path: String,
+    query: Map<String, String> = emptyMap(),
+    revision: Int = 0,
+): LoadState<T> {
+    val state =
+        remember(api, path) {
+            // The request below reports decoding errors; a bad cached response must not crash
+            // composition.
+            LoadState(
+                api.cached(path, query)?.let {
+                    runCatching { Api.json.decodeFromString<T>(it) }.getOrNull()
+                }
+            )
+        }
+    LaunchedEffect(api, path, query, revision) {
         state.loading = true
         state.error = null
         try {
-            state.value = request()
+            state.value = api.get<T>(path, query)
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
@@ -474,6 +500,6 @@ fun <T> load(vararg keys: Any?, request: suspend () -> T): LoadState<T> {
 
 @Composable
 fun LoadNotice(state: LoadState<*>) {
-    if (state.loading) Note("Loading…")
+    if (state.loading && state.value == null) Note("Loading…")
     state.error?.let { Note(it, error = true) }
 }

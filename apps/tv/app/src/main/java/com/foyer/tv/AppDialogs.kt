@@ -26,6 +26,8 @@ sealed interface Overlay {
 
     data class Info(val item: Media) : Overlay
 
+    data class PartMenu(val part: Part, val movie: Boolean) : Overlay
+
     data class CollectionMenu(val folder: Collection) : Overlay
 
     data class EditCollection(val folder: Collection?) : Overlay
@@ -223,6 +225,36 @@ fun AppDialogs(
                 }
             }
         }
+        is Overlay.PartMenu -> {
+            val part = overlay.part
+            TvDialog(
+                if (overlay.movie) "File options" else "Episode options",
+                close,
+                model.busy,
+                menu = true,
+            ) {
+                Text(part.displayTitle, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                Note(part.fileName)
+                TvMenuItem(
+                    if (part.progress?.completed == true) "Mark unwatched" else "Mark watched",
+                    Modifier.preferredFocus(),
+                    icon = Icons.Outlined.CheckCircle,
+                    enabled = !model.busy,
+                ) {
+                    model.action(close) {
+                        model.api.watchPart(part.id, part.progress?.completed != true)
+                    }
+                }
+                if (part.progress != null)
+                    TvMenuItem(
+                        "Remove progress",
+                        icon = Icons.Outlined.Clear,
+                        enabled = !model.busy,
+                    ) {
+                        model.action(close) { model.api.clearProgress(part.id, part = true) }
+                    }
+            }
+        }
         is Overlay.EditCollection -> EditCollectionDialog(model, overlay.folder, close)
         is Overlay.Identify -> IdentifyDialog(model, overlay.item, close)
         is Overlay.Info -> MediaInfoDialog(model, overlay.item, close)
@@ -378,10 +410,7 @@ private fun IdentifyDialog(model: AppModel, item: Media, close: () -> Unit) {
 
 @Composable
 private fun MediaInfoDialog(model: AppModel, item: Media, close: () -> Unit) {
-    val info =
-        load(model.api, item.id) {
-            model.api.get<MediaInfo>("/api/v1/media/${item.id}", mapOf("view" to "info"))
-        }
+    val info = load<MediaInfo>(model.api, "/api/v1/media/${item.id}", mapOf("view" to "info"))
     TvDialog("Media info · ${item.title}", close) {
         LoadNotice(info)
         info.value?.let { details ->

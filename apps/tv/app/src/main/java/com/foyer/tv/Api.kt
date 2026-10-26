@@ -12,33 +12,46 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
-class Api(val server: String) {
+class Api(val server: String, private val nowNanos: () -> Long = System::nanoTime) {
     private val cache = mutableMapOf<String, Pair<Long, String>>()
     private var generation = 0
+
+    private fun url(path: String, query: Map<String, String>) =
+        (server + path)
+            .toHttpUrl()
+            .newBuilder()
+            .apply {
+                query.toSortedMap().forEach { (key, value) -> addQueryParameter(key, value) }
+            }
+            .build()
+
+    // Seed returning screens from the last response, even while it is being revalidated.
+    fun cached(path: String, query: Map<String, String> = emptyMap()): String? =
+        synchronized(cache) {
+            cache[url(path, query).toString()]
+                ?.takeIf { nowNanos() - it.first < RETENTION_NANOS }
+                ?.second
+        }
 
     suspend fun request(
         path: String,
         method: String = "GET",
         body: JsonObject? = null,
         query: Map<String, String> = emptyMap(),
+        mutates: Boolean = method != "GET",
     ): String {
-        val url =
-            (server + path)
-                .toHttpUrl()
-                .newBuilder()
-                .apply {
-                    query.forEach { (key, value) -> addQueryParameter(key, value) }
-                }
-                .build()
+        val url = url(path, query)
         val key = url.toString()
         val requestGeneration =
             synchronized(cache) {
-                val now = System.nanoTime()
-                cache.entries.removeAll { now - it.value.first >= TimeUnit.SECONDS.toNanos(30) }
+                val now = nowNanos()
+                cache.entries.removeAll { now - it.value.first >= RETENTION_NANOS }
                 if (method == "GET")
-                    cache[key]?.let {
-                        return it.second
-                    }
+                    cache[key]
+                        ?.takeIf { now - it.first < FRESH_NANOS }
+                        ?.let {
+                            return it.second
+                        }
                 generation
             }
         val request =
@@ -65,11 +78,11 @@ class Api(val server: String) {
                 throw IOException(message ?: "Request failed (${response.code})")
             }
             synchronized(cache) {
-                if (method != "GET") {
+                if (mutates) {
                     cache.clear()
                     generation++
-                } else if (generation == requestGeneration) {
-                    cache[key] = System.nanoTime() to value
+                } else if (method == "GET" && generation == requestGeneration) {
+                    cache[key] = nowNanos() to value
                 }
             }
             value
@@ -99,20 +112,22 @@ class Api(val server: String) {
 
     suspend fun library(query: Map<String, String>): Library = get("/api/v1/library", query)
 
+    fun mediaQuery(
+        season: Int? = null,
+        page: Int? = null,
+        pageSize: Int? = null,
+    ): Map<String, String> = buildMap {
+        season?.let { put("season", it.toString()) }
+        page?.let { put("page", it.toString()) }
+        pageSize?.let { put("pageSize", it.toString()) }
+    }
+
     suspend fun media(
         id: String,
         season: Int? = null,
         page: Int? = null,
         pageSize: Int? = null,
-    ): Media =
-        get(
-            "/api/v1/media/$id",
-            buildMap {
-                season?.let { put("season", it.toString()) }
-                page?.let { put("page", it.toString()) }
-                pageSize?.let { put("pageSize", it.toString()) }
-            },
-        )
+    ): Media = get("/api/v1/media/$id", mediaQuery(season, page, pageSize))
 
     suspend fun watchMedia(id: String, watched: Boolean, season: Int? = null) =
         request(
@@ -198,6 +213,7 @@ class Api(val server: String) {
                     put("query", query)
                     year?.let { put("year", it) }
                 },
+                mutates = false,
             )
         )
 
@@ -279,6 +295,8 @@ class Api(val server: String) {
     }
 
     companion object {
+        private val FRESH_NANOS = TimeUnit.MINUTES.toNanos(2)
+        private val RETENTION_NANOS = TimeUnit.MINUTES.toNanos(10)
         val json = Json { ignoreUnknownKeys = true }
         val http =
             OkHttpClient.Builder()

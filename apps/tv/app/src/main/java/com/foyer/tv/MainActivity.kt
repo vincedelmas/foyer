@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -97,6 +98,10 @@ class AppModel(application: Application, private val saved: SavedStateHandle) :
 
     fun refresh() {
         api.invalidate()
+        revalidate()
+    }
+
+    fun revalidate() {
         revision++
     }
 
@@ -122,7 +127,8 @@ class AppModel(application: Application, private val saved: SavedStateHandle) :
             } catch (caught: Exception) {
                 error = caught.message ?: "Request failed"
             } finally {
-                refresh()
+                // Successful mutations already invalidate API data; failed ones do not change it.
+                revalidate()
                 busy = false
             }
         }
@@ -182,8 +188,10 @@ fun FoyerApp(model: AppModel = viewModel()) {
         }
     }
     BackHandler(enabled = model.server.isNotEmpty() && model.stack.size > 1) { model.back() }
+    var hasResumed by remember { mutableStateOf(false) }
     LifecycleResumeEffect(Unit) {
-        model.refresh()
+        if (hasResumed && !launching) model.revalidate()
+        hasResumed = true
         onPauseOrDispose {}
     }
     LaunchedEffect(model.route, model.server, model.revision) {
@@ -227,15 +235,17 @@ fun FoyerApp(model: AppModel = viewModel()) {
                     onClick = { model.navigate("settings") },
                 )
             }
-            key(model.server, model.route) {
-                holder.SaveableStateProvider(model.server + ":" + model.route) {
-                    when {
-                        model.route == "home" -> HomeScreen(model)
-                        model.route == "settings" -> SettingsScreen(model)
-                        model.route.startsWith("collection/") ->
-                            CollectionScreen(model, model.route.removePrefix("collection/"))
-                        model.route.startsWith("detail/") ->
-                            DetailScreen(model, model.route.removePrefix("detail/"), play)
+            Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
+                key(model.server, model.route) {
+                    holder.SaveableStateProvider(model.server + ":" + model.route) {
+                        when {
+                            model.route == "home" -> HomeScreen(model)
+                            model.route == "settings" -> SettingsScreen(model)
+                            model.route.startsWith("collection/") ->
+                                CollectionScreen(model, model.route.removePrefix("collection/"))
+                            model.route.startsWith("detail/") ->
+                                DetailScreen(model, model.route.removePrefix("detail/"), play)
+                        }
                     }
                 }
             }

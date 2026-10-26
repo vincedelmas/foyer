@@ -43,6 +43,8 @@ class TvNavigationTest {
     private val paths = CopyOnWriteArrayList<String>()
     private val mutations = CopyOnWriteArrayList<String>()
     private val continueWatching = CopyOnWriteArrayList<Media>()
+    private var detailOverride: Media? = null
+    private var libraryOverride: List<Media>? = null
 
     @Before
     fun startServer() {
@@ -66,14 +68,35 @@ class TvNavigationTest {
                                 request.path == "/api/v1/libraries" -> folders
                                 request.path == "/api/v1/settings/overview" ->
                                     """{"libraries":$folders,"scans":[]}"""
-                                request.path!!.startsWith("/api/v1/library?") ->
-                                    """{"stats":{"anime":0,"titles":1,"movies":0,"series":1,"unmatched":0,"inProgress":1},"items":[$media],"pagination":{"page":1,"pageSize":50,"totalItems":1,"totalPages":1}}"""
+                                request.path!!.startsWith("/api/v1/library?") -> {
+                                    val items =
+                                        libraryOverride
+                                            ?: listOf(Api.json.decodeFromString<Media>(media))
+                                    val pages = if (libraryOverride == null) 1 else 2
+                                    Api.json.encodeToString(
+                                        Library(
+                                            Stats(0, items.size, 0, items.size, 0, 1),
+                                            items,
+                                            Pagination(
+                                                request.requestUrl!!
+                                                    .queryParameter("page")!!
+                                                    .toInt(),
+                                                50,
+                                                items.size * pages,
+                                                pages,
+                                            ),
+                                        )
+                                    )
+                                }
                                 request.path!!.startsWith("/api/v1/media/show") -> {
-                                    val detail = Api.json.parseToJsonElement(media).jsonObject
+                                    val detail =
+                                        detailOverride?.let {
+                                            Api.json.encodeToJsonElement(it).jsonObject
+                                        } ?: Api.json.parseToJsonElement(media).jsonObject
                                     val season =
                                         request.requestUrl!!.queryParameter("season")?.toInt() ?: 1
                                     if (request.requestUrl!!.queryParameter("pageSize") == null)
-                                        media
+                                        detail.toString()
                                     else
                                         JsonObject(
                                                 detail +
@@ -175,8 +198,159 @@ class TvNavigationTest {
         compose.waitUntil(10_000) {
             compose.onAllNodesWithText("All titles").fetchSemanticsNodes().isNotEmpty()
         }
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(hasText("A show") and isFocused()).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithText("Back").select()
+        compose.waitUntil(10_000) {
+            compose
+                .onAllNodes(hasText("My collection") and isFocused())
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
         compose.onNodeWithText("My collection").assertIsFocused()
+    }
+
+    @Test
+    fun `switching between settings and home reuses data without loading placeholders`() {
+        connect()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("Loading…").fetchSemanticsNodes().isEmpty()
+        }
+        val homeCalls = paths.count {
+            it == "/api/v1/libraries" || it.startsWith("/api/v1/progress")
+        }
+        compose.onNodeWithText("Settings").select()
+        compose.waitUntil(10_000) {
+            paths.any { it.startsWith("/api/v1/settings/overview") } &&
+                compose.onAllNodesWithText("Loading…").fetchSemanticsNodes().isEmpty()
+        }
+        compose.onNodeWithText("Home").select()
+        compose.onNodeWithText("My collection").assertExists()
+        compose.onNodeWithText("Loading…").assertDoesNotExist()
+        assertEquals(
+            homeCalls,
+            paths.count { it == "/api/v1/libraries" || it.startsWith("/api/v1/progress") },
+        )
+    }
+
+    @Test
+    fun `long media details stay below navigation when resume receives focus`() {
+        detailOverride =
+            Api.json
+                .decodeFromString<Media>(javaClass.getResource("/media-detail.json")!!.readText())
+                .copy(
+                    title = "The Lord of the Rings: The Fellowship of the Ring — Extended Edition",
+                    overview =
+                        "An unlikely fellowship travels across a vast world to keep a dangerous relic out of the wrong hands. Along the way, old friendships are tested and new allies join the journey through mountains, forests, and distant cities.",
+                    runtimeMinutes = 228,
+                    contentRating = "PG-13",
+                    tmdbVoteAverage = 8.8,
+                    tmdbVoteCount = 25000,
+                )
+        connect()
+        compose.onNodeWithText("My collection").select()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("A show").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("A show").select()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("Resume · 10%").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("Resume · 10%").assertIsFocused()
+        val title = compose.onAllNodesWithText(detailOverride!!.title)[0].getUnclippedBoundsInRoot()
+        val navigation = compose.onNodeWithText("Home").getUnclippedBoundsInRoot()
+        assertTrue("The title must stay below the navigation bar", title.top > navigation.bottom)
+        val scroll =
+            compose
+                .onNode(hasScrollToNodeAction())
+                .fetchSemanticsNode()
+                .config[androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange]
+        assertEquals(
+            "Initial focus must not scroll the hero under navigation",
+            0f,
+            scroll.value(),
+            1f,
+        )
+    }
+
+    @Test
+    fun `episode rows play directly and keep watched and clear progress actions in their menu`() {
+        connect()
+        compose.onNodeWithText("My collection").select()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("A show").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("A show").select()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("Episodes").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("S01E02"))
+        compose.onNodeWithText("S01E02").performSemanticsAction(SemanticsActions.OnLongClick) {
+            it()
+        }
+        compose.onNode(hasText("Mark watched") and hasAnyAncestor(isDialog())).assertIsFocused()
+        compose.onNodeWithText("Remove progress").select()
+        compose.waitUntil(10_000) { mutations.contains("DELETE /api/v1/progress") }
+        compose.onNodeWithText("Episode options").assertDoesNotExist()
+        compose.onNodeWithText("S01E02").select()
+        compose.waitUntil(10_000) {
+            Shadows.shadowOf(compose.activity).nextStartedActivityForResult != null
+        }
+    }
+
+    @Test
+    fun `sidebar labels and selection marks are vertically centered in their row`() {
+        connect()
+        compose.onNodeWithText("Settings").select()
+        compose.onNodeWithText("Overview").assertIsFocused()
+        val row =
+            compose.onNode(hasText("Overview") and hasClickAction()).getUnclippedBoundsInRoot()
+        val text =
+            compose
+                .onNode(hasText("Overview") and !hasClickAction(), useUnmergedTree = true)
+                .getUnclippedBoundsInRoot()
+        val tick =
+            compose
+                .onNodeWithContentDescription("Selected", useUnmergedTree = true)
+                .getUnclippedBoundsInRoot()
+        assertEquals(
+            (row.top.value + row.bottom.value) / 2,
+            (text.top.value + text.bottom.value) / 2,
+            1f,
+        )
+        assertEquals(
+            (row.top.value + row.bottom.value) / 2,
+            (tick.top.value + tick.bottom.value) / 2,
+            1f,
+        )
+    }
+
+    @Test
+    fun `the next collection page is prefetched only when focus reaches the last row`() {
+        val base =
+            Api.json.decodeFromString<Media>(
+                javaClass.getResource("/media-detail.json")!!.readText()
+            )
+        libraryOverride = (1..50).map { base.copy(id = "show-$it", title = "Title $it") }
+        connect()
+        compose.onNodeWithText("My collection").select()
+        compose.waitUntil(10_000) {
+            compose
+                .onAllNodes(hasText("Title 1") and isFocused())
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+        assertEquals(0, paths.count { it.contains("page=2") })
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Title 46"))
+        compose.onNodeWithText("Title 46").performSemanticsAction(SemanticsActions.RequestFocus) {
+            it()
+        }
+        compose.waitUntil(10_000) { paths.any { it.contains("page=2") } }
+        compose.onNodeWithText("Title 47").performSemanticsAction(SemanticsActions.RequestFocus) {
+            it()
+        }
+        assertEquals(1, paths.count { it.contains("page=2") })
     }
 
     @Test
@@ -226,7 +400,7 @@ class TvNavigationTest {
         compose.onNodeWithText("Season 2").select()
         compose.waitUntil(10_000) {
             paths.any { it.contains("season=2") } &&
-                compose.onAllNodesWithText("Loading…").fetchSemanticsNodes().isEmpty()
+                compose.onAllNodesWithText("Loading episodes…").fetchSemanticsNodes().isEmpty()
         }
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("S02E01"))
         compose.onNodeWithText("S02E01").assertExists()

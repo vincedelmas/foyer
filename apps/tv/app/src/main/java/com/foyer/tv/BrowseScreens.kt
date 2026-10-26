@@ -38,11 +38,17 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 
 @Composable
-fun Artwork(path: String?, modifier: Modifier, size: String = "w342") {
+fun Artwork(
+    path: String?,
+    modifier: Modifier,
+    size: String = "w342",
+    alignment: Alignment = Alignment.Center,
+) {
     AsyncImage(
         model = path?.let { "https://image.tmdb.org/t/p/$size$it" },
         contentDescription = null,
         contentScale = ContentScale.Crop,
+        alignment = alignment,
         modifier = modifier.background(Palette.raised),
     )
 }
@@ -153,12 +159,14 @@ fun MediaTile(
 
 @Composable
 fun HomeScreen(model: AppModel) {
-    val folders = load(model.api, model.revision) { model.api.folders() }
-    val watching = load(model.api, model.revision) { model.api.watching() }
+    val folders = load<List<Collection>>(model.api, "/api/v1/libraries", revision = model.revision)
+    val watching =
+        load<List<Media>>(model.api, "/api/v1/progress", mapOf("limit" to "20"), model.revision)
     val dialogs = remember { DialogController() }
     var focused by rememberSaveable { mutableStateOf<String?>(null) }
     var restoring by remember { mutableStateOf(true) }
-    val ready = !watching.loading && !folders.loading
+    val ready =
+        (watching.value != null || !watching.loading) && (folders.value != null || !folders.loading)
     val first = watching.value?.firstOrNull()?.id ?: folders.value?.firstOrNull()?.id
     val target =
         focused?.takeIf { id ->
@@ -324,7 +332,7 @@ private val watches =
 
 @Composable
 fun CollectionScreen(model: AppModel, collectionId: String) {
-    val folders = load(model.api, model.revision) { model.api.folders() }
+    val folders = load<List<Collection>>(model.api, "/api/v1/libraries", revision = model.revision)
     val folder = folders.value?.firstOrNull { it.id == collectionId }
     val dialogs = remember { DialogController() }
     var page by rememberSaveable { mutableIntStateOf(1) }
@@ -349,7 +357,7 @@ fun CollectionScreen(model: AppModel, collectionId: String) {
             "sort" to sort,
             "watch" to watch,
         )
-    val library = load(model.api, model.revision, query) { model.api.library(query) }
+    val library = load<Library>(model.api, "/api/v1/library", query, model.revision)
     val queryKey = "$page|$sort|$watch|$search"
     var displayedQuery by rememberSaveable { mutableStateOf(queryKey) }
     LaunchedEffect(queryKey) {
@@ -367,20 +375,25 @@ fun CollectionScreen(model: AppModel, collectionId: String) {
             page = 1
         }
     }
-    LaunchedEffect(library.value, library.loading, query) {
-        if (library.loading || library.error != null) return@LaunchedEffect
+    val nearingPageEnd = library.value?.items?.takeLast(5)?.any { it.id == focused } == true
+    LaunchedEffect(library.value, library.loading, query, nearingPageEnd) {
+        if (!nearingPageEnd || library.loading || library.error != null) return@LaunchedEffect
         val data = library.value ?: return@LaunchedEffect
         if (data.pagination.page < data.pagination.totalPages) {
             try {
-                model.api.library(query + ("page" to "${data.pagination.page + 1}")).items.forEach {
-                    it.posterPath?.let { path ->
-                        context.imageLoader.enqueue(
-                            ImageRequest.Builder(context)
-                                .data("https://image.tmdb.org/t/p/w342$path")
-                                .build()
-                        )
+                model.api
+                    .library(query + ("page" to "${data.pagination.page + 1}"))
+                    .items
+                    .take(10)
+                    .forEach {
+                        it.posterPath?.let { path ->
+                            context.imageLoader.enqueue(
+                                ImageRequest.Builder(context)
+                                    .data("https://image.tmdb.org/t/p/w342$path")
+                                    .build()
+                            )
+                        }
                     }
-                }
             } catch (error: CancellationException) {
                 throw error
             } catch (_: Exception) {
@@ -448,7 +461,10 @@ fun CollectionScreen(model: AppModel, collectionId: String) {
                 MediaTile(
                     item,
                     Modifier.preferredFocus(
-                            restoring && !searchOpen && !library.loading && item.id == focusTarget
+                            restoring &&
+                                !searchOpen &&
+                                (library.value != null || !library.loading) &&
+                                item.id == focusTarget
                         )
                         .onFocusChanged {
                             if (it.hasFocus) {
@@ -534,9 +550,12 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
     var season by rememberSaveable { mutableStateOf<Int?>(null) }
     var page by rememberSaveable { mutableStateOf<Int?>(null) }
     val detail =
-        load(model.api, model.revision, mediaId, season, page) {
-            model.api.media(mediaId, season, page, 50)
-        }
+        load<Media>(
+            model.api,
+            "/api/v1/media/$mediaId",
+            model.api.mediaQuery(season, page, 50),
+            model.revision,
+        )
     val item = detail.value
     if (item == null) {
         Column(Modifier.padding(48.dp)) { LoadNotice(detail) }
@@ -545,13 +564,14 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
     val nextPartId = item.nextPartId ?: item.parts.firstOrNull()?.id
     val selectedSeason = season ?: item.selectedPartSeason
     LazyColumn(
-        contentPadding = PaddingValues(bottom = 36.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+        state = rememberLazyListState(),
+        contentPadding = PaddingValues(top = 12.dp, bottom = 36.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
             Box(Modifier.fillMaxWidth().heightIn(min = 330.dp).background(Palette.background)) {
                 item.backdropPath?.let {
-                    Artwork(it, Modifier.matchParentSize(), "w1280")
+                    Artwork(it, Modifier.matchParentSize(), "w1280", Alignment.TopCenter)
                 }
                 Box(
                     Modifier.matchParentSize()
@@ -571,7 +591,7 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
                 )
                 Column(
                     Modifier.widthIn(max = 640.dp)
-                        .padding(start = 48.dp, end = 24.dp, top = 28.dp, bottom = 32.dp),
+                        .padding(start = 48.dp, end = 24.dp, top = 20.dp, bottom = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -584,8 +604,8 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
                         )
                         Text(
                             item.title,
-                            fontSize = 40.sp,
-                            lineHeight = 46.sp,
+                            fontSize = 36.sp,
+                            lineHeight = 42.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
@@ -618,6 +638,7 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
                             TvButton(
                                 if (
                                     item.progress != null &&
+                                        item.progress.positionSeconds > 0 &&
                                         !item.progress.completed &&
                                         !item.watched
                                 )
@@ -651,11 +672,43 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
                     Modifier.padding(horizontal = 48.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Heading(if (item.kind == "movie") "Files" else "Episodes")
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Heading(if (item.kind == "movie") "Files" else "Episodes")
+                            Text(
+                                item.title,
+                                color = Palette.muted,
+                                fontSize = 13.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.widthIn(max = 500.dp),
+                            )
+                        }
+                        selectedSeason
+                            ?.takeIf { item.kind != "movie" }
+                            ?.let { number ->
+                                val watched = item.watchedSeasons.contains(number)
+                                TvButton(
+                                    if (watched) "Mark season unwatched" else "Mark season watched",
+                                    quiet = true,
+                                    icon = Icons.Outlined.CheckCircle,
+                                    enabled = !model.busy,
+                                    onClick = {
+                                        model.action {
+                                            model.api.watchMedia(item.id, !watched, number)
+                                        }
+                                    },
+                                )
+                            }
+                    }
                     if (item.kind != "movie") {
                         Row(
                             Modifier.horizontalScroll(rememberScrollState())
-                                .padding(vertical = 12.dp),
+                                .padding(vertical = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             item.partSeasons.forEach { number ->
@@ -669,55 +722,92 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
                                 )
                             }
                         }
-                        selectedSeason?.let { number ->
-                            val watched = item.watchedSeasons.contains(number)
-                            TvButton(
-                                if (watched) "Mark season unwatched" else "Mark season watched",
-                                enabled = !model.busy,
-                                onClick = {
-                                    model.action { model.api.watchMedia(item.id, !watched, number) }
-                                },
-                            )
-                        }
                     }
+                    Note(
+                        if (item.kind == "movie")
+                            "Select to play · Hold Select, then release for file options."
+                        else "Select to play · Hold Select, then release for episode options."
+                    )
+                    if (detail.loading) Note("Loading episodes…")
                 }
             }
             items(item.parts, key = { it.id }) { part ->
-                TvPanel(Modifier.padding(horizontal = 48.dp)) {
-                    Text(part.displayTitle, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    Text(
-                        part.fileName,
-                        color = Palette.muted,
-                        fontSize = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Note(
-                        "${formatBytes(part.size)}${part.progress?.let { " · ${if (it.completed) "Watched" else "${it.percentage.toInt()}% watched"}" } ?: ""}"
-                    )
-                    part.progress
-                        ?.takeIf { it.positionSeconds > 0 && !it.completed }
-                        ?.let { ProgressTrack((it.percentage / 100).toFloat()) }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        TvButton("Play", onClick = { play(item.id, part.id) })
-                        TvButton(
-                            if (part.progress?.completed == true) "Mark unwatched"
-                            else "Mark watched",
-                            enabled = !model.busy,
-                            onClick = {
-                                model.action {
-                                    model.api.watchPart(part.id, part.progress?.completed != true)
-                                }
-                            },
-                        )
-                        if (part.progress != null)
-                            TvButton(
-                                "Remove progress",
-                                enabled = !model.busy,
-                                onClick = {
-                                    model.action { model.api.clearProgress(part.id, part = true) }
-                                },
+                val progress = part.progress
+                val resume = progress?.takeIf { it.positionSeconds > 0 && !it.completed }
+                TvCard(
+                    modifier = Modifier.padding(horizontal = 48.dp),
+                    onClick = { play(item.id, part.id) },
+                    onLongClick = {
+                        dialogs.current = Overlay.PartMenu(part, item.kind == "movie")
+                    },
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            Modifier.size(52.dp)
+                                .background(Palette.raised, RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (part.episodeNumber != null)
+                                Text(
+                                    "%02d".format(part.episodeNumber),
+                                    color = Palette.primary,
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            else
+                                Icon(
+                                    Icons.Outlined.PlayArrow,
+                                    contentDescription = null,
+                                    tint = Palette.primary,
+                                    modifier = Modifier.size(24.dp),
+                                )
+                        }
+                        Column(
+                            Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            Text(
+                                part.displayTitle,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
+                            Text(
+                                "${part.fileName} · ${formatBytes(part.size)}",
+                                color = Palette.muted,
+                                fontSize = 12.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            resume?.let { ProgressTrack((it.percentage / 100).toFloat()) }
+                        }
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(
+                                if (progress?.completed == true) Icons.Outlined.CheckCircle
+                                else Icons.Outlined.PlayArrow,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp),
+                                tint =
+                                    if (progress?.completed == true || resume != null)
+                                        Palette.primary
+                                    else Palette.muted,
+                            )
+                            Text(
+                                if (progress?.completed == true) "Watched"
+                                else if (resume != null) "Resume · ${resume.percentage.toInt()}%"
+                                else "Play",
+                                color = if (resume != null) Palette.primary else Palette.muted,
+                                fontSize = 12.sp,
+                            )
+                        }
                     }
                 }
             }
