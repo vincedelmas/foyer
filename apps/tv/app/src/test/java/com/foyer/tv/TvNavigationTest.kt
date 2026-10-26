@@ -48,6 +48,8 @@ class TvNavigationTest {
 
     @Before
     fun startServer() {
+        Shadows.shadowOf(compose.activity.packageManager)
+            .setSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK, true)
         // Keep UI tests independent of the public release feed in both build variants.
         ApplicationProvider.getApplicationContext<FoyerApplication>()
             .preferences
@@ -441,7 +443,7 @@ class TvNavigationTest {
     }
 
     @Test
-    fun `holding Select opens options on release and does not activate the first action`() {
+    fun `holding Select opens options before release and does not activate the first action`() {
         connect()
         compose.onNodeWithText("My collection").select()
         compose.waitUntil(10_000) {
@@ -461,28 +463,12 @@ class TvNavigationTest {
                     0,
                 )
             )
-            compose.activity.dispatchKeyEvent(
-                AndroidKeyEvent(
-                    downTime,
-                    downTime + 600,
-                    AndroidKeyEvent.ACTION_DOWN,
-                    AndroidKeyEvent.KEYCODE_DPAD_CENTER,
-                    1,
-                )
-            )
         }
         compose.onNodeWithText("Mark as watched").assertDoesNotExist()
-        compose.runOnIdle {
-            compose.activity.dispatchKeyEvent(
-                AndroidKeyEvent(
-                    downTime,
-                    downTime + 700,
-                    AndroidKeyEvent.ACTION_UP,
-                    AndroidKeyEvent.KEYCODE_DPAD_CENTER,
-                    0,
-                )
-            )
-        }
+        // Open from the timer alone: remotes do not need to send repeats or key-up.
+        compose.mainClock.advanceTimeBy(
+            android.view.ViewConfiguration.getLongPressTimeout().toLong() + 100
+        )
         compose.onNodeWithText("Mark as watched").assertIsFocused()
         val dialog = ShadowDialog.getLatestDialog()
         // Some remotes send more repeats or an extra release after focus changes.

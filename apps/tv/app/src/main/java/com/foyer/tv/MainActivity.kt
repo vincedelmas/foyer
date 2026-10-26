@@ -10,7 +10,10 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.BringIntoViewSpec
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
@@ -135,6 +138,7 @@ class AppModel(application: Application, private val saved: SavedStateHandle) :
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FoyerApp(model: AppModel = viewModel()) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -243,8 +247,15 @@ fun FoyerApp(model: AppModel = viewModel()) {
                             model.route == "settings" -> SettingsScreen(model)
                             model.route.startsWith("collection/") ->
                                 CollectionScreen(model, model.route.removePrefix("collection/"))
-                            model.route.startsWith("detail/") ->
-                                DetailScreen(model, model.route.removePrefix("detail/"), play)
+                            model.route.startsWith("detail/") -> {
+                                // Keep the hero visible instead of moving Play to TV's focus pivot.
+                                CompositionLocalProvider(
+                                    LocalBringIntoViewSpec provides
+                                        remember { object : BringIntoViewSpec {} }
+                                ) {
+                                    DetailScreen(model, model.route.removePrefix("detail/"), play)
+                                }
+                            }
                         }
                     }
                 }

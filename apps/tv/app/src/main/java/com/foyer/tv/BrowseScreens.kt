@@ -68,7 +68,7 @@ fun MediaTile(
             Artwork(
                 if (wide) item.backdropPath ?: item.posterPath else item.posterPath,
                 Modifier.fillMaxWidth()
-                    .aspectRatio(if (wide) 16f / 9f else 2f / 3f)
+                    .aspectRatio(if (wide) 16f / 11f else 3f / 4f)
                     .clip(RoundedCornerShape(8.dp)),
                 size = if (wide && item.backdropPath != null) "w780" else "w342",
             )
@@ -125,14 +125,13 @@ fun MediaTile(
         }
         Column(
             Modifier.padding(horizontal = 4.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Text(
                 item.title,
                 fontSize = 16.sp,
                 lineHeight = 20.sp,
                 fontWeight = FontWeight.SemiBold,
-                minLines = if (wide) 1 else 2,
                 maxLines = if (wide) 1 else 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -225,8 +224,7 @@ fun HomeScreen(model: AppModel) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Heading("My media")
-                    if (folders.value?.isNotEmpty() == true)
-                        Note("Hold Select, then release for options.")
+                    if (folders.value?.isNotEmpty() == true) Note("Hold Select for options.")
                 }
                 LoadNotice(folders)
             }
@@ -255,7 +253,7 @@ fun HomeScreen(model: AppModel) {
                         ) {
                             Box(
                                 Modifier.fillMaxWidth()
-                                    .height(112.dp)
+                                    .height(146.dp)
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(Palette.raised)
                             ) {
@@ -610,19 +608,20 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
+                        Note(
+                            listOfNotNull(
+                                    item.year?.toString(),
+                                    item.runtimeLabel,
+                                    if (item.kind != "movie") "${item.partCount} episodes"
+                                    else null,
+                                    item.contentRating,
+                                    item.tmdbVoteAverage?.let {
+                                        "★ %.1f/10 · ${item.tmdbVoteCount ?: 0} votes".format(it)
+                                    },
+                                )
+                                .joinToString(" · ")
+                        )
                     }
-                    Note(
-                        listOfNotNull(
-                                item.year?.toString(),
-                                item.runtimeLabel,
-                                "${item.partCount} ${if (item.kind == "movie") "files" else "episodes"}",
-                                item.contentRating,
-                                item.tmdbVoteAverage?.let {
-                                    "★ %.1f/10 · ${item.tmdbVoteCount ?: 0} votes".format(it)
-                                },
-                            )
-                            .joinToString(" · ")
-                    )
                     if (item.metadataStatus == "unmatched") Note("Needs identification")
                     item.overview?.let {
                         Text(
@@ -724,9 +723,8 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
                         }
                     }
                     Note(
-                        if (item.kind == "movie")
-                            "Select to play · Hold Select, then release for file options."
-                        else "Select to play · Hold Select, then release for episode options."
+                        if (item.kind == "movie") "Select to play · Hold Select for file options."
+                        else "Select to play · Hold Select for episode options."
                     )
                     if (detail.loading) Note("Loading episodes…")
                 }

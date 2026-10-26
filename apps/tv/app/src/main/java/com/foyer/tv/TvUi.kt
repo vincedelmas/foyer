@@ -1,6 +1,7 @@
 package com.foyer.tv
 
 import android.view.KeyEvent as AndroidKeyEvent
+import android.view.ViewConfiguration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -38,6 +39,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.tv.material3.*
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 
 object Palette {
     val background = Color(0xff12110f)
@@ -252,8 +254,7 @@ fun TvMenuItem(
     }
 }
 
-// Keep the whole Select gesture on the card. Opening a new focus window while
-// Select is held sends its remaining repeats/release to the first menu button.
+// The dialog consumes the held gesture after it opens, including repeats and release.
 @Composable
 fun TvCard(
     onClick: () -> Unit,
@@ -263,6 +264,14 @@ fun TvCard(
 ) {
     var heldKey by remember { mutableStateOf<Int?>(null) }
     var longPress by remember { mutableStateOf(false) }
+    val currentLongClick by rememberUpdatedState(onLongClick)
+    LaunchedEffect(heldKey) {
+        if (heldKey != null) {
+            delay(ViewConfiguration.getLongPressTimeout().toLong())
+            longPress = true
+            currentLongClick()
+        }
+    }
     Card(
         onClick = onClick,
         onLongClick = onLongClick,
@@ -277,14 +286,12 @@ fun TvCard(
                             if (key.repeatCount == 0) {
                                 heldKey = key.keyCode
                                 longPress = false
-                            } else if (heldKey == key.keyCode) longPress = true
+                            }
                         }
                         AndroidKeyEvent.ACTION_UP -> {
                             if (heldKey == key.keyCode) {
                                 heldKey = null
-                                if (!key.isCanceled) {
-                                    if (longPress) onLongClick() else onClick()
-                                }
+                                if (!key.isCanceled && !longPress) onClick()
                             }
                         }
                     }
