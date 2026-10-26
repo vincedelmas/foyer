@@ -30,11 +30,6 @@
           "type": "json",
           "path": "apps/tv/package.json",
           "jsonpath": "$.version"
-        },
-        {
-          "type": "json",
-          "path": "apps/tv/app.json",
-          "jsonpath": "$.expo.version"
         }
       ]
     }

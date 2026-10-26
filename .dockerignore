@@ -12,8 +12,11 @@ data
 .env.*
 !.env.example
 
-apps/tv/android
-apps/tv/.expo
+apps/tv/.gradle
+apps/tv/.kotlin
+apps/tv/build
+apps/tv/app/build
+apps/tv/local.properties
 
 *.log
 *.db

@@ -15,7 +15,7 @@
         "build:entry": "bun build ./server.ts --target=bun --outfile=./dist/server.js",
         "build": "bun run build:server && bun run build:entry",
         "typecheck": "tsc --noEmit",
-        "tv": "bun --cwd apps/tv start",
+        "tv": "bun --cwd apps/tv android",
         "db:studio": "drizzle-kit studio",
         "db:migrate": "drizzle-kit migrate",
         "db:generate": "drizzle-kit generate",
@@ -25,8 +25,9 @@
         "lint": "oxlint --type-aware --type-check",
         "preview": "bun run build && bun run start",
         "lint:fix": "oxlint --type-aware --type-check --fix",
-        "typecheck:tv": "tsc --noEmit -p apps/tv/tsconfig.json",
-        "verify": "bun run typecheck && bun run typecheck:tv && bun run lint && bun run knip && bun run test && bun run build"
+        "verify": "bun run typecheck && bun run tv:check && bun run lint && bun run knip && bun run test && bun run build",
+        "tv:build": "bun --cwd apps/tv build",
+        "tv:check": "bun --cwd apps/tv check"
     },
     "dependencies": {
         "@base-ui/react": "^1.9.0",

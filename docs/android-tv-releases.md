@@ -74,9 +74,9 @@ public only after `foyer-tv.apk`, `foyer-tv.apk.sha256`, and `update.json` have 
 Before the first run, enable **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests**. Add the four
 signing secrets before merging the first Release Please PR.
 
-Android's `versionCode` is derived from SemVer (`0.2.1` becomes `2001`) rather than a workflow counter. The Gradle cache is retained between
-workflow runs, and the build cache reuses unchanged native compilation where possible. Release APKs include 32-bit and 64-bit ARM so they
-support both the 32-bit NVIDIA Shield TV 2019 Tube and 64-bit Shield models. The unused x86 Android emulator architectures remain excluded.
+Android's `versionCode` is derived from SemVer (`0.2.1` becomes `2001`) rather than a workflow counter. The standalone Gradle project
+is built directly, without Node dependencies or Expo prebuild. The Gradle cache is retained between workflow runs. Release APKs include only 32-bit ARM (`armeabi-v7a`) for the NVIDIA Shield TV 2019 Tube running Android 11.
+The workflow runs Kotlin unit tests and Android release lint before publishing.
 The Android workflow remains manually runnable as a recovery mechanism, but its version/tag must already exist as a Release Please release.
 The APK is attached directly to that release rather than also being stored as a duplicate short-lived Actions artifact.
 
@@ -88,8 +88,18 @@ The APK is attached directly to that release rather than also being stored as a 
    https://github.com/vincedelmas/foyer/releases/download/v<version>/foyer-tv.apk
    ```
 
-2. Install and open it, then enter the Foyer server's LAN URL again.
+2. Install and open it, then enter the Foyer server's LAN URL. When upgrading a permanently signed RN release, the saved URL is imported automatically.
 
 3. For future versions, choose **Install update** inside the Foyer TV app. The first time, the TV may ask you to allow Foyer TV to install
    unknown apps. Grant that per-app permission, return to Foyer, and retry. All later APKs signed with the same key install over the current
    app while preserving its local settings.
+
+## Native Kotlin builds
+
+The TV build needs JDK 17 and Android SDK platform 36 / build tools 35.0.0. It runs on Android 11 (API 30) and later, with the Shield Tube as the supported device. `compileSdk` and `targetSdk` remain independent of that minimum runtime version.
+
+For a local signed release, export the existing `FOYER_TV_KEYSTORE_PATH`, `FOYER_TV_KEYSTORE_PASSWORD`, `FOYER_TV_KEY_ALIAS`, and `FOYER_TV_KEY_PASSWORD` values, then run `./gradlew assembleRelease` in `apps/tv`. No signing secrets are stored in the source tree. Without these variables Gradle produces an unsigned release for inspection; `installDebug` uses a separate `.debug` application ID.
+
+Gradle reads the default version from `apps/tv/package.json` (which Release Please maintains). `FOYER_TV_VERSION` and `FOYER_TV_VERSION_CODE` override it in CI. The update manifest and stable `foyer-tv.apk` asset name are unchanged.
+
+The first Kotlin release must retain `com.foyer.tv`, the permanent signing key, and a greater version code. On first launch it imports the existing AsyncStorage `RKStorage` database into native preferences. Server-side collections, metadata, and playback progress remain on the Foyer server. Follow the [native migration checklist](android-tv-native.md) on the Shield before publishing.

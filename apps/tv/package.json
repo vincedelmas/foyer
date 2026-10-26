@@ -2,35 +2,9 @@
   "name": "@foyer/tv",
   "version": "1.4.1",
   "private": true,
-  "main": "index.ts",
   "scripts": {
-    "start": "expo start --dev-client",
-    "android": "expo run:android",
-    "prebuild": "expo prebuild --clean --platform android"
-  },
-  "dependencies": {
-    "@foyer/contracts": "workspace:*",
-    "@foyer/query": "workspace:*",
-    "@react-native-async-storage/async-storage": "2.2.0",
-    "@react-native-tvos/config-tv": "^0.1.6",
-    "@tanstack/react-query": "^5.102.8",
-    "expo": "^57.0.17",
-    "expo-application": "~57.0.2",
-    "expo-build-properties": "~57.0.15",
-    "expo-file-system": "~57.0.6",
-    "expo-image": "~57.0.4",
-    "expo-intent-launcher": "~57.0.1",
-    "expo-navigation-bar": "~57.0.2",
-    "expo-status-bar": "^57.0.0",
-    "expo-system-ui": "~57.0.3",
-    "lucide-react-native": "^1.34.0",
-    "react": "19.2.3",
-    "react-native": "npm:react-native-tvos@0.86.2-0",
-    "react-native-blob-util": "0.24.10",
-    "react-native-svg": "15.15.4"
-  },
-  "devDependencies": {
-    "@types/react": "^19.2.18",
-    "typescript": "^6.0.3"
+    "android": "./gradlew installDebug",
+    "build": "./gradlew assembleRelease",
+    "check": "./gradlew testDebugUnitTest lintDebug"
   }
 }

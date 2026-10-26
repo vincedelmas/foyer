@@ -9,19 +9,6 @@
             "project": [
                 "src/**/*.{ts,tsx}"
             ]
-        },
-        "apps/tv": {
-            "entry": [
-                "App.tsx",
-                "plugins/with-tv-runtime.cjs",
-                "plugins/with-release-signing.cjs"
-            ],
-            "project": [
-                "**/*.{ts,tsx,cjs}"
-            ],
-            "ignoreDependencies": [
-                "expo-updates"
-            ]
         }
     },
     "ignore": [

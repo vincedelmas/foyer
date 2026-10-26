@@ -95,23 +95,27 @@ Foyer does not transcode video or audio. That keeps the server simple, but the d
 
 ## Android TV
 
-The TV app lives in `apps/tv` and targets Android TV only. On first launch it asks for the Foyer server's LAN address, for example `http://192.168.1.10:3000`. Remember that `localhost` on the TV means the TV itself; an Android emulator can reach the host at `http://10.0.2.2:3000`.
+The TV app lives in `apps/tv` and is a standalone Kotlin / Jetpack Compose for TV app for the **NVIDIA Shield TV 2019 Tube** (Android 11, 32-bit ARM). It packages only `armeabi-v7a`; there is no React Native, Expo, JavaScript runtime, or prebuild step. On first launch, enter the Foyer server's LAN address, for example `http://192.168.1.10:3000`.
 
-To build and install it locally:
+Install JDK 17 and the Android SDK (platform 36 and build tools 35.0.0), then set `JAVA_HOME` and `ANDROID_HOME` or configure them in Android Studio. Build and install a development APK on a connected Shield:
 
 ```bash
 cd apps/tv
-bun run prebuild
-bun run android
+./gradlew installDebug
 ```
 
-This requires Android Studio, the Android SDK, and a connected device or emulator. After prebuild, a release APK can also be built with:
+Development installs use `com.foyer.tv.debug` so they can coexist with the permanently signed app. The APK is in `app/build/outputs/apk/debug/app-debug.apk`.
+
+Build a release APK with:
 
 ```bash
-cd apps/tv/android
+cd apps/tv
 ./gradlew assembleRelease
-adb install -r app/build/outputs/apk/release/app-release.apk
 ```
+
+Without signing environment variables, this produces `app/build/outputs/apk/release/app-release-unsigned.apk`. Signed builds use the existing `com.foyer.tv` application ID and release key, and can upgrade the RN app in place. The first native launch imports the saved server address, collection watched filters, and update preferences from its AsyncStorage database.
+
+Run Android checks with `./gradlew testDebugUnitTest lintDebug`, or `bun run tv:check` from the repository root. See the [feature parity and device verification checklist](docs/android-tv-native.md) before publishing a migration release.
 
 The repository also includes a GitHub Actions workflow for permanently signed release APKs and in-app updates. The one-time signing setup is documented in the [Android TV release guide](docs/android-tv-releases.md). Native playback licenses and source links are listed in [third-party notices](apps/tv/THIRD_PARTY_NOTICES.md).
 
@@ -132,14 +136,14 @@ pm2 start dist/server.js --name foyer --interpreter bun
 
 ## Development
 
-The main pieces are a TanStack Start/React web app, a Bun server, SQLite with Drizzle, shared Zod contracts, and a React Native TV client.
+The main pieces are a TanStack Start/React web app, a Bun server, SQLite with Drizzle, shared Zod contracts, and a native Kotlin Android TV client. The Kotlin API models mirror `packages/contracts`; the web client continues to use the shared TypeScript API/query packages.
 
 Useful commands:
 
 ```bash
 bun run test          # Vitest suite
 bun run typecheck     # web and server TypeScript
-bun run typecheck:tv  # Android TV TypeScript
+bun run tv:check      # Android TV unit tests and lint
 bun run lint          # Oxlint
 bun run db:studio     # inspect the SQLite database
 bun run verify        # all checks plus a production build
@@ -152,7 +156,7 @@ bun run db:generate
 bun run db:migrate
 ```
 
-The versioned JSON API is under `/api/v1`. Its schemas and the client shared by the web and TV apps live in `packages/contracts` and `packages/query`.
+The versioned JSON API is under `/api/v1`. Its schemas and the web client live in `packages/contracts` and `packages/query`; the TV client implements the same JSON contracts in Kotlin.
 
 ## Security
 

@@ -6,7 +6,6 @@
         "vitest.config.ts"
     ],
     "exclude": [
-        "apps/tv",
         ".output",
         "node_modules"
     ],

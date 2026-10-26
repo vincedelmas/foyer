@@ -8,8 +8,9 @@ data
 *.sqlite-wal
 coverage
 dist
-apps/tv/.expo
-apps/tv/android
-apps/tv/ios
-apps/tv/.env
+apps/tv/.gradle
+apps/tv/.kotlin
+apps/tv/build
+apps/tv/app/build
+apps/tv/local.properties
 .idea

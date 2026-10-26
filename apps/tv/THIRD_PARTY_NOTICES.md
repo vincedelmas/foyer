@@ -4,14 +4,36 @@ Foyer TV embeds the following native components in its APK. The Foyer TV
 client itself is distributed under the GNU GPL version 3; see `LICENSE` in
 this directory. The Foyer server and web application are separate programs.
 
-## react-native-blob-util
+## AndroidX / Jetpack Compose for TV
 
-- Version: 0.24.10
-- Project: https://github.com/RonRadtke/react-native-blob-util
-- License: MIT
-- License text: https://github.com/RonRadtke/react-native-blob-util/blob/v0.24.10/LICENSE
+- Project: https://github.com/androidx/androidx
+- License: Apache License 2.0
+- License text: https://github.com/androidx/androidx/blob/androidx-main/LICENSE.txt
 
-Foyer uses its native file hashing API to verify large update APKs without loading them into the JavaScript or Java heap.
+AndroidX provides the native TV interface, lifecycle, and file sharing for APK updates.
+
+## OkHttp
+
+- Version: 4.12.0
+- Project: https://github.com/square/okhttp
+- License: Apache License 2.0
+- License text: https://github.com/square/okhttp/blob/master/LICENSE.txt
+
+## Coil
+
+- Version: 2.7.0
+- Project: https://github.com/coil-kt/coil
+- License: Apache License 2.0
+- License text: https://github.com/coil-kt/coil/blob/main/LICENSE.txt
+
+Coil loads and caches artwork. Update APKs are hashed with Java's streaming MessageDigest API.
+
+## Kotlin and kotlinx libraries
+
+Projects: https://github.com/JetBrains/kotlin, https://github.com/Kotlin/kotlinx.coroutines, https://github.com/Kotlin/kotlinx.serialization
+
+- License: Apache License 2.0
+- License text: https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt
 
 ## AndroidX Media3
 

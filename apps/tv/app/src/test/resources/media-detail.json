@@ -1,0 +1,109 @@
+{
+  "id": "show",
+  "title": "A show",
+  "addedAt": 0,
+  "kind": "series",
+  "watched": false,
+  "partCount": 3,
+  "unwatchedPartCount": 2,
+  "year": 2024,
+  "hasProgress": true,
+  "overview": null,
+  "nextPartId": "episode-2",
+  "nextPartTitle": "Continue",
+  "posterPath": null,
+  "releaseDate": null,
+  "backdropPath": null,
+  "nextPartSeasonNumber": 1,
+  "nextPartEpisodeNumber": 2,
+  "tmdbVoteCount": null,
+  "runtimeMinutes": null,
+  "tmdbVoteAverage": null,
+  "progress": {
+    "updatedAt": 1000,
+    "percentage": 10,
+    "completed": false,
+    "positionSeconds": 91.5,
+    "durationSeconds": 915
+  },
+  "metadataStatus": "matched",
+  "genres": [],
+  "parts": [
+    {
+      "id": "episode-1",
+      "size": 5000000000,
+      "fileName": "episode-1.mkv",
+      "mimeType": "video/x-matroska",
+      "streamUrl": "/api/v1/stream/episode-1",
+      "title": null,
+      "subtitles": [],
+      "seasonNumber": 1,
+      "episodeNumber": 1,
+      "progress": {
+        "updatedAt": 1000,
+        "percentage": 100,
+        "completed": true,
+        "positionSeconds": 915,
+        "durationSeconds": 915
+      }
+    },
+    {
+      "id": "episode-2",
+      "size": 5000000000,
+      "fileName": "episode-2.mkv",
+      "mimeType": "video/x-matroska",
+      "streamUrl": "/api/v1/stream/episode-2",
+      "title": null,
+      "subtitles": [
+        {
+          "id": "styled",
+          "url": "/api/v1/subtitles/styled",
+          "label": "English ASS",
+          "format": "ass",
+          "language": "en",
+          "isDefault": true
+        }
+      ],
+      "seasonNumber": 1,
+      "episodeNumber": 2,
+      "progress": {
+        "updatedAt": 1000,
+        "percentage": 10,
+        "completed": false,
+        "positionSeconds": 91.5,
+        "durationSeconds": 915
+      }
+    },
+    {
+      "id": "episode-3",
+      "size": 5000000000,
+      "fileName": "episode-3.mkv",
+      "mimeType": "video/x-matroska",
+      "streamUrl": "/api/v1/stream/episode-3",
+      "title": null,
+      "subtitles": [],
+      "seasonNumber": 2,
+      "episodeNumber": 1,
+      "progress": null
+    }
+  ],
+  "cast": [],
+  "tmdbId": 42,
+  "partSeasons": [
+    1,
+    2
+  ],
+  "watchedSeasons": [],
+  "seasons": [],
+  "partsPagination": {
+    "page": 1,
+    "pageSize": 3,
+    "totalItems": 3,
+    "totalPages": 1
+  },
+  "originalTitle": null,
+  "contentRating": null,
+  "originalLanguage": null,
+  "selectedPartSeason": null,
+  "metadataRefreshedAt": null
+}
