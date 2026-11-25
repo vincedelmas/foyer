@@ -237,12 +237,15 @@ class TvNavigationTest {
     }
 
     @Test
-    fun `long media details stay below navigation when resume receives focus`() {
+    fun `up from resume reveals the movie header before moving to navigation`() {
         detailOverride =
             Api.json
                 .decodeFromString<Media>(javaClass.getResource("/media-detail.json")!!.readText())
                 .copy(
                     title = "The Lord of the Rings: The Fellowship of the Ring — Extended Edition",
+                    kind = "movie",
+                    partCount = 1,
+                    cast = listOf(Person(1, "Elijah Wood", "Frodo Baggins", null)),
                     overview =
                         "An unlikely fellowship travels across a vast world to keep a dangerous relic out of the wrong hands. Along the way, old friendships are tested and new allies join the journey through mountains, forests, and distant cities.",
                     runtimeMinutes = 228,
@@ -274,6 +277,21 @@ class TvNavigationTest {
             scroll.value(),
             1f,
         )
+        compose.onNodeWithText("Resume · 10%").performKeyInput { pressKey(Key.DirectionDown) }
+        compose.onNode(isFocused() and hasAnyDescendant(hasText("Elijah Wood")))
+            .performKeyInput { pressKey(Key.DirectionUp) }
+        compose.onNodeWithText("Resume · 10%").assertIsFocused()
+        assertTrue(
+            "Returning to Resume should leave the hero partially scrolled",
+            scroll.value() > 0f,
+        )
+
+        compose.onNodeWithText("Resume · 10%").performKeyInput { pressKey(Key.DirectionUp) }
+        compose.onNodeWithText("Resume · 10%").assertIsFocused()
+        assertEquals("Up must reveal the top of the hero", 0f, scroll.value(), 1f)
+        compose.onNodeWithText("Resume · 10%").performKeyInput { pressKey(Key.DirectionUp) }
+        compose.onNode(isFocused() and (hasText("Home") or hasText("Back") or hasText("Settings")))
+            .assertExists()
     }
 
     @Test

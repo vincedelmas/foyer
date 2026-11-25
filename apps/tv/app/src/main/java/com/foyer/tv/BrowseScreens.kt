@@ -24,6 +24,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -561,8 +566,9 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
     }
     val nextPartId = item.nextPartId ?: item.parts.firstOrNull()?.id
     val selectedSeason = season ?: item.selectedPartSeason
+    val listState = rememberLazyListState()
     LazyColumn(
-        state = rememberLazyListState(),
+        state = listState,
         contentPadding = PaddingValues(top = 12.dp, bottom = 36.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -632,7 +638,20 @@ fun DetailScreen(model: AppModel, mediaId: String, play: (String, String) -> Uni
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier =
+                            Modifier.onPreviewKeyEvent { event ->
+                                if (
+                                    event.type == KeyEventType.KeyDown &&
+                                        event.key == Key.DirectionUp &&
+                                        listState.canScrollBackward
+                                ) {
+                                    listState.requestScrollToItem(0)
+                                    true
+                                } else false
+                            },
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
                         nextPartId?.let { partId ->
                             TvButton(
                                 if (
