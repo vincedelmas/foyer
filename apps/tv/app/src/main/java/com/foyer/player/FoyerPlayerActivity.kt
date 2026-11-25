@@ -1,5 +1,6 @@
 package com.foyer.player
 
+import com.foyer.tv.FoyerApplication
 import com.foyer.tv.R
 
 import android.annotation.SuppressLint
@@ -84,6 +85,7 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
   private lateinit var audioButton: ImageButton
   private lateinit var subtitleButton: ImageButton
 
+  private val preferences get() = (application as FoyerApplication).preferences
   private val handler = Handler(Looper.getMainLooper())
   private val resumedParts = mutableSetOf<String>()
   private var currentPart: PlaybackPart? = null
@@ -334,6 +336,12 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
     subtitleButton.isEnabled = subtitleTracks().isNotEmpty()
   }
 
+  override fun onEvents(player: Player, events: Player.Events) {
+    if (events.containsAny(Player.EVENT_MEDIA_ITEM_TRANSITION, Player.EVENT_TRACKS_CHANGED)) {
+      restoreSubtitleChoice()
+    }
+  }
+
   override fun onPlayerError(error: PlaybackException) {
     loadingView.visibility = View.GONE
     playbackError = friendlyPlaybackError(error)
@@ -381,7 +389,9 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
     val trackIndex: Int,
     val label: String,
     val selected: Boolean,
-  )
+  ) {
+    val preferenceId: String get() = "$trackIndex:${group.mediaTrackGroup.id}"
+  }
 
   private fun audioTracks(): List<SelectableTrack> = tracksOfType(C.TRACK_TYPE_AUDIO)
 
@@ -488,6 +498,7 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
   private fun showSubtitlePicker() {
     val tracks = subtitleTracks()
     if (tracks.isEmpty()) return
+    val partId = player.currentMediaItem?.mediaId ?: return
     val disabled = player.trackSelectionParameters.disabledTrackTypes.contains(C.TRACK_TYPE_TEXT)
     val labels = listOf("Off") + tracks.map { it.label }
     val current = if (disabled) 0 else tracks.indexOfFirst { it.selected }.let { if (it < 0) 0 else it + 1 }
@@ -495,19 +506,31 @@ class FoyerPlayerActivity : Activity(), Player.Listener {
     AlertDialog.Builder(this)
       .setTitle("Subtitles")
       .setSingleChoiceItems(labels.toTypedArray(), current) { dialog, choice ->
-        val builder = player.trackSelectionParameters.buildUpon()
-          .clearOverridesOfType(C.TRACK_TYPE_TEXT)
-          .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, choice == 0)
-        if (choice > 0) {
-          val track = tracks[choice - 1]
-          builder.setOverrideForType(TrackSelectionOverride(track.group.mediaTrackGroup, track.trackIndex))
-        }
-        player.trackSelectionParameters = builder.build()
+        val preferenceId = if (choice == 0) "" else tracks[choice - 1].preferenceId
+        preferences.edit().putString(subtitlePreferenceKey(partId), preferenceId).apply()
+        restoreSubtitleChoice()
         dialog.dismiss()
         showControls()
       }
       .setNegativeButton("Cancel", null)
       .show()
+  }
+
+  private fun subtitlePreferenceKey(partId: String) =
+    "foyer.tv.subtitles.${options.serverUrl}/$partId"
+
+  private fun restoreSubtitleChoice() {
+    val partId = player.currentMediaItem?.mediaId ?: return
+    val choice = preferences.getString(subtitlePreferenceKey(partId), null)
+    val builder = player.trackSelectionParameters.buildUpon()
+      .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+      .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, choice == "")
+    if (!choice.isNullOrEmpty()) {
+      subtitleTracks().firstOrNull { it.preferenceId == choice }?.let { track ->
+        builder.setOverrideForType(TrackSelectionOverride(track.group.mediaTrackGroup, track.trackIndex))
+      }
+    }
+    player.trackSelectionParameters = builder.build()
   }
 
   private fun saveProgress() {
