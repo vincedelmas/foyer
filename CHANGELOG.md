@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.0](https://github.com/vincedelmas/foyer/compare/v1.5.2...v1.6.0) (2026-11-25)
+
+
+### Features
+
+* **tv:** remember subtitle choices per video ([d724dd8](https://github.com/vincedelmas/foyer/commit/d724dd84ef2136b715ff7294d242f34c39ee0e5d))
+
+
+### Bug Fixes
+
+* **tv:** reveal the details header before moving focus to navigation ([fbe405d](https://github.com/vincedelmas/foyer/commit/fbe405dec002511d87dad648ac46bfac25f7c884))
+
 ## [1.5.2](https://github.com/vincedelmas/foyer/compare/v1.5.1...v1.5.2) (2026-10-26)
 
 
